@@ -1,85 +1,112 @@
-package com.example.ibook.components
+package com.ibook.ui.components
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.tooling.preview.Preview
+
+
+enum class AppButtonType {
+    PRIMARY,
+    OUTLINED
+}
 
 @Composable
-fun PrimaryButton(
+fun AppButton(
     text: String,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    type: AppButtonType = AppButtonType.PRIMARY
 ) {
-    Button(
-        onClick = onClick,
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(52.dp),
-        shape = RoundedCornerShape(14.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = Color(0xFF6C63FF)
-        )
-    ) {
-        Text(
-            text = text,
-            color = Color.White,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Medium
-        )
+    val shape = RoundedCornerShape(14.dp)
+
+    when (type) {
+        AppButtonType.PRIMARY -> {
+            Button(
+                onClick = onClick,
+                enabled = enabled,
+                modifier = modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = shape,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF6C5CE7),
+                    disabledContainerColor = Color(0xFF6C5CE7).copy(alpha = 0.4f)
+                )
+            ) {
+                ButtonText(text, Color.White)
+            }
+        }
+
+        AppButtonType.OUTLINED -> {
+            OutlinedButton(
+                onClick = onClick,
+                enabled = enabled,
+                modifier = modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = shape,
+                border = BorderStroke(1.dp, Color(0xFF6C5CE7)),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    containerColor = Color.White
+                )
+            ) {
+                ButtonText(text, Color(0xFF6C5CE7))
+            }
+        }
     }
 }
 
-
 @Composable
-fun WhiteButton(
+private fun ButtonText(
     text: String,
-    onClick: () -> Unit
+    color: Color
 ) {
-    OutlinedButton(
-        onClick = onClick,
-        modifier = Modifier
-            .fillMaxSize()
-            .height(52.dp),
-        shape = RoundedCornerShape(14.dp),
-        border = BorderStroke(1.dp, Color(0xFF6C63FF))
-    ) {
-        Text(
-            text = text,
-            color = Color(0xFF6C63FF),
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Medium
-        )
-    }
+    Text(
+        text = text,
+        fontSize = 16.sp,
+        fontWeight = FontWeight.SemiBold,
+        color = color
+    )
 }
-
-@Preview(showBackground = true)
+@Preview(
+    name = "App Buttons – All States",
+    showBackground = true,
+    backgroundColor = 0xFFF5F5F5
+)
 @Composable
-fun ButtonPreview() {
-    androidx.compose.foundation.layout.Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(16.dp)
+fun AppButtonAllPreview() {
+    Column(
+        modifier = Modifier.padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        PrimaryButton(text = "Primary Button") {
-            // Handle click
-        }
+        AppButton(
+            text = "Verify",
+            onClick = {}
+        )
 
-        WhiteButton(text = "White Button") {
-            // Handle click
-        }
+        AppButton(
+            text = "Done",
+            type = AppButtonType.OUTLINED,
+            onClick = {}
+        )
+
+        AppButton(
+            text = "Continue",
+            enabled = false,
+            onClick = {}
+        )
     }
 }
