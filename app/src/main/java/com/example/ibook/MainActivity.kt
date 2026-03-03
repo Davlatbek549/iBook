@@ -1,9 +1,6 @@
 package com.example.ibook
 
-import android.R.attr.onClick
-import android.content.Context
 import android.os.Bundle
-import android.widget.Button
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -15,7 +12,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.ibook.ui.theme.IBookTheme
-import com.ibook.ui.components.AppButton
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -35,7 +31,6 @@ class MainActivity : ComponentActivity() {
 }
 @Composable
 fun Greeting(name: String, modifier: Modifier = Modifier) {
-
     Text(
         text = "Hello $name!",
         modifier = modifier
