@@ -4,24 +4,24 @@ import androidx.compose.ui.graphics.Color
 
 object CategoryPalette {
     private val map = mapOf(
-        "comic" to Comic,
-        "arts" to Arts,
-        "biographies" to Biographies,
-        "business" to Business,
-        "cooking" to Cooking,
-        "edu" to Edu,
-        "health" to Health,
-        "history" to History,
-        "kids" to Kids,
-        "medical" to Medical,
-        "fantasy" to Fantasy,
-        "self_help" to Self_Help,
-        "sport" to Sport,
-        "travel" to Travel,
-        "romantic" to Romantic,
-        "horror" to Horror
+        "comic" to ColorCategoryComic,
+        "arts" to ColorCategoryArts,
+        "biographies" to ColorCategoryBiographies,
+        "business" to ColorCategoryBusiness,
+        "cooking" to ColorCategoryCooking,
+        "edu" to ColorCategoryEducation,
+        "health" to ColorCategoryHealth,
+        "history" to ColorCategoryHistory,
+        "kids" to ColorCategoryKids,
+        "medical" to ColorCategoryMedical,
+        "fantasy" to ColorCategoryFantasy,
+        "self_help" to ColorCategorySelfHelp,
+        "sport" to ColorCategorySport,
+        "travel" to ColorCategoryTravel,
+        "romantic" to ColorSecondary,
+        "horror" to ColorTertiary
     )
 
     fun colorFor(category: String?): Color =
-        map[category?.lowercase()?.replace(" ", "_")] ?: MainColor
+        map[category?.lowercase()?.replace(" ", "_")] ?: ColorPrimary
 }
