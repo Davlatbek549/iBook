@@ -1,4 +1,4 @@
-package com.example.ibook.app_components
+package com.example.ibook.app_components.inputs
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable

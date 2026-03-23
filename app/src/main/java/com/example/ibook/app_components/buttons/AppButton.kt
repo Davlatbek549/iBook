@@ -1,6 +1,7 @@
-package com.example.ibook.components
+package com.example.ibook.app_components.buttons
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -56,7 +57,7 @@ fun ButtonPreview() {
             .fillMaxSize()
             .background(Color.Black)
             .padding(16.dp),
-        verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         AppButton(
             onClick = {},
