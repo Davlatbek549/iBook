@@ -1,0 +1,219 @@
+package com.example.ibook.screens.login
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.*
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import com.example.ibook.R
+import com.example.ibook.app_components.inputs.InputKind
+import com.example.ibook.app_components.inputs.UniversalInputField
+
+@Composable
+fun LoginScreen() {
+
+    val primaryText = MaterialTheme.colorScheme.onSurface
+    val secondaryText = primaryText.copy(alpha = 0.7f)
+    val borderColor = Color.Gray.copy(alpha = 0.3f)
+
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+
+    Column(
+        modifier = Modifier
+            .background(MaterialTheme.colorScheme.background)
+            .fillMaxSize()
+            .padding(horizontal = 24.dp)
+    ) {
+
+        Spacer(modifier = Modifier.height(72.dp))
+
+        Text(
+            text = "Sign in with Email",
+            style = MaterialTheme.typography.headlineLarge,
+            color = primaryText
+        )
+
+        Text(
+            text = "Input your registered account!",
+            style = MaterialTheme.typography.bodyLarge,
+            color = secondaryText
+        )
+
+        // EMAIL
+        Text(
+            text = "Email",
+            modifier = Modifier.padding(top = 40.dp),
+            style = MaterialTheme.typography.bodyMedium,
+            color = secondaryText
+        )
+
+        UniversalInputField(
+            value = email,
+            onValueChange = { email = it },
+            hint = "Type your email",
+            leftIcon = painterResource(R.drawable.ic_email),
+            modifier = Modifier
+                .padding(top = 8.dp)
+                .border(1.5.dp, borderColor, RoundedCornerShape(16.dp)),
+            inputType = InputKind.Email,
+            borderColor = Color.Transparent
+        )
+
+        Text(
+            text = "Password",
+            modifier = Modifier.padding(top = 20.dp),
+            style = MaterialTheme.typography.bodyMedium,
+            color = secondaryText
+        )
+
+        UniversalInputField(
+            value = password,
+            onValueChange = { password = it },
+            hint = "Type your password",
+            leftIcon = painterResource(R.drawable.ic_password),
+            modifier = Modifier
+                .padding(top = 8.dp)
+                .border(1.5.dp, borderColor, RoundedCornerShape(16.dp)),
+            inputType = InputKind.Password,
+            borderColor = Color.Transparent
+        )
+
+        Text(
+            text = "Forgot password?",
+            modifier = Modifier
+                .align(Alignment.CenterHorizontally)
+                .padding(top = 12.dp)
+                .clickable { /* TODO */ },
+            color = MaterialTheme.colorScheme.primary,
+            style = MaterialTheme.typography.bodyMedium
+        )
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 24.dp)
+                .height(56.dp)
+                .clip(RoundedCornerShape(20.dp))
+                .background(MaterialTheme.colorScheme.primary)
+                .clickable { /* TODO LOGIN */ },
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "Sign In",
+                color = MaterialTheme.colorScheme.onPrimary,
+                style = MaterialTheme.typography.titleMedium
+            )
+        }
+
+        // OR DIVIDER
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 24.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+
+            HorizontalDivider(
+                modifier = Modifier.weight(1f),
+                thickness = DividerDefaults.Thickness,
+                color = DividerDefaults.color
+            )
+            Text(
+                text = "Or",
+                modifier = Modifier.padding(horizontal = 8.dp),
+                color = secondaryText
+            )
+            HorizontalDivider(
+                modifier = Modifier.weight(1f),
+                thickness = DividerDefaults.Thickness,
+                color = DividerDefaults.color
+            )
+        }
+
+        // APPLE BUTTON
+        SocialButton(
+            text = "Sign in with Apple",
+            icon = R.drawable.ic_apple,
+            borderColor = borderColor
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        SocialButton(
+            text = "Sign in with Google",
+            icon = R.drawable.ic_google,
+            borderColor = borderColor
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // SIGN UP TEXT
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = "Don't have an account? ",
+                color = secondaryText
+            )
+            Text(
+                text = "Sign up here",
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.clickable { /* TODO */ }
+            )
+        }
+    }
+}
+
+@Composable
+fun SocialButton(
+    text: String,
+    icon: Int,
+    borderColor: Color
+) {
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(56.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .border(1.5.dp, borderColor, RoundedCornerShape(20.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .clickable { }
+            .padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center
+    ) {
+
+        Icon(
+            painter = painterResource(icon),
+            contentDescription = null,
+            tint = Color.Unspecified
+        )
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyLarge
+        )
+    }
+}
+
+
+@Preview(showBackground = true)
+@Composable
+fun LoginScreenPreview(){
+    LoginScreen()
+}
