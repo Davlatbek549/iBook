@@ -13,23 +13,27 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.text.input.*
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.example.ibook.ui.theme.IBookTheme
+import androidx.compose.foundation.border
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.Dp
 
 @Composable
 fun UniversalInputField(
     value: String,
     onValueChange: (String) -> Unit,
     hint: String,
-    leftIcon: ImageVector,
+    leftIcon: Painter,
     modifier: Modifier = Modifier,
-    rightIcon: ImageVector? = null,
+    rightIcon: Painter? = null,
     inputType: InputKind = InputKind.Text,
     isEditable: Boolean = true,
-    onClick: (() -> Unit)? = null
+    onClick: (() -> Unit)? = null,
+    borderColor: Color = MaterialTheme.colorScheme.outline,
+    borderWidth: Dp = 1.dp
 ) {
 
     var passwordVisible by remember { mutableStateOf(false) }
@@ -54,10 +58,10 @@ fun UniversalInputField(
             .height(56.dp)
             .clip(RoundedCornerShape(20.dp))
             .background(MaterialTheme.colorScheme.surface)
-            .then(
-                if (!isEditable && onClick != null)
-                    Modifier.clickable { onClick() }
-                else Modifier
+            .border(
+                width = borderWidth,
+                color = borderColor,
+                shape = RoundedCornerShape(20.dp)
             ),
         contentAlignment = Alignment.CenterStart
     ) {
@@ -70,7 +74,7 @@ fun UniversalInputField(
         ) {
 
             Icon(
-                imageVector = leftIcon,
+                painter = leftIcon,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary
             )
@@ -137,7 +141,7 @@ fun UniversalInputField(
             } else if (rightIcon != null) {
 
                 Icon(
-                    imageVector = rightIcon,
+                    painter = rightIcon,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier
@@ -165,44 +169,4 @@ enum class InputKind {
 @Composable
 fun UniversalInputFieldPreview() {
 
-    IBookTheme {
-
-        var email by remember { mutableStateOf("") }
-        var password by remember { mutableStateOf("") }
-        var dateOfBirth by remember { mutableStateOf("") }
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-
-            UniversalInputField(
-                value = email,
-                onValueChange = { email = it },
-                hint = "Email or Phone number",
-                leftIcon = Icons.Filled.Person,
-                inputType = InputKind.Email
-            )
-
-            UniversalInputField(
-                value = password,
-                onValueChange = { password = it },
-                hint = "Password",
-                leftIcon = Icons.Filled.Lock,
-                inputType = InputKind.Password
-            )
-
-            UniversalInputField(
-                value = dateOfBirth,
-                onValueChange = {},
-                hint = "Day of birth",
-                leftIcon = Icons.Filled.DateRange,
-                rightIcon = Icons.Filled.CheckCircle,
-                isEditable = false
-            )
-        }
-    }
 }
