@@ -24,8 +24,8 @@ import com.example.ibook.app_components.inputs.UniversalInputField
 fun LoginScreen() {
 
     val primaryText = MaterialTheme.colorScheme.onSurface
-    val secondaryText = primaryText.copy(alpha = 0.7f)
-    val borderColor = Color.Gray.copy(alpha = 0.3f)
+    val secondaryText = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+    val borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -203,7 +203,8 @@ fun SocialButton(
 
         Text(
             text = text,
-            style = MaterialTheme.typography.bodyLarge
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface
         )
     }
 }
