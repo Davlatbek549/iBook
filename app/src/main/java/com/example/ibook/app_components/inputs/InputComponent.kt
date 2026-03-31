@@ -6,8 +6,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -19,7 +17,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.border
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.sp
+import com.example.ibook.R
 
 @Composable
 fun UniversalInputField(
@@ -28,12 +29,11 @@ fun UniversalInputField(
     hint: String,
     leftIcon: Painter,
     modifier: Modifier = Modifier,
-    rightIcon: Painter? = null,
     inputType: InputKind = InputKind.Text,
-    isEditable: Boolean = true,
-    onClick: (() -> Unit)? = null,
     borderColor: Color = MaterialTheme.colorScheme.outline,
-    borderWidth: Dp = 1.dp
+    borderWidth: Dp = 1.dp,
+    rightIcon: Painter? = null,
+    onRightIconClick: (() -> Unit)? = null
 ) {
 
     var passwordVisible by remember { mutableStateOf(false) }
@@ -70,87 +70,73 @@ fun UniversalInputField(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-
-            Icon(
-                painter = leftIcon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary
-            )
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            if (isEditable) {
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Icon(
+                    painter = leftIcon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
 
                 BasicTextField(
                     value = value,
                     onValueChange = onValueChange,
-                    singleLine = true,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight(),
+                    textStyle = LocalTextStyle.current.copy(
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontSize = 16.sp
+                    ),
                     keyboardOptions = keyboardOptions,
                     visualTransformation = visualTransformation,
-                    modifier = Modifier.weight(1f),
-                    textStyle = MaterialTheme.typography.bodyLarge.copy(
-                        color = MaterialTheme.colorScheme.onSurface
-                    ),
+                    singleLine = true,
                     decorationBox = { innerTextField ->
-
-                        if (value.isEmpty()) {
-                            Text(
-                                text = hint,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                        Box(
+                            modifier = Modifier.fillMaxHeight(),
+                            contentAlignment = Alignment.CenterStart
+                        ) {
+                            if (value.isEmpty()) {
+                                Text(
+                                    text = hint,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                                    fontSize = 16.sp
+                                )
+                            }
+                            innerTextField()
                         }
-
-                        innerTextField()
                     }
-                )
-
-            } else {
-
-                Text(
-                    text = value.ifEmpty { hint },
-                    modifier = Modifier.weight(1f),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = if (value.isEmpty())
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    else
-                        MaterialTheme.colorScheme.onSurface
                 )
             }
 
             if (inputType == InputKind.Password) {
-
-                IconButton(
-                    onClick = { passwordVisible = !passwordVisible }
-                ) {
-
-                    Icon(
-                        imageVector = if (passwordVisible)
-                            Icons.Filled.Visibility
-                        else
-                            Icons.Filled.VisibilityOff,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier
-                            .padding(start = 15.dp)
-                    )
-                }
-
+                Icon(
+                    painter = painterResource(
+                        if (passwordVisible) R.drawable.ic_visibility_on else R.drawable.ic_visibility_off
+                    ),
+                    contentDescription = "Toggle password visibility",
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                    modifier = Modifier
+                        .size(24.dp)
+                        .clickable { passwordVisible = !passwordVisible }
+                )
             } else if (rightIcon != null) {
-
                 Icon(
                     painter = rightIcon,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                     modifier = Modifier
-                        .padding(start = 8.dp)
-                        .then(
-                            if (onClick != null)
-                                Modifier.clickable { onClick() }
-                            else Modifier
-                        )
+                        .size(24.dp)
+                        .clickable { onRightIconClick?.invoke() }
                 )
             }
         }
@@ -168,5 +154,34 @@ enum class InputKind {
 @Preview(showBackground = true)
 @Composable
 fun UniversalInputFieldPreview() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        UniversalInputField(
+            value = "",
+            onValueChange = {},
+            hint = "Email or Phone number",
+            leftIcon = painterResource(R.drawable.ic_email)
+        )
 
+        UniversalInputField(
+            value = "",
+            onValueChange = {},
+            hint = "Enter your password",
+            leftIcon = painterResource(R.drawable.ic_password),
+            inputType = InputKind.Password
+        )
+
+        UniversalInputField(
+            value = "",
+            onValueChange = {},
+            hint = "Enter email",
+            leftIcon = painterResource(R.drawable.ic_email),
+            inputType = InputKind.Email
+        )
+    }
 }

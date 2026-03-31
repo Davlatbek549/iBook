@@ -1,3 +1,30 @@
 <resources>
     <string name="app_name">iBook</string>
+    <string name="email_hint">Type your email</string>
+    <string name="password_hint">Type your password</string>
+    <string name="forgot_password">Forgot password?</string>
+    <string name="sign_in">Sign In</string>
+    <string name="or">Or</string>
+    <string name="sign_in_with_apple">Sign in with Apple</string>
+    <string name="sign_in_with_google">Sign in with Google</string>
+    <string name="dont_have_account">Don\'t have an account? </string>
+    <string name="sign_up_here">Sign up here</string>
+    <string name="sign_in_with_email">Sign in with Email</string>
+    <string name="input_your_registered_account">Input your registered account!</string>
+    <string name="email">Email</string>
+    <string name="password">Password</string>
+    <string name="title_forgot_password">Forgot Password</string>
+    <string name="select_option">Please select option to send link reset password</string>
+    <string name="sign_up_with_email">Sign up with Email</string>
+    <string name="create_account">Create an account and enjoy reading</string>
+    <string name="phone_number">Phone Number</string>
+    <string name="choose_your_country">Choose your country</string>
+    <string name="phone_number_hint">Type your phone number</string>
+    <string name="agreement">By creating your account you have to agree with our </string>
+    <string name="terms_and_condition">Terms and Condition</string>
+    <string name="sign_up">Sign Up Now</string>
+    <string name="sign_up_with_apple">Sign up with Apple</string>
+    <string name="sign_up_with_google">Sign up with Google</string>
+    <string name="have_an_account">Have an account? </string>
+    <string name="sign_in_here">Sign in here</string>
 </resources>

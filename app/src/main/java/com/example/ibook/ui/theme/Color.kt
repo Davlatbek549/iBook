@@ -24,7 +24,7 @@ val ColorCategorySport       = Color(0xFFFB9232)  // was Sport
 val ColorCategoryTravel      = Color(0xFFEB4848)  // was Travel
 
 // ====== Neutral / UI Colors ======
-val ColorBackgroundLight = Color(0xFFF6F6F7)  // was SecondaryColor (light bg)
+val ColorBackgroundLight = Color(0xFFFFFFFF)  // was SecondaryColor (light bg)
 val ColorSurfaceLight    = Color(0xFFFFFFFF)  // alias for White
 val ColorBackgroundDark  = Color(0xFF121212)  // was Dark (dark bg)
 val ColorSurfaceDark     = Color(0xFF2A2A2A)  // was Semi_Dark (dark surfaces)
@@ -33,10 +33,4 @@ val ColorOutline         = Color(0xFFC5C5C6)  // was Semi (gray outline)
 
 // ====== New Semantic Colors ======
 val ColorError       = Color(0xFFB00020)  // Material default error
-val ColorOnError     = Color(0xFFFFFFFF)  // white on error
-val ColorSuccess     = Color(0xFF28A745)  // custom success (green)
-val ColorOnSuccess   = Color(0xFFFFFFFF)  // white on success
-val ColorWarning     = Color(0xFFFFC107)  // custom warning (amber)
-val ColorOnWarning   = Color(0xFF000000)  // black on warning
-val ColorInfo        = Color(0xFF17A2B8)  // custom info (cyan)
-val ColorOnInfo      = Color(0xFFFFFFFF)  // white on info
+val ColorOnError     = Color(0xFFFFFFFF)

@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.ibook.R
@@ -23,8 +24,8 @@ import com.example.ibook.app_components.inputs.UniversalInputField
 fun LoginScreen() {
 
     val primaryText = MaterialTheme.colorScheme.onSurface
-    val secondaryText = primaryText.copy(alpha = 0.7f)
-    val borderColor = Color.Gray.copy(alpha = 0.3f)
+    val secondaryText = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+    val borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -39,20 +40,19 @@ fun LoginScreen() {
         Spacer(modifier = Modifier.height(72.dp))
 
         Text(
-            text = "Sign in with Email",
+            text = stringResource(R.string.sign_in_with_email),
             style = MaterialTheme.typography.headlineLarge,
             color = primaryText
         )
 
         Text(
-            text = "Input your registered account!",
+            text = stringResource(R.string.input_your_registered_account),
             style = MaterialTheme.typography.bodyLarge,
             color = secondaryText
         )
 
-        // EMAIL
         Text(
-            text = "Email",
+            text = stringResource(R.string.email),
             modifier = Modifier.padding(top = 40.dp),
             style = MaterialTheme.typography.bodyMedium,
             color = secondaryText
@@ -61,7 +61,7 @@ fun LoginScreen() {
         UniversalInputField(
             value = email,
             onValueChange = { email = it },
-            hint = "Type your email",
+            hint = stringResource(R.string.email_hint),
             leftIcon = painterResource(R.drawable.ic_email),
             modifier = Modifier
                 .padding(top = 8.dp)
@@ -71,8 +71,8 @@ fun LoginScreen() {
         )
 
         Text(
-            text = "Password",
-            modifier = Modifier.padding(top = 20.dp),
+            text = stringResource(R.string.password),
+            modifier = Modifier.padding(top = 24.dp),
             style = MaterialTheme.typography.bodyMedium,
             color = secondaryText
         )
@@ -80,7 +80,7 @@ fun LoginScreen() {
         UniversalInputField(
             value = password,
             onValueChange = { password = it },
-            hint = "Type your password",
+            hint = stringResource(R.string.password_hint),
             leftIcon = painterResource(R.drawable.ic_password),
             modifier = Modifier
                 .padding(top = 8.dp)
@@ -90,10 +90,10 @@ fun LoginScreen() {
         )
 
         Text(
-            text = "Forgot password?",
+            text = stringResource(R.string.forgot_password),
             modifier = Modifier
                 .align(Alignment.CenterHorizontally)
-                .padding(top = 12.dp)
+                .padding(top = 24.dp)
                 .clickable { /* TODO */ },
             color = MaterialTheme.colorScheme.primary,
             style = MaterialTheme.typography.bodyMedium
@@ -110,13 +110,12 @@ fun LoginScreen() {
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = "Sign In",
+                text = stringResource(R.string.sign_in),
                 color = MaterialTheme.colorScheme.onPrimary,
                 style = MaterialTheme.typography.titleMedium
             )
         }
 
-        // OR DIVIDER
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -130,7 +129,7 @@ fun LoginScreen() {
                 color = DividerDefaults.color
             )
             Text(
-                text = "Or",
+                text = stringResource(R.string.or),
                 modifier = Modifier.padding(horizontal = 8.dp),
                 color = secondaryText
             )
@@ -141,34 +140,32 @@ fun LoginScreen() {
             )
         }
 
-        // APPLE BUTTON
         SocialButton(
-            text = "Sign in with Apple",
+            text = stringResource(R.string.sign_in_with_apple),
             icon = R.drawable.ic_apple,
             borderColor = borderColor
         )
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(15.dp))
 
         SocialButton(
-            text = "Sign in with Google",
+            text = stringResource(R.string.sign_in_with_google),
             icon = R.drawable.ic_google,
             borderColor = borderColor
         )
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // SIGN UP TEXT
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Center
         ) {
             Text(
-                text = "Don't have an account? ",
+                text = stringResource(R.string.dont_have_account),
                 color = secondaryText
             )
             Text(
-                text = "Sign up here",
+                text = stringResource(R.string.sign_up_here),
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.clickable { /* TODO */ }
             )
@@ -206,7 +203,8 @@ fun SocialButton(
 
         Text(
             text = text,
-            style = MaterialTheme.typography.bodyLarge
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface
         )
     }
 }
