@@ -1,5 +1,7 @@
 <resources>
     <string name="app_name">iBook</string>
+    <string name="logo">Where every page is an adventure</string>
+    <string name="version">App version 1.24.0</string>
     <string name="email_hint">Type your email</string>
     <string name="password_hint">Type your password</string>
     <string name="forgot_password">Forgot password?</string>
