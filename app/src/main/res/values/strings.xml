@@ -29,4 +29,7 @@
     <string name="sign_up_with_google">Sign up with Google</string>
     <string name="have_an_account">Have an account? </string>
     <string name="sign_in_here">Sign in here</string>
+    <string name="onboarding1_bottom_text">Track your daily progress</string>
+    <string name="onboarding1_bottom_text_2">Save your progress in one application, and track your fitness level.</string>
+    <string name="next">NEXT</string>
 </resources>
