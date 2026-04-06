@@ -32,4 +32,6 @@
     <string name="onboarding1_bottom_text">Track your daily progress</string>
     <string name="onboarding1_bottom_text_2">Save your progress in one application, and track your fitness level.</string>
     <string name="next">NEXT</string>
+    <string name="onboarding2_bottom_text">Challenge with Friends</string>
+    <string name="onboarding2_bottom_text_2">Let\'s start the week with a challenge with your best friends</string>
 </resources>

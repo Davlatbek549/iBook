@@ -1,4 +1,4 @@
-package com.example.ibook.screens.onboarding1
+package com.example.ibook.screens.onboarding
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -8,7 +8,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -21,7 +20,7 @@ import com.example.ibook.R
 import com.example.ibook.app_components.buttons.AppButton
 
 @Composable
-fun OnboardingScreenOne() {
+fun OnboardingScreenTwo() {
     val primaryText = MaterialTheme.colorScheme.onSurface
     val secondaryText = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
 
@@ -32,23 +31,13 @@ fun OnboardingScreenOne() {
     ) {
 
         Image(
-            painter = painterResource(id = R.drawable.onboarding1),
+            painter = painterResource(id = R.drawable.onboarding_2),
             contentDescription = null,
             modifier = Modifier
                 .width(274.dp)
                 .height(558.dp)
-                .offset(x = (+23).dp, y = 135.dp)
-                .rotate(+7.9f)
-        )
+                .offset(x = (+51).dp, y = 158.dp)
 
-        Image(
-            painter = painterResource(id = R.drawable.onboarding1_2),
-            contentDescription = null,
-            modifier = Modifier
-                .width(222.dp)
-                .height(453.dp)
-                .offset(x = 195.dp, y = 220.dp)
-                .rotate(-8.32f)
         )
 
         Box(
@@ -71,7 +60,7 @@ fun OnboardingScreenOne() {
             ) {
 
                 Text(
-                    text = stringResource(R.string.onboarding1_bottom_text),
+                    text = stringResource(R.string.onboarding2_bottom_text),
                     style = MaterialTheme.typography.displaySmall,
                     fontWeight = FontWeight.Bold,
                     color = primaryText
@@ -81,7 +70,7 @@ fun OnboardingScreenOne() {
 
                 Text(
                     fontSize = 15.sp,
-                    text = stringResource(R.string.onboarding1_bottom_text_2),
+                    text = stringResource(R.string.onboarding2_bottom_text_2),
                     style = MaterialTheme.typography.bodyMedium,
                     color = secondaryText,
                     textAlign = TextAlign.Center
@@ -118,7 +107,7 @@ fun OnboardingScreenOne() {
                     modifier = Modifier
                         .height(4.dp)
                         .width(itemWidth)
-                        .background(if (index == 0) MaterialTheme.colorScheme.primary else secondaryText.copy(alpha = 0.3f),
+                        .background(if (index == 1) MaterialTheme.colorScheme.primary else secondaryText.copy(alpha = 0.3f),
                             shape = RoundedCornerShape(50)
                         )
                 )
@@ -130,6 +119,6 @@ fun OnboardingScreenOne() {
 
 @Preview(showBackground = true)
 @Composable
-fun OnboardingScreenOnePreview() {
-    OnboardingScreenOne()
+fun OnboardingScreenTwpPreview() {
+    OnboardingScreenTwo()
 }
