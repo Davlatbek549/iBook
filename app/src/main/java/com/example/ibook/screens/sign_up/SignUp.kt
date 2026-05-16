@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,9 +15,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.Checkbox
@@ -37,11 +40,13 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.ibook.R
 import com.example.ibook.app_components.buttons.AppButton
 import com.example.ibook.app_components.inputs.InputKind
 import com.example.ibook.app_components.inputs.UniversalInputField
+import com.example.ibook.screens.login.SocialButtonMetrics
 import com.example.ibook.screens.login.SocialButton
 
 // Data class for country information
@@ -75,6 +80,34 @@ val COUNTRIES = listOf(
     Country("South Korea", "KR", "+82", "🇰🇷"),
 )
 
+private data class SignUpMetrics(
+    val topSpacing: Dp,
+    val cardCorner: Dp,
+    val cardPadding: Dp,
+    val titleSubtitleGap: Dp,
+    val firstFieldTopSpacing: Dp,
+    val labelFieldGap: Dp,
+    val fieldGroupGap: Dp,
+    val phoneCorner: Dp,
+    val phoneBorderWidth: Dp,
+    val phoneHorizontalPadding: Dp,
+    val phoneVerticalPadding: Dp,
+    val countryFlagGap: Dp,
+    val countryIconSize: Dp,
+    val phoneDividerHorizontalGap: Dp,
+    val phoneDividerWidth: Dp,
+    val phoneDividerHeight: Dp,
+    val termsCheckboxTopPadding: Dp,
+    val termsTextStartPadding: Dp,
+    val signUpButtonTopSpacing: Dp,
+    val signUpButtonHeight: Dp,
+    val dividerTopSpacing: Dp,
+    val socialTopSpacing: Dp,
+    val socialButtonGap: Dp,
+    val footerTopSpacing: Dp,
+    val socialButtonMetrics: SocialButtonMetrics
+)
+
 @Composable
 fun SignUpScreen(onSignInClick: () -> Unit = {}) {
 
@@ -101,20 +134,28 @@ fun SignUpScreen(onSignInClick: () -> Unit = {}) {
         }
     }
 
-    Column(
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
             .background(colors.background)
     ) {
-        Spacer(modifier = Modifier.height(30.dp))
+        val metrics = rememberSignUpMetrics(maxWidth = maxWidth, maxHeight = maxHeight)
 
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(20.dp))
-                .background(colors.surface)
-                .padding(20.dp)
+                .fillMaxSize()
+                .background(colors.background)
+                .verticalScroll(rememberScrollState())
         ) {
+            Spacer(modifier = Modifier.height(metrics.topSpacing))
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(metrics.cardCorner))
+                    .background(colors.surface)
+                    .padding(metrics.cardPadding)
+            ) {
 
             Text(
                 text = stringResource(R.string.sign_up_with_email),
@@ -122,7 +163,7 @@ fun SignUpScreen(onSignInClick: () -> Unit = {}) {
                 color = primaryText
             )
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(metrics.titleSubtitleGap))
 
             Text(
                 text = stringResource(R.string.create_account),
@@ -130,7 +171,7 @@ fun SignUpScreen(onSignInClick: () -> Unit = {}) {
                 color = secondaryText
             )
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(metrics.firstFieldTopSpacing))
 
 
             Text(
@@ -139,7 +180,7 @@ fun SignUpScreen(onSignInClick: () -> Unit = {}) {
                 color = colors.onSurfaceVariant
             )
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(metrics.labelFieldGap))
 
             UniversalInputField(
                 value = email,
@@ -149,7 +190,7 @@ fun SignUpScreen(onSignInClick: () -> Unit = {}) {
                 inputType = InputKind.Email
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(metrics.fieldGroupGap))
 
             Text(
                 text = stringResource(R.string.phone_number),
@@ -157,15 +198,22 @@ fun SignUpScreen(onSignInClick: () -> Unit = {}) {
                 color = colors.onSurfaceVariant
             )
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(metrics.labelFieldGap))
 
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(24.dp))
-                    .border(1.dp, colors.outlineVariant, RoundedCornerShape(24.dp))
+                    .clip(RoundedCornerShape(metrics.phoneCorner))
+                    .border(
+                        metrics.phoneBorderWidth,
+                        colors.outlineVariant,
+                        RoundedCornerShape(metrics.phoneCorner)
+                    )
                     .background(colors.surface)
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                    .padding(
+                        horizontal = metrics.phoneHorizontalPadding,
+                        vertical = metrics.phoneVerticalPadding
+                    ),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(
@@ -177,26 +225,26 @@ fun SignUpScreen(onSignInClick: () -> Unit = {}) {
                         style = typography.bodyLarge
                     )
 
-                    Spacer(modifier = Modifier.width(4.dp))
+                    Spacer(modifier = Modifier.width(metrics.countryFlagGap))
 
                     Icon(
                         imageVector = Icons.Filled.ArrowDropDown,
                         contentDescription = stringResource(R.string.choose_your_country),
                         tint = colors.onSurfaceVariant,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(metrics.countryIconSize)
                     )
                 }
 
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(metrics.phoneDividerHorizontalGap))
 
                 Box(
                     modifier = Modifier
-                        .width(1.dp)
-                        .height(24.dp)
+                        .width(metrics.phoneDividerWidth)
+                        .height(metrics.phoneDividerHeight)
                         .background(colors.outlineVariant)
                 )
 
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(metrics.phoneDividerHorizontalGap))
 
                 BasicTextField(
                     value = phone,
@@ -220,14 +268,14 @@ fun SignUpScreen(onSignInClick: () -> Unit = {}) {
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(metrics.fieldGroupGap))
             Text(
                 text = stringResource(R.string.password),
                 style = typography.bodyMedium,
                 color = colors.onSurfaceVariant
             )
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(metrics.labelFieldGap))
 
             UniversalInputField(
                 value = password,
@@ -237,7 +285,7 @@ fun SignUpScreen(onSignInClick: () -> Unit = {}) {
                 inputType = InputKind.Password
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(metrics.fieldGroupGap))
 
             // TERMS - FIXED
             Row(
@@ -247,10 +295,10 @@ fun SignUpScreen(onSignInClick: () -> Unit = {}) {
                 Checkbox(
                     checked = isChecked,
                     onCheckedChange = { isChecked = it },
-                    modifier = Modifier.padding(top = 2.dp)
+                    modifier = Modifier.padding(top = metrics.termsCheckboxTopPadding)
                 )
 
-                Column(modifier = Modifier.padding(start = 8.dp)) {
+                Column(modifier = Modifier.padding(start = metrics.termsTextStartPadding)) {
                     Text(
                         text = stringResource(R.string.agreement),
                         style = typography.bodySmall,
@@ -264,17 +312,17 @@ fun SignUpScreen(onSignInClick: () -> Unit = {}) {
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(metrics.signUpButtonTopSpacing))
 
             AppButton(
                 onClick = { },
                 text = stringResource(R.string.sign_up),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(55.dp)
+                    .height(metrics.signUpButtonHeight)
             )
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(metrics.dividerTopSpacing))
 
             Row(
                 verticalAlignment = Alignment.CenterVertically
@@ -296,23 +344,25 @@ fun SignUpScreen(onSignInClick: () -> Unit = {}) {
                 )
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(metrics.socialTopSpacing))
 
             SocialButton(
                 text = stringResource(R.string.sign_up_with_apple),
                 icon = R.drawable.ic_apple,
-                borderColor = colors.outline
+                borderColor = colors.outline,
+                metrics = metrics.socialButtonMetrics
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(metrics.socialButtonGap))
 
             SocialButton(
                 text = stringResource(R.string.sign_up_with_google),
                 icon = R.drawable.ic_google,
-                borderColor = colors.outline
+                borderColor = colors.outline,
+                metrics = metrics.socialButtonMetrics
             )
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(metrics.footerTopSpacing))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -332,12 +382,57 @@ fun SignUpScreen(onSignInClick: () -> Unit = {}) {
                 )
             }
         }
+        }
     }
+}
+
+@Composable
+private fun rememberSignUpMetrics(
+    maxWidth: Dp,
+    maxHeight: Dp
+): SignUpMetrics = remember(maxWidth, maxHeight) {
+    val widthScale = (maxWidth / 390.dp).coerceIn(0.86f, 1.2f)
+    val heightScale = (maxHeight / 844.dp).coerceIn(0.78f, 1.16f)
+    val compactness = minOf(widthScale, heightScale)
+
+    SignUpMetrics(
+        topSpacing = (30.dp * heightScale).coerceIn(18.dp, 38.dp),
+        cardCorner = (20.dp * compactness).coerceIn(16.dp, 24.dp),
+        cardPadding = (20.dp * widthScale).coerceIn(16.dp, 26.dp),
+        titleSubtitleGap = (6.dp * heightScale).coerceIn(4.dp, 8.dp),
+        firstFieldTopSpacing = (20.dp * heightScale).coerceIn(14.dp, 26.dp),
+        labelFieldGap = (6.dp * heightScale).coerceIn(4.dp, 8.dp),
+        fieldGroupGap = (16.dp * heightScale).coerceIn(10.dp, 20.dp),
+        phoneCorner = (24.dp * compactness).coerceIn(18.dp, 28.dp),
+        phoneBorderWidth = (1.dp * compactness).coerceIn(1.dp, 1.5.dp),
+        phoneHorizontalPadding = (16.dp * widthScale).coerceIn(12.dp, 20.dp),
+        phoneVerticalPadding = (14.dp * heightScale).coerceIn(10.dp, 16.dp),
+        countryFlagGap = (4.dp * widthScale).coerceIn(3.dp, 6.dp),
+        countryIconSize = (18.dp * compactness).coerceIn(16.dp, 22.dp),
+        phoneDividerHorizontalGap = (12.dp * widthScale).coerceIn(8.dp, 16.dp),
+        phoneDividerWidth = (1.dp * widthScale).coerceIn(1.dp, 1.5.dp),
+        phoneDividerHeight = (24.dp * compactness).coerceIn(20.dp, 28.dp),
+        termsCheckboxTopPadding = (2.dp * heightScale).coerceIn(1.dp, 4.dp),
+        termsTextStartPadding = (8.dp * widthScale).coerceIn(6.dp, 12.dp),
+        signUpButtonTopSpacing = (20.dp * heightScale).coerceIn(14.dp, 24.dp),
+        signUpButtonHeight = (55.dp * compactness).coerceIn(50.dp, 62.dp),
+        dividerTopSpacing = (20.dp * heightScale).coerceIn(14.dp, 24.dp),
+        socialTopSpacing = (20.dp * heightScale).coerceIn(14.dp, 24.dp),
+        socialButtonGap = (12.dp * heightScale).coerceIn(8.dp, 16.dp),
+        footerTopSpacing = (20.dp * heightScale).coerceIn(14.dp, 24.dp),
+        socialButtonMetrics = SocialButtonMetrics(
+            height = (56.dp * compactness).coerceIn(50.dp, 62.dp),
+            corner = (20.dp * compactness).coerceIn(16.dp, 24.dp),
+            borderWidth = (1.5.dp * compactness).coerceIn(1.dp, 2.dp),
+            horizontalPadding = (16.dp * widthScale).coerceIn(12.dp, 22.dp),
+            iconGap = (12.dp * widthScale).coerceIn(10.dp, 16.dp)
+        )
+    )
 }
 
 @Preview(
     showBackground = true,
-    showSystemUi = true
+    showSystemUi = false
 )
 @Composable
 fun SignUpScreenPreview() {

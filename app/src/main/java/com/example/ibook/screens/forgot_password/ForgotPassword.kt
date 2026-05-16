@@ -19,10 +19,47 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ibook.R
 import kotlinx.coroutines.launch
+
+data class BackButtonMetrics(
+    val size: Dp,
+    val borderWidth: Dp,
+    val iconSize: Dp
+)
+
+private data class ForgotPasswordMetrics(
+    val horizontalPadding: Dp,
+    val topSpacing: Dp,
+    val backTitleSpacing: Dp,
+    val titleSubtitleGap: Dp,
+    val titleOptionSpacing: Dp,
+    val optionGap: Dp,
+    val buttonTopSpacing: Dp,
+    val resendTopSpacing: Dp,
+    val bottomSpacing: Dp,
+    val optionCorner: Dp,
+    val optionBorderWidth: Dp,
+    val optionPadding: Dp,
+    val optionIconGap: Dp,
+    val optionIconSize: Dp,
+    val optionTextGap: Dp,
+    val optionTitleFontSize: TextUnit,
+    val optionDescriptionFontSize: TextUnit,
+    val optionDescriptionLineHeight: TextUnit,
+    val sendButtonHeight: Dp,
+    val sendButtonCorner: Dp,
+    val sendButtonElevation: Dp,
+    val progressSize: Dp,
+    val progressStrokeWidth: Dp,
+    val sendButtonTextSize: TextUnit,
+    val resendTextSize: TextUnit,
+    val backButtonMetrics: BackButtonMetrics
+)
 
 @Composable
 fun ForgotPasswordScreen(
@@ -33,48 +70,55 @@ fun ForgotPasswordScreen(
     var isLoading by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
 
-    Column(
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
+        val metrics = rememberForgotPasswordMetrics(maxWidth = maxWidth, maxHeight = maxHeight)
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp)
+                .padding(horizontal = metrics.horizontalPadding)
         ) {
 
-            Spacer(modifier = Modifier.padding(top = 52.dp))
+            Spacer(modifier = Modifier.height(metrics.topSpacing))
 
-            BackButton(onClick = onBack)
+            BackButton(
+                onClick = onBack,
+                metrics = metrics.backButtonMetrics
+            )
 
-            Spacer(modifier = Modifier.padding(top = 32.dp))
+            Spacer(modifier = Modifier.height(metrics.backTitleSpacing))
 
-            TitleSection()
+            TitleSection(metrics = metrics)
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(metrics.titleOptionSpacing))
 
             OptionCard(
                 method = ResetMethod.EMAIL,
                 isSelected = selectedMethod == ResetMethod.EMAIL,
+                metrics = metrics,
                 onClick = { selectedMethod = ResetMethod.EMAIL }
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(metrics.optionGap))
 
             OptionCard(
                 method = ResetMethod.WHATSAPP,
                 isSelected = selectedMethod == ResetMethod.WHATSAPP,
+                metrics = metrics,
                 onClick = { selectedMethod = ResetMethod.WHATSAPP }
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(metrics.buttonTopSpacing))
             SendLinkButton(
                 isLoading = isLoading,
                 enabled = !isLoading,
+                metrics = metrics,
                 onClick = {
                     coroutineScope.launch {
                         isLoading = true
@@ -87,24 +131,27 @@ fun ForgotPasswordScreen(
                 }
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(metrics.resendTopSpacing))
 
-            ResendLinkSection()
+            ResendLinkSection(metrics = metrics)
 
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.height(metrics.bottomSpacing))
         }
     }
 }
 
 @Composable
-private fun BackButton(onClick: () -> Unit) {
+fun BackButton(
+    onClick: () -> Unit,
+    metrics: BackButtonMetrics
+) {
     val borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
     Box(
         modifier = Modifier
-            .size(44.dp)
+            .size(metrics.size)
             .clip(CircleShape)
             .border(
-                width = 1.dp,
+                width = metrics.borderWidth,
                 color = borderColor,
                 shape = CircleShape
             )
@@ -116,13 +163,13 @@ private fun BackButton(onClick: () -> Unit) {
             imageVector = Icons.Default.ChevronLeft,
             contentDescription = "Go back",
             tint = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.size(24.dp)
+            modifier = Modifier.size(metrics.iconSize)
         )
     }
 }
 
 @Composable
-private fun TitleSection() {
+private fun TitleSection(metrics: ForgotPasswordMetrics) {
     val primaryText = MaterialTheme.colorScheme.onSurface
     val secondaryText = primaryText.copy(alpha = 0.7f)
     Column {
@@ -133,7 +180,7 @@ private fun TitleSection() {
             modifier = Modifier.fillMaxWidth()
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(metrics.titleSubtitleGap))
 
         Text(
             text = stringResource(R.string.select_option),
@@ -148,6 +195,7 @@ private fun TitleSection() {
 private fun OptionCard(
     method: ResetMethod,
     isSelected: Boolean,
+    metrics: ForgotPasswordMetrics,
     onClick: () -> Unit
 ) {
     val primaryText = MaterialTheme.colorScheme.onSurface
@@ -157,19 +205,19 @@ private fun OptionCard(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(metrics.optionCorner))
             .border(
-                width = 1.dp,
+                width = metrics.optionBorderWidth,
                 color = if (isSelected) MaterialTheme.colorScheme.primary else borderColor,
-                shape = RoundedCornerShape(16.dp)
+                shape = RoundedCornerShape(metrics.optionCorner)
             )
             .clickable(onClick = onClick)
-            .padding(20.dp)
+            .padding(metrics.optionPadding)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.Top,
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+            horizontalArrangement = Arrangement.spacedBy(metrics.optionIconGap)
         ) {
 
             Icon(
@@ -182,7 +230,7 @@ private fun OptionCard(
                     true -> MaterialTheme.colorScheme.primary
                     false -> primaryText
                 },
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier.size(metrics.optionIconSize)
             )
 
 
@@ -196,21 +244,21 @@ private fun OptionCard(
                         ResetMethod.EMAIL -> "Send to your email"
                         ResetMethod.WHATSAPP -> "Send to your whatsapp"
                     },
-                    fontSize = 16.sp,
+                    fontSize = metrics.optionTitleFontSize,
                     fontWeight = FontWeight.SemiBold,
                     color = primaryText
                 )
 
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(metrics.optionTextGap))
 
                 Text(
                     text = when (method) {
                         ResetMethod.EMAIL -> "Link reset will be send to your email address registered"
                         ResetMethod.WHATSAPP -> "Link reset will be send to your whatsapp account"
                     },
-                    fontSize = 14.sp,
+                    fontSize = metrics.optionDescriptionFontSize,
                     color = secondaryText,
-                    lineHeight = 20.sp
+                    lineHeight = metrics.optionDescriptionLineHeight
                 )
             }
         }
@@ -221,6 +269,7 @@ private fun OptionCard(
 private fun SendLinkButton(
     isLoading: Boolean,
     enabled: Boolean,
+    metrics: ForgotPasswordMetrics,
     onClick: () -> Unit
 ) {
     Button(
@@ -228,27 +277,27 @@ private fun SendLinkButton(
         enabled = enabled,
         modifier = Modifier
             .fillMaxWidth()
-            .height(56.dp),
-        shape = RoundedCornerShape(12.dp),
+            .height(metrics.sendButtonHeight),
+        shape = RoundedCornerShape(metrics.sendButtonCorner),
         colors = ButtonDefaults.buttonColors(
             containerColor = MaterialTheme.colorScheme.primary,
             disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
         ),
         elevation = ButtonDefaults.buttonElevation(
-            defaultElevation = 4.dp,
+            defaultElevation = metrics.sendButtonElevation,
             pressedElevation = 0.dp
         )
     ) {
         if (isLoading) {
             CircularProgressIndicator(
-                modifier = Modifier.size(24.dp),
+                modifier = Modifier.size(metrics.progressSize),
                 color = MaterialTheme.colorScheme.onPrimary,
-                strokeWidth = 2.dp
+                strokeWidth = metrics.progressStrokeWidth
             )
         } else {
             Text(
                 text = "Send Link",
-                fontSize = 16.sp,
+                fontSize = metrics.sendButtonTextSize,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onPrimary
             )
@@ -257,7 +306,7 @@ private fun SendLinkButton(
 }
 
 @Composable
-private fun ResendLinkSection() {
+private fun ResendLinkSection(metrics: ForgotPasswordMetrics) {
     val primaryText = MaterialTheme.colorScheme.onSurface
     Row(
         modifier = Modifier
@@ -267,18 +316,61 @@ private fun ResendLinkSection() {
     ) {
         Text(
             text = "Didn't receive link? ",
-            fontSize = 14.sp,
+            fontSize = metrics.resendTextSize,
             color = primaryText.copy(alpha = 0.7f)
         )
 
         Text(
             text = "Resend Link",
-            fontSize = 14.sp,
+            fontSize = metrics.resendTextSize,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.clickable { /* Handle resend */ }
         )
     }
+}
+
+@Composable
+private fun rememberForgotPasswordMetrics(
+    maxWidth: Dp,
+    maxHeight: Dp
+): ForgotPasswordMetrics = remember(maxWidth, maxHeight) {
+    val widthScale = (maxWidth / 390.dp).coerceIn(0.86f, 1.22f)
+    val heightScale = (maxHeight / 844.dp).coerceIn(0.82f, 1.18f)
+    val compactness = minOf(widthScale, heightScale)
+
+    ForgotPasswordMetrics(
+        horizontalPadding = (24.dp * widthScale).coerceIn(20.dp, 34.dp),
+        topSpacing = (52.dp * heightScale).coerceIn(36.dp, 68.dp),
+        backTitleSpacing = (32.dp * heightScale).coerceIn(24.dp, 40.dp),
+        titleSubtitleGap = (8.dp * heightScale).coerceIn(6.dp, 12.dp),
+        titleOptionSpacing = (32.dp * heightScale).coerceIn(22.dp, 40.dp),
+        optionGap = (24.dp * heightScale).coerceIn(18.dp, 30.dp),
+        buttonTopSpacing = (24.dp * heightScale).coerceIn(18.dp, 30.dp),
+        resendTopSpacing = (24.dp * heightScale).coerceIn(18.dp, 30.dp),
+        bottomSpacing = (24.dp * heightScale).coerceIn(18.dp, 34.dp),
+        optionCorner = (16.dp * compactness).coerceIn(14.dp, 20.dp),
+        optionBorderWidth = (1.dp * compactness).coerceIn(1.dp, 1.5.dp),
+        optionPadding = (20.dp * widthScale).coerceIn(16.dp, 26.dp),
+        optionIconGap = (16.dp * widthScale).coerceIn(12.dp, 20.dp),
+        optionIconSize = (24.dp * compactness).coerceIn(20.dp, 28.dp),
+        optionTextGap = (4.dp * heightScale).coerceIn(3.dp, 6.dp),
+        optionTitleFontSize = (16f * compactness).coerceIn(14f, 18f).sp,
+        optionDescriptionFontSize = (14f * compactness).coerceIn(12f, 16f).sp,
+        optionDescriptionLineHeight = (20f * compactness).coerceIn(17f, 23f).sp,
+        sendButtonHeight = (56.dp * compactness).coerceIn(50.dp, 62.dp),
+        sendButtonCorner = (12.dp * compactness).coerceIn(10.dp, 16.dp),
+        sendButtonElevation = (4.dp * compactness).coerceIn(2.dp, 6.dp),
+        progressSize = (24.dp * compactness).coerceIn(20.dp, 28.dp),
+        progressStrokeWidth = (2.dp * compactness).coerceIn(1.5.dp, 2.5.dp),
+        sendButtonTextSize = (16f * compactness).coerceIn(14f, 18f).sp,
+        resendTextSize = (14f * compactness).coerceIn(12f, 16f).sp,
+        backButtonMetrics = BackButtonMetrics(
+            size = (56.dp * compactness).coerceIn(48.dp, 62.dp),
+            borderWidth = (1.dp * compactness).coerceIn(1.dp, 1.5.dp),
+            iconSize = (24.dp * compactness).coerceIn(20.dp, 28.dp)
+        )
+    )
 }
 
 enum class ResetMethod {
