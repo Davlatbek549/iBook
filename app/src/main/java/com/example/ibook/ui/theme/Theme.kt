@@ -14,9 +14,9 @@ private val LightColorScheme = lightColorScheme(
 
     // Backgrounds & surfaces
     background = ColorBackgroundLight,
-    onBackground = ColorText,
+    onBackground = ColorTextStrongLight,
     surface = ColorSurfaceLight,
-    onSurface = ColorText,
+    onSurface = ColorTextStrongLight,
 
     // Status colors
     error = ColorError,
@@ -29,16 +29,16 @@ private val LightColorScheme = lightColorScheme(
 
 private val DarkColorScheme = darkColorScheme(
     primary = ColorPrimary,
-    onPrimary = ColorBackgroundDark,
+    onPrimary = ColorSurfaceLight,
     secondary = ColorSecondary,
-    onSecondary = ColorBackgroundDark,
+    onSecondary = ColorSurfaceLight,
     tertiary = ColorTertiary,
-    onTertiary = ColorBackgroundDark,
+    onTertiary = ColorSurfaceLight,
 
     background = ColorBackgroundDark,
-    onBackground = ColorSurfaceLight,
+    onBackground = ColorTextStrongDark,
     surface = ColorSurfaceDark,
-    onSurface = ColorSurfaceLight,
+    onSurface = ColorTextStrongDark,
 
     error = ColorError,
     onError = ColorOnError,

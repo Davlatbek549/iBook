@@ -31,7 +31,7 @@ fun AppButton(
         enabled = isEnabled,
         colors = ButtonDefaults.buttonColors(
             containerColor = if (isWhite) {
-                MaterialTheme.colorScheme.surface
+                MaterialTheme.colorScheme.onPrimary
             } else {
                 MaterialTheme.colorScheme.primary
             },
