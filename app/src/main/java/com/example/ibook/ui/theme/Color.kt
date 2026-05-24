@@ -28,7 +28,9 @@ val ColorBackgroundLight = Color(0xFFFFFFFF)  // was SecondaryColor (light bg)
 val ColorSurfaceLight    = Color(0xFFFFFFFF)  // alias for White
 val ColorBackgroundDark  = Color(0xFF121212)  // was Dark (dark bg)
 val ColorSurfaceDark     = Color(0xFF2A2A2A)  // was Semi_Dark (dark surfaces)
-val ColorText            = Color(0xFF919191)  // was TextColor (gray for text)
+val ColorText            = Color(0xFF919191)  // muted/supporting text
+val ColorTextStrongLight = Color(0xFF303030)  // primary text on light surfaces
+val ColorTextStrongDark  = Color(0xFFF4F4F4)  // primary text on dark surfaces
 val ColorOutline         = Color(0xFFC5C5C6)  // was Semi (gray outline)
 
 // ====== New Semantic Colors ======
