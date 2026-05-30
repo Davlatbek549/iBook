@@ -23,11 +23,6 @@ fun StoreScreen() {
 }
 
 @Composable
-fun SearchScreen() {
-    ScreenContent("Search Screen")
-}
-
-@Composable
 fun ScreenContent(title: String) {
     Box(
         modifier = Modifier.fillMaxSize(),

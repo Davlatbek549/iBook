@@ -328,7 +328,7 @@ private fun ReadingInfoSheet(
                     unit = stringResource(R.string.reading_today_unit),
                     valueColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f),
                     metrics = metrics,
-                    art = { StopwatchArt(modifier = Modifier.size(metrics.statArtSize)) },
+                    art = { ReadingStopwatchArt(modifier = Modifier.size(metrics.statArtSize)) },
                     modifier = Modifier.weight(1f)
                 )
 
@@ -338,7 +338,7 @@ private fun ReadingInfoSheet(
                     unit = stringResource(R.string.reading_streak_unit),
                     valueColor = MaterialTheme.colorScheme.primary,
                     metrics = metrics,
-                    art = { TrophyArt(modifier = Modifier.size(metrics.statArtSize)) },
+                    art = { ReadingTrophyArt(modifier = Modifier.size(metrics.statArtSize)) },
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -578,7 +578,7 @@ private fun ReadingCircleButton(
 }
 
 @Composable
-private fun StopwatchArt(modifier: Modifier = Modifier) {
+fun ReadingStopwatchArt(modifier: Modifier = Modifier) {
     Canvas(modifier = modifier) {
         drawConfetti()
 
@@ -633,7 +633,7 @@ private fun StopwatchArt(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun TrophyArt(modifier: Modifier = Modifier) {
+fun ReadingTrophyArt(modifier: Modifier = Modifier) {
     Canvas(modifier = modifier) {
         drawConfetti()
 
