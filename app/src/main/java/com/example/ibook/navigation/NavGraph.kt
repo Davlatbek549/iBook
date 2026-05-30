@@ -14,21 +14,38 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 
 @Composable
 fun CustomBottomBar(
     currentRoute: String,
-    onItemClick: (String) -> Unit
+    onItemClick: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    containerColor: Color? = null,
+    selectedContentColor: Color? = null,
+    unselectedContentColor: Color? = null
 ) {
+    val resolvedContainerColor = containerColor ?: MaterialTheme.colorScheme.primary
+    val resolvedSelectedContentColor = selectedContentColor ?: MaterialTheme.colorScheme.onPrimary
+    val resolvedUnselectedContentColor =
+        unselectedContentColor ?: MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.74f)
+
     Box(
-        modifier = Modifier
-            .padding(16.dp)
-            .clip(RoundedCornerShape(50))
-            .background(MaterialTheme.colorScheme.surface)
+        modifier = modifier
+            .padding(horizontal = 22.dp, vertical = 10.dp)
+            .shadow(
+                elevation = 18.dp,
+                shape = RoundedCornerShape(26.dp),
+                ambientColor = Color.Black.copy(alpha = 0.18f),
+                spotColor = Color.Black.copy(alpha = 0.28f)
+            )
+            .clip(RoundedCornerShape(26.dp))
+            .background(resolvedContainerColor)
             .fillMaxWidth()
-            .height(70.dp),
+            .height(58.dp),
         contentAlignment = Alignment.Center
     ) {
         Row(
@@ -42,14 +59,14 @@ fun CustomBottomBar(
 
                 val tint by animateColorAsState(
                     targetValue = if (isSelected)
-                        MaterialTheme.colorScheme.primary
+                        resolvedSelectedContentColor
                     else
-                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                        resolvedUnselectedContentColor,
                     label = "iconColor"
                 )
 
                 val scale by animateFloatAsState(
-                    targetValue = if (isSelected) 1.2f else 1f,
+                    targetValue = if (isSelected) 1.12f else 1f,
                     label = "iconScale"
                 )
 
@@ -58,7 +75,7 @@ fun CustomBottomBar(
                     contentDescription = item.route,
                     tint = tint,
                     modifier = Modifier
-                        .size(26.dp)
+                        .size(22.dp)
                         .scale(scale)
                         .clickable {
                             onItemClick(item.route)
