@@ -105,7 +105,7 @@ private fun rememberSplashMetrics(
     )
 }
 
-@Preview(showBackground = true)
+@Preview(showBackground = true, widthDp = 375, heightDp = 820)
 @Composable
 fun SplashScreenPreview() {
     SplashScreen()

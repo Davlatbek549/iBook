@@ -378,7 +378,7 @@ enum class ResetMethod {
     WHATSAPP
 }
 
-@Preview(showBackground = true)
+@Preview(showBackground = true, widthDp = 375, heightDp = 820)
 @Composable
 fun ForgotPasswordScreenPreview() {
     ForgotPasswordScreen()
