@@ -34,10 +34,9 @@ fun OnboardingScreenTwo() {
             painter = painterResource(id = R.drawable.onboarding_2),
             contentDescription = null,
             modifier = Modifier
-                .width(274.dp)
-                .height(558.dp)
-                .offset(x = (+51).dp, y = 158.dp)
-
+                .width(600.dp)
+                .height(650.dp)
+                .offset(x = (+10).dp, y = 120.dp)
         )
 
         Box(
@@ -117,7 +116,7 @@ fun OnboardingScreenTwo() {
     }
 }
 
-@Preview(showBackground = true)
+@Preview(showBackground = true, widthDp = 375, heightDp = 820)
 @Composable
 fun OnboardingScreenTwpPreview() {
     OnboardingScreenTwo()

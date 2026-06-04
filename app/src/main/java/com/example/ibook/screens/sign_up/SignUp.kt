@@ -432,7 +432,9 @@ private fun rememberSignUpMetrics(
 
 @Preview(
     showBackground = true,
-    showSystemUi = false
+    showSystemUi = false,
+    widthDp = 375,
+    heightDp = 820
 )
 @Composable
 fun SignUpScreenPreview() {
