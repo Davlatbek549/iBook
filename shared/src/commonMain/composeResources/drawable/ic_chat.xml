@@ -1,0 +1,32 @@
+<!--
+  ~ Copyright (C) 2026 The Android Open Source Project
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~      http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="18dp"
+    android:height="18dp"
+    android:viewportWidth="18"
+    android:viewportHeight="18">
+  <path
+      android:pathData="M0,6.429C0,2.878 2.878,0 6.429,0H11.571C15.122,0 18,2.878 18,6.429V6.692C18,10.243 15.122,13.121 11.571,13.121H6.429C2.878,13.121 0,10.243 0,6.692V6.429ZM6.429,2.143C4.062,2.143 2.143,4.062 2.143,6.429V6.692C2.143,9.059 4.062,10.978 6.429,10.978H11.571C13.938,10.978 15.857,9.059 15.857,6.692V6.429C15.857,4.062 13.938,2.143 11.571,2.143H6.429Z"
+      android:fillColor="#ffffff"
+      android:fillType="evenOdd"/>
+  <path
+      android:pathData="M5.708,5.222C5.708,4.76 6.083,4.385 6.545,4.385H11.739C12.201,4.385 12.576,4.76 12.576,5.222C12.576,5.684 12.201,6.059 11.739,6.059H6.545C6.083,6.059 5.708,5.684 5.708,5.222ZM7.394,7.899C7.394,7.436 7.768,7.062 8.231,7.062H11.739C12.201,7.062 12.576,7.436 12.576,7.899C12.576,8.361 12.201,8.736 11.739,8.736H8.231C7.768,8.736 7.394,8.361 7.394,7.899Z"
+      android:fillColor="#ffffff"
+      android:fillType="evenOdd"/>
+  <path
+      android:pathData="M9.962,15.051C9.764,13.993 9.546,12.813 9.422,12.098C9.359,11.733 9.613,11.503 9.974,11.584L12.556,12.164C13.047,12.274 13.245,12.867 12.919,13.251L11.128,15.359C10.764,15.789 10.065,15.604 9.962,15.051Z"
+      android:fillColor="#ffffff"/>
+</vector>
