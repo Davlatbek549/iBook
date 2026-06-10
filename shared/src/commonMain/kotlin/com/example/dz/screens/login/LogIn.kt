@@ -51,7 +51,11 @@ private data class LoginMetrics(
 )
 
 @Composable
-fun LoginScreen() {
+fun LoginScreen(
+    onLoginSuccess: () -> Unit = {},
+    onForgotPasswordClick: () -> Unit = {},
+    onSignUpClick: () -> Unit = {}
+) {
 
     val primaryText = MaterialTheme.colorScheme.onSurface
     val secondaryText = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
@@ -138,7 +142,7 @@ fun LoginScreen() {
             modifier = Modifier
                 .align(Alignment.CenterHorizontally)
                 .padding(top = metrics.forgotPasswordTopSpacing)
-                .clickable { /* TODO */ },
+                .clickable { onForgotPasswordClick() },
             color = MaterialTheme.colorScheme.primary,
             style = MaterialTheme.typography.bodyMedium
         )
@@ -150,7 +154,7 @@ fun LoginScreen() {
                 .height(metrics.signInHeight)
                 .clip(RoundedCornerShape(metrics.signInCorner))
                 .background(MaterialTheme.colorScheme.primary)
-                .clickable { /* TODO LOGIN */ },
+                .clickable { onLoginSuccess() },
             contentAlignment = Alignment.Center
         ) {
             Text(
@@ -213,7 +217,7 @@ fun LoginScreen() {
             Text(
                 text = stringResource(Res.string.sign_up_here),
                 color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.clickable { /* TODO */ }
+                modifier = Modifier.clickable { onSignUpClick() }
             )
         }
     }

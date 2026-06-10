@@ -62,7 +62,10 @@ private data class VerificationMetrics(
 )
 
 @Composable
-fun VerificationScreen() {
+fun VerificationScreen(
+    onVerified: () -> Unit = {},
+    onBack: () -> Unit = {}
+) {
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
@@ -78,7 +81,7 @@ fun VerificationScreen() {
         ) {
             Spacer(Modifier.height(metrics.topSpacing))
             BackButton(
-                onClick = { /*TODO*/ },
+                onClick = onBack,
                 metrics = metrics.backButtonMetrics
             )
 
@@ -98,7 +101,10 @@ fun VerificationScreen() {
             )
 
             Spacer(modifier = Modifier.height(metrics.bodyOtpSpacing))
-            OtpInput(metrics = metrics)
+            OtpInput(
+                metrics = metrics,
+                onComplete = onVerified
+            )
 
             Spacer(modifier = Modifier.height(metrics.otpResendSpacing))
             Row(
@@ -123,10 +129,18 @@ fun VerificationScreen() {
 @Composable
 private fun OtpInput(
     length: Int = 4,
-    metrics: VerificationMetrics
+    metrics: VerificationMetrics,
+    onComplete: () -> Unit = {}
 ) {
     val values = remember { mutableStateListOf(*Array(length) { "" }) }
     val focusRequesters = remember { List(length) { FocusRequester() } }
+    val otpValue = values.joinToString(separator = "")
+
+    LaunchedEffect(otpValue) {
+        if (values.all { it.length == 1 }) {
+            onComplete()
+        }
+    }
 
     Row(
         horizontalArrangement = Arrangement.spacedBy(metrics.otpCellGap),

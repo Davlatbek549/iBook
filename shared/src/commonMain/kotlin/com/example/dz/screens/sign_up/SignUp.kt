@@ -109,7 +109,10 @@ private data class SignUpMetrics(
 )
 
 @Composable
-fun SignUpScreen(onSignInClick: () -> Unit = {}) {
+fun SignUpScreen(
+    onSignInClick: () -> Unit = {},
+    onSignUpSuccess: () -> Unit = {}
+) {
 
     val colors = MaterialTheme.colorScheme
     val typography = MaterialTheme.typography
@@ -315,7 +318,7 @@ fun SignUpScreen(onSignInClick: () -> Unit = {}) {
             Spacer(modifier = Modifier.height(metrics.signUpButtonTopSpacing))
 
             AppButton(
-                onClick = { },
+                onClick = { onSignUpSuccess() },
                 text = stringResource(Res.string.sign_up),
                 modifier = Modifier
                     .fillMaxWidth()

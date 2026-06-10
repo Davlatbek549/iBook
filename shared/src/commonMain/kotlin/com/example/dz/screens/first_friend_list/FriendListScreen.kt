@@ -181,7 +181,8 @@ fun FriendListScreen(
     modifier: Modifier = Modifier,
     onBackClick: () -> Unit = {},
     onEditClick: () -> Unit = {},
-    onAddFriendClick: () -> Unit = {}
+    onAddFriendClick: () -> Unit = {},
+    onFriendClick: (friendId: String) -> Unit = {}
 ) {
     var query by remember { mutableStateOf("") }
     var isSearchMode by remember { mutableStateOf(false) }
@@ -258,7 +259,8 @@ fun FriendListScreen(
                     itemsIndexed(filteredSearchFriends) { index, friend ->
                         SearchFriendRow(
                             friend = friend,
-                            metrics = metrics
+                            metrics = metrics,
+                            onClick = { onFriendClick(friend.name) }
                         )
 
                         if (index != filteredSearchFriends.lastIndex) {
@@ -288,9 +290,11 @@ fun FriendListScreen(
                     }
 
                     itemsIndexed(friendMessages) { index, friend ->
+                        val friendName = stringResource(friend.nameRes)
                         FriendMessageRow(
                             friend = friend,
-                            metrics = metrics
+                            metrics = metrics,
+                            onClick = { onFriendClick(friendName) }
                         )
 
                         if (index != friendMessages.lastIndex) {
@@ -606,14 +610,17 @@ private fun StoryAvatar(
 @Composable
 private fun FriendMessageRow(
     friend: FriendMessage,
-    metrics: FriendListMetrics
+    metrics: FriendListMetrics,
+    onClick: () -> Unit
 ) {
     val colorScheme = MaterialTheme.colorScheme
     val name = stringResource(friend.nameRes)
     val message = stringResource(friend.messageRes)
 
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
         horizontalArrangement = Arrangement.spacedBy(14.dp),
         verticalAlignment = Alignment.Top
     ) {
@@ -704,10 +711,13 @@ private fun FriendMessageRow(
 @Composable
 private fun SearchFriendRow(
     friend: SearchFriendItem,
-    metrics: FriendListMetrics
+    metrics: FriendListMetrics,
+    onClick: () -> Unit
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

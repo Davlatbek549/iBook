@@ -179,7 +179,9 @@ private val foundSearchBooks = listOf(
 fun SearchScreen(
     modifier: Modifier = Modifier,
     onSearchFocusChange: (Boolean) -> Unit = {},
-    onCategoryClick: (String) -> Unit = {}
+    onCategoryClick: (String) -> Unit = {},
+    onBookClick: (bookId: String) -> Unit = {},
+    onAuthorClick: (authorId: String) -> Unit = {}
 ) {
     var query by remember { mutableStateOf("") }
     var isSearchFocused by remember { mutableStateOf(false) }
@@ -238,6 +240,8 @@ fun SearchScreen(
                         focusManager.clearFocus()
                     }
                 },
+                onBookClick = onBookClick,
+                onAuthorClick = onAuthorClick,
                 modifier = Modifier.fillMaxSize()
             )
         }
@@ -395,6 +399,8 @@ private fun FocusedSearchContent(
     focusRequester: FocusRequester,
     onBackClick: () -> Unit,
     onSearchClick: () -> Unit,
+    onBookClick: (bookId: String) -> Unit,
+    onAuthorClick: (authorId: String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -469,7 +475,11 @@ private fun FocusedSearchContent(
             }
         } else {
             foundSearchBooks.forEach { book ->
-                SearchResultRow(book = book, metrics = metrics)
+                SearchResultRow(
+                    book = book,
+                    metrics = metrics,
+                    onClick = { onBookClick(book.title) }
+                )
                 Spacer(Modifier.height(metrics.resultRowGap))
             }
         }
@@ -480,12 +490,14 @@ private fun FocusedSearchContent(
 private fun SearchResultRow(
     book: SearchResultBook,
     metrics: SearchMetrics,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(metrics.resultCoverHeight),
+            .height(metrics.resultCoverHeight)
+            .clickable(onClick = onClick),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Image(

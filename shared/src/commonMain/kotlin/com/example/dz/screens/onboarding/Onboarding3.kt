@@ -35,7 +35,10 @@ import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
-fun OnboardingScreenThree() {
+fun OnboardingScreenThree(
+    onGetStartedClick: () -> Unit = {},
+    onLoginClick: () -> Unit = {}
+) {
     val primaryText = Color(0xFF353645)
     val secondaryText = Color(0xFF9B9EAE)
 
@@ -89,7 +92,7 @@ fun OnboardingScreenThree() {
                 Spacer(modifier = Modifier.height(28.dp))
 
                 AppButton(
-                    onClick = {},
+                    onClick = onGetStartedClick,
                     text = stringResource(Res.string.get_started),
                     modifier = Modifier
                         .fillMaxWidth()

@@ -21,7 +21,10 @@ import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
-fun OnboardingScreenTwo() {
+fun OnboardingScreenTwo(
+    onNextClick: () -> Unit = {},
+    onSkipClick: () -> Unit = {}
+) {
     val primaryText = MaterialTheme.colorScheme.onSurface
     val secondaryText = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
 
@@ -79,7 +82,7 @@ fun OnboardingScreenTwo() {
                 Spacer(modifier = Modifier.height(32.dp))
 
                 AppButton(
-                    onClick = {},
+                    onClick = onNextClick,
                     text = stringResource(Res.string.next),
                     modifier = Modifier
                         .fillMaxWidth()

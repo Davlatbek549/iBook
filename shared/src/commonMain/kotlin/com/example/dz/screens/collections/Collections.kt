@@ -164,14 +164,16 @@ fun Collections(
     sections: List<CollectionSection> = collectionSections,
     onBackClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
-    onNewCollectionClick: () -> Unit = {}
+    onNewCollectionClick: () -> Unit = {},
+    onCollectionClick: (collectionId: String) -> Unit = {}
 ) {
     CollectionsScreen(
         modifier = modifier,
         sections = sections,
         onBackClick = onBackClick,
         onSettingsClick = onSettingsClick,
-        onNewCollectionClick = onNewCollectionClick
+        onNewCollectionClick = onNewCollectionClick,
+        onCollectionClick = onCollectionClick
     )
 }
 
@@ -181,7 +183,8 @@ fun CollectionsScreen(
     sections: List<CollectionSection> = collectionSections,
     onBackClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
-    onNewCollectionClick: () -> Unit = {}
+    onNewCollectionClick: () -> Unit = {},
+    onCollectionClick: (collectionId: String) -> Unit = {}
 ) {
     BoxWithConstraints(
         modifier = modifier
@@ -247,7 +250,8 @@ fun CollectionsScreen(
 
                     CollectionSectionContent(
                         section = section,
-                        metrics = metrics
+                        metrics = metrics,
+                        onCollectionClick = onCollectionClick
                     )
                 }
 
@@ -489,7 +493,8 @@ private fun DrawScope.drawCollectionSquiggle(start: Offset, color: Color, length
 @Composable
 private fun CollectionSectionContent(
     section: CollectionSection,
-    metrics: CollectionMetrics
+    metrics: CollectionMetrics,
+    onCollectionClick: (collectionId: String) -> Unit
 ) {
     Text(
         text = section.title,
@@ -510,6 +515,7 @@ private fun CollectionSectionContent(
             .height(metrics.cardHeight)
             .clip(RoundedCornerShape(metrics.cardCorner))
             .background(Color.White)
+            .clickable { onCollectionClick(section.title) }
     ) {
         Column(
             modifier = Modifier

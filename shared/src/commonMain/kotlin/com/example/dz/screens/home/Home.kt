@@ -175,79 +175,15 @@ private val popularAuthors = listOf(
 )
 
 @Composable
-fun Home() {
-    var currentRoute by remember { mutableStateOf("home") }
-    var isSearchFocused by remember { mutableStateOf(false) }
-    val usesLightBottomBar = currentRoute == "books" || currentRoute == "library" || currentRoute == "store" || currentRoute == "search"
-    val colorScheme = MaterialTheme.colorScheme
-
-    LaunchedEffect(currentRoute) {
-        if (currentRoute != "search") {
-            isSearchFocused = false
-        }
-    }
-
-    Box(modifier = Modifier.fillMaxSize()) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            when (currentRoute) {
-                "home" -> HomeScreen()
-                "books", "library" -> Library()
-                "store" -> StoreScreen()
-                "search" -> {
-                    SearchScreen(
-                        onSearchFocusChange = { isSearchFocused = it },
-                        onCategoryClick = { category ->
-                            if (category.equals("Horror", ignoreCase = true)) {
-                                currentRoute = "category_detail"
-                            }
-                        }
-                    )
-                }
-                "category_detail" -> {
-                    CategoryDetailScreen(
-                        onBackClick = {
-                            currentRoute = "search"
-                        }
-                    )
-                }
-                else -> HomeScreen()
-            }
-        }
-
-        if (!isSearchFocused && currentRoute != "category_detail") {
-            CustomBottomBar(
-                currentRoute = currentRoute,
-                onItemClick = { route ->
-                    currentRoute = route
-                },
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .navigationBarsPadding()
-                    .zIndex(2f),
-                containerColor = if (usesLightBottomBar) colorScheme.surface else colorScheme.primary,
-                selectedContentColor = if (usesLightBottomBar) {
-                    colorScheme.primary
-                } else {
-                    colorScheme.onPrimary
-                },
-                unselectedContentColor = if (usesLightBottomBar) {
-                    colorScheme.onSurface.copy(alpha = 0.34f)
-                } else {
-                    colorScheme.onPrimary.copy(alpha = 0.74f)
-                }
-            )
-        }
-    }
-}
-
-@Composable
 fun HomeScreen(
     modifier: Modifier = Modifier,
     onKeepReadingClick: () -> Unit = {},
     onViewAllCategoriesClick: () -> Unit = {},
     onBookClick: (HomeBook) -> Unit = {},
     onAuthorClick: (HomeAuthor) -> Unit = {},
-    onGoalsKeepReadingClick: () -> Unit = {}
+    onGoalsKeepReadingClick: () -> Unit = {},
+    onNotificationsClick: () -> Unit = {},
+    onProfileClick: () -> Unit = {}
 ) {
     BoxWithConstraints(
         modifier = modifier
@@ -261,7 +197,11 @@ fun HomeScreen(
             contentPadding = PaddingValues(bottom = metrics.bottomNavSpace)
         ) {
             item {
-                TopHomeHeader(metrics = metrics)
+                TopHomeHeader(
+                    metrics = metrics,
+                    onNotificationsClick = onNotificationsClick,
+                    onProfileClick = onProfileClick
+                )
             }
 
             item {
@@ -325,7 +265,11 @@ fun HomeScreen(
 }
 
 @Composable
-private fun TopHomeHeader(metrics: HomeMetrics) {
+private fun TopHomeHeader(
+    metrics: HomeMetrics,
+    onNotificationsClick: () -> Unit,
+    onProfileClick: () -> Unit
+) {
     val colorScheme = MaterialTheme.colorScheme
 
     Box(
@@ -344,7 +288,10 @@ private fun TopHomeHeader(metrics: HomeMetrics) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                ProfileHeaderImage(metrics = metrics)
+                ProfileHeaderImage(
+                    metrics = metrics,
+                    onClick = onProfileClick
+                )
 
                 Spacer(modifier = Modifier.width(metrics.smallGap))
 
@@ -416,13 +363,18 @@ private fun TopHomeHeader(metrics: HomeMetrics) {
 }
 
 @Composable
-private fun ProfileHeaderImage(metrics: HomeMetrics) {
+private fun ProfileHeaderImage(
+    metrics: HomeMetrics,
+    onClick: () -> Unit
+) {
     val colorScheme = MaterialTheme.colorScheme
     val avatarShape = RoundedCornerShape((metrics.avatarSize * 0.34f).coerceIn(10.dp, 14.dp))
     val indicatorOuterSize = (metrics.avatarSize * 0.31f).coerceIn(9.dp, 12.dp)
 
     Box(
-        modifier = Modifier.size(metrics.avatarSize + 6.dp),
+        modifier = Modifier
+            .size(metrics.avatarSize + 6.dp)
+            .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         Image(

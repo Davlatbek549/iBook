@@ -120,7 +120,7 @@ private val authors = listOf(
 @Composable
 fun App() {
     com.example.dz.theme.DZTheme {
-        com.example.dz.screens.home.Home()
+        com.example.dz.navigation.DZNavGraph()
     }
 }
 

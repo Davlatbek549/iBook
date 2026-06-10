@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -21,6 +22,7 @@ import dz.shared.generated.resources.Res
 import dz.shared.generated.resources.*
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
+import kotlinx.coroutines.delay
 
 private data class SplashMetrics(
     val logoSize: Dp,
@@ -33,7 +35,12 @@ private data class SplashMetrics(
 )
 
 @Composable
-fun SplashScreen() {
+fun SplashScreen(onSplashFinished: () -> Unit = {}) {
+    LaunchedEffect(Unit) {
+        delay(1500)
+        onSplashFinished()
+    }
+
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
