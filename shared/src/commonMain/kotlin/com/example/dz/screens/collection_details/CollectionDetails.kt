@@ -75,7 +75,8 @@ fun CollectionDetails(
     onAddClick: () -> Unit = {},
     onSettingsClick: () -> Unit = {},
     onRemoveEverywhereClick: (String) -> Unit = {},
-    onBookOptionsClick: (String) -> Unit = {}
+    onBookOptionsClick: (String) -> Unit = {},
+    onBookClick: (String) -> Unit = {}
 ) {
     val colors = inkColors()
     val displayFont = inkDisplayFontFamily()
@@ -214,6 +215,7 @@ fun CollectionDetails(
                     cover = book.coverRes,
                     title = book.title,
                     author = book.author,
+                    modifier = Modifier.clickable { onBookClick(book.title) },
                     showDivider = i > 0,
                     meta = {
                         Text(

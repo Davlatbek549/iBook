@@ -78,6 +78,7 @@ private val friendPreviewAvatars = listOf(
 @Composable
 fun Profile(
     modifier: Modifier = Modifier,
+    onBackClick: () -> Unit = {},
     onEditClick: () -> Unit = {},
     onNotificationsClick: () -> Unit = {},
     onFriendsClick: () -> Unit = {},
@@ -89,6 +90,7 @@ fun Profile(
 ) {
     ProfileScreen(
         modifier = modifier,
+        onBackClick = onBackClick,
         onEditClick = onEditClick,
         onNotificationsClick = onNotificationsClick,
         onFriendsClick = onFriendsClick,
@@ -103,6 +105,7 @@ fun Profile(
 @Composable
 fun ProfileScreen(
     modifier: Modifier = Modifier,
+    onBackClick: () -> Unit = {},
     onEditClick: () -> Unit = {},
     onNotificationsClick: () -> Unit = {},
     onFriendsClick: () -> Unit = {},
@@ -136,9 +139,11 @@ fun ProfileScreen(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 22.dp, end = 22.dp, top = 6.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(start = 22.dp, end = 22.dp, top = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
+            InkIconButton(icon = InkIcons.Back, onClick = onBackClick, colors = colors)
             Text(
                 text = stringResource(Res.string.profile_you),
                 modifier = Modifier.weight(1f),

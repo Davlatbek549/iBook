@@ -62,6 +62,7 @@ import dz.shared.generated.resources.home_from_your_circle
 import dz.shared.generated.resources.home_greeting
 import dz.shared.generated.resources.home_see_all
 import dz.shared.generated.resources.home_trending
+import dz.shared.generated.resources.profile_1
 import dz.shared.generated.resources.profile_2
 import dz.shared.generated.resources.profile_3
 import org.jetbrains.compose.resources.DrawableResource
@@ -138,7 +139,17 @@ fun HomeScreen(
                 .padding(start = 22.dp, end = 22.dp, top = 6.dp, bottom = 18.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(modifier = Modifier.weight(1f)) {
+            // profile avatar — opens the (pushed) Profile screen
+            Image(
+                painter = painterResource(Res.drawable.profile_1),
+                contentDescription = "Profile",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(InkShape.radiusSm + 2.dp))
+                    .clickable(onClick = onProfileClick)
+            )
+            Column(modifier = Modifier.weight(1f).padding(start = 12.dp)) {
                 Text(
                     text = stringResource(Res.string.home_greeting),
                     fontFamily = bodyFont,

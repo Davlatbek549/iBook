@@ -59,7 +59,8 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 fun MembershipScreen(
     modifier: Modifier = Modifier,
-    onBackClick: () -> Unit = {}
+    onBackClick: () -> Unit = {},
+    onStartTrialClick: () -> Unit = {}
 ) {
     val colors = inkColors()
     val displayFont = inkDisplayFontFamily()
@@ -179,7 +180,7 @@ fun MembershipScreen(
         ) {
             HorizontalDivider(thickness = 1.dp, color = colors.line)
             Box(modifier = Modifier.navigationBarsPadding().padding(start = 22.dp, end = 22.dp, top = 14.dp, bottom = 18.dp)) {
-                InkButton(text = stringResource(Res.string.mem_start_trial), onClick = onBackClick, colors = colors)
+                InkButton(text = stringResource(Res.string.mem_start_trial), onClick = onStartTrialClick, colors = colors)
             }
         }
     }

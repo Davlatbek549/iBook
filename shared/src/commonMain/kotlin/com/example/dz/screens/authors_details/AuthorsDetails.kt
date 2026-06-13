@@ -78,7 +78,8 @@ private val authorBooks = listOf(
 @Composable
 fun AuthorsDetailsScreen(
     modifier: Modifier = Modifier,
-    onBackClick: () -> Unit = {}
+    onBackClick: () -> Unit = {},
+    onBookClick: (String) -> Unit = {}
 ) {
     val colors = inkColors()
     val displayFont = inkDisplayFontFamily()
@@ -222,7 +223,7 @@ fun AuthorsDetailsScreen(
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 authorBooks.forEach { book ->
-                    Column(modifier = Modifier.width(104.dp)) {
+                    Column(modifier = Modifier.width(104.dp).clickable { onBookClick(book.title) }) {
                         Image(
                             painter = painterResource(book.coverRes),
                             contentDescription = null,
