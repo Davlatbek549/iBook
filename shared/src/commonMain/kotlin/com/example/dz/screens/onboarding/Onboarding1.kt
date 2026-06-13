@@ -1,23 +1,37 @@
 package com.example.dz.screens.onboarding
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.dz.app_components.buttons.app_button.AppButton
+import androidx.compose.ui.zIndex
+import com.example.dz.theme.InkShape
+import com.example.dz.theme.inkColors
+import com.example.dz.theme.inkDisplayFontFamily
 import dz.shared.generated.resources.Res
-import dz.shared.generated.resources.*
+import dz.shared.generated.resources.book_cover
+import dz.shared.generated.resources.book_cover_2
+import dz.shared.generated.resources.book_cover_3
+import dz.shared.generated.resources.continue_btn
+import dz.shared.generated.resources.onb1_caption
+import dz.shared.generated.resources.onb1_copy
+import dz.shared.generated.resources.onb1_title
+import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
@@ -26,110 +40,74 @@ fun OnboardingScreenOne(
     onNextClick: () -> Unit = {},
     onSkipClick: () -> Unit = {}
 ) {
-    val primaryText = MaterialTheme.colorScheme.onSurface
-    val secondaryText = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+    OnboardingScaffold(
+        title = stringResource(Res.string.onb1_title),
+        copy = stringResource(Res.string.onb1_copy),
+        pageIndex = 0,
+        buttonText = stringResource(Res.string.continue_btn),
+        onButtonClick = onNextClick,
+        onSkipClick = onSkipClick,
+        hero = { FannedCoversHero() }
+    )
+}
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.White)
-    ) {
+@Composable
+private fun FannedCoversHero() {
+    val colors = inkColors()
 
-        Image(
-            painter = painterResource(Res.drawable.onboarding1),
-            contentDescription = null,
+    Box(modifier = Modifier.size(width = 230.dp, height = 270.dp)) {
+        FannedCover(
+            cover = Res.drawable.book_cover_3,
+            width = 110.dp, height = 162.dp,
             modifier = Modifier
-                .width(274.dp)
-                .height(558.dp)
-                .offset(x = (+23).dp, y = 135.dp)
-                .rotate(+7.9f)
+                .align(Alignment.TopStart)
+                .offset(y = 30.dp)
+                .graphicsLayer { rotationZ = -7f }
         )
-
-        Image(
-            painter = painterResource(Res.drawable.onboarding1_2),
-            contentDescription = null,
+        FannedCover(
+            cover = Res.drawable.book_cover_2,
+            width = 110.dp, height = 162.dp,
             modifier = Modifier
-                .width(222.dp)
-                .height(453.dp)
-                .offset(x = 195.dp, y = 220.dp)
-                .rotate(-8.32f)
+                .align(Alignment.TopEnd)
+                .offset(y = 36.dp)
+                .graphicsLayer { rotationZ = 7f }
         )
-
-        Box(
+        FannedCover(
+            cover = Res.drawable.book_cover,
+            width = 124.dp, height = 184.dp,
+            elevation = 18.dp,
             modifier = Modifier
-                .fillMaxWidth()
-                .height(324.dp)
-                .align(Alignment.BottomCenter)
-                .background(
-                    MaterialTheme.colorScheme.background,
-                    shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
-                )
-        ) {
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp)
-                    .padding(top = 40.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-
-                Text(
-                    text = stringResource(Res.string.onboarding1_bottom_text),
-                    style = MaterialTheme.typography.displaySmall,
-                    fontWeight = FontWeight.Bold,
-                    color = primaryText
-                )
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                Text(
-                    fontSize = 15.sp,
-                    text = stringResource(Res.string.onboarding1_bottom_text_2),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = secondaryText,
-                    textAlign = TextAlign.Center
-                )
-
-                Spacer(modifier = Modifier.height(32.dp))
-
-                AppButton(
-                    onClick = onNextClick,
-                    text = stringResource(Res.string.next),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp)
-                )
-            }
-        }
-        Row(
-            modifier = Modifier
-                .width(327.dp)
-                .height(4.dp)
-                .align(Alignment.TopCenter)
-                .offset(y = 64.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-
-            val itemCount = 3
-            val gap = 12.dp
-            val totalWidth = 327.dp
-
-            val itemWidth = (totalWidth - gap * (itemCount - 1)) / itemCount
-
-            repeat(itemCount) { index ->
-                Box(
-                    modifier = Modifier
-                        .height(4.dp)
-                        .width(itemWidth)
-                        .background(if (index == 0) MaterialTheme.colorScheme.primary else secondaryText.copy(alpha = 0.3f),
-                            shape = RoundedCornerShape(50)
-                        )
-                )
-            }
-        }
-
+                .offset(x = 58.dp, y = 8.dp)
+                .zIndex(2f)
+        )
+        Text(
+            text = stringResource(Res.string.onb1_caption),
+            modifier = Modifier.align(Alignment.BottomCenter),
+            fontFamily = inkDisplayFontFamily(),
+            fontStyle = FontStyle.Italic,
+            fontSize = 13.sp,
+            color = colors.muted
+        )
     }
+}
+
+@Composable
+private fun FannedCover(
+    cover: DrawableResource,
+    width: Dp,
+    height: Dp,
+    modifier: Modifier = Modifier,
+    elevation: Dp = 12.dp,
+) {
+    Image(
+        painter = painterResource(cover),
+        contentDescription = null,
+        contentScale = ContentScale.Crop,
+        modifier = modifier
+            .width(width)
+            .height(height)
+            .shadow(elevation, RoundedCornerShape(InkShape.cover), clip = true)
+    )
 }
 
 @Preview(showBackground = true, widthDp = 375, heightDp = 820)

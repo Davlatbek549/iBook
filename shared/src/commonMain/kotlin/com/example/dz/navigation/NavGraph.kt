@@ -2,13 +2,15 @@ package com.example.dz.navigation
 
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import com.example.dz.theme.inkColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
@@ -61,6 +63,7 @@ import com.example.dz.screens.premium_membership.PremiumMembership
 import com.example.dz.screens.profile.ProfileScreen
 import com.example.dz.screens.purchase_confirmation.PurchaseConfirmationScreen
 import com.example.dz.screens.purchase_details.PurchaseDetailsScreen
+import com.example.dz.screens.purchase_details.PurchaseReceiptScreen
 import com.example.dz.screens.reading.ReadingScreen
 import com.example.dz.screens.search.SearchScreen
 import com.example.dz.screens.settings.Settings
@@ -74,64 +77,46 @@ import org.jetbrains.compose.resources.painterResource
 fun CustomBottomBar(
     currentRoute: String,
     onItemClick: (String) -> Unit,
-    modifier: Modifier = Modifier,
-    containerColor: Color? = null,
-    selectedContentColor: Color? = null,
-    unselectedContentColor: Color? = null
+    modifier: Modifier = Modifier
 ) {
-    val resolvedContainerColor = containerColor ?: MaterialTheme.colorScheme.primary
-    val resolvedSelectedContentColor = selectedContentColor ?: MaterialTheme.colorScheme.onPrimary
-    val resolvedUnselectedContentColor =
-        unselectedContentColor ?: MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.74f)
+    val colors = inkColors()
 
-    Box(
-        modifier = modifier
-            .padding(horizontal = 22.dp, vertical = 10.dp)
-            .shadow(
-                elevation = 18.dp,
-                shape = RoundedCornerShape(26.dp),
-                ambientColor = Color.Black.copy(alpha = 0.18f),
-                spotColor = Color.Black.copy(alpha = 0.28f)
-            )
-            .clip(RoundedCornerShape(26.dp))
-            .background(resolvedContainerColor)
-            .fillMaxWidth()
-            .height(58.dp),
-        contentAlignment = Alignment.Center
-    ) {
+    Column(modifier = modifier.fillMaxWidth().background(colors.paper)) {
+        HorizontalDivider(thickness = 1.dp, color = colors.line)
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(64.dp)
+                .padding(bottom = 6.dp),
+            horizontalArrangement = Arrangement.SpaceAround,
             verticalAlignment = Alignment.CenterVertically
         ) {
             bottomNavItems.forEach { item ->
-
                 val isSelected = currentRoute == item.route
 
                 val tint by animateColorAsState(
-                    targetValue = if (isSelected)
-                        resolvedSelectedContentColor
-                    else
-                        resolvedUnselectedContentColor,
+                    targetValue = if (isSelected) colors.accent else colors.muted,
                     label = "iconColor"
                 )
 
-                val scale by animateFloatAsState(
-                    targetValue = if (isSelected) 1.12f else 1f,
-                    label = "iconScale"
-                )
-
-                Icon(
-                    painter = painterResource(item.iconRes),
-                    contentDescription = item.route,
-                    tint = tint,
-                    modifier = Modifier
-                        .size(22.dp)
-                        .scale(scale)
-                        .clickable {
-                            onItemClick(item.route)
-                        }
-                )
+                Column(
+                    modifier = Modifier.clickable { onItemClick(item.route) },
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(5.dp)
+                ) {
+                    Icon(
+                        imageVector = item.icon,
+                        contentDescription = item.route,
+                        tint = tint,
+                        modifier = Modifier.size(21.dp)
+                    )
+                    Box(
+                        modifier = Modifier
+                            .size(4.dp)
+                            .clip(CircleShape)
+                            .background(if (isSelected) colors.accent else Color.Transparent)
+                    )
+                }
             }
         }
     }
@@ -160,7 +145,29 @@ fun DZNavGraph() {
         Routes.FORGOT_PASSWORD,
         Routes.VERIFICATION,
         Routes.BOOK_DETAIL,
+        Routes.PRE_PURCHASE,
+        Routes.BOOK_REVIEW,
+        Routes.AUTHOR_DETAIL,
+        Routes.CATEGORY_DETAIL,
+        Routes.COLLECTION_DETAIL,
+        Routes.COLLECTIONS_EDIT,
+        Routes.GOAL,
+        Routes.FRIEND_LIST,
+        Routes.FRIEND_DETAIL,
+        Routes.CHAT,
+        Routes.NOTIFICATIONS,
+        Routes.INVITE_FRIENDS,
+        Routes.NO_FRIENDS,
+        Routes.SETTINGS,
+        Routes.MEMBERSHIP,
+        Routes.PREMIUM_MEMBERSHIP,
+        Routes.NO_MEMBERSHIP,
+        Routes.PROFILE_EDIT,
         Routes.READING,
+        Routes.PURCHASE_DETAILS,
+        Routes.PURCHASE_RECEIPT,
+        Routes.PURCHASE_CONFIRMATION,
+        Routes.PAYMENT_METHODS,
         Routes.PAYMENT_SUCCESS,
         Routes.PAYMENT_FAILED
     )
@@ -308,7 +315,8 @@ fun DZNavGraph() {
                     onSortClick = {},
                     onBookClick = { book ->
                         navController.navigate(Routes.reading(routeKey(book.title)))
-                    }
+                    },
+                    onGoalClick = { navController.navigate(Routes.GOAL) }
                 )
             }
 
@@ -341,13 +349,14 @@ fun DZNavGraph() {
 
             composable(Routes.PROFILE_TAB) {
                 ProfileScreen(
-                    onBackClick = { navController.popBackStack() },
-                    onPhotoClick = {},
-                    onUsernameClick = {},
-                    onBirthdayClick = {},
-                    onAddressClick = {},
-                    onPhoneClick = {},
-                    onSaveClick = { navController.popBackStack() }
+                    onEditClick = {},
+                    onNotificationsClick = { navController.navigate(Routes.NOTIFICATIONS) },
+                    onFriendsClick = { navController.navigate(Routes.FRIEND_LIST) },
+                    onGoalsClick = { navController.navigate(Routes.GOAL) },
+                    onCollectionsClick = { navController.navigate(Routes.COLLECTIONS) },
+                    onPurchasesClick = { navController.navigate(Routes.purchaseReceipt("history")) },
+                    onMembershipClick = { navController.navigate(Routes.MEMBERSHIP) },
+                    onSettingsClick = { navController.navigate(Routes.SETTINGS) }
                 )
             }
 
@@ -365,6 +374,9 @@ fun DZNavGraph() {
                     },
                     onTagsBookClick = {
                         navController.navigate(Routes.prePurchase("related-book"))
+                    },
+                    onAuthorClick = {
+                        navController.navigate(Routes.authorDetail("author"))
                     }
                 )
             }
@@ -406,7 +418,18 @@ fun DZNavGraph() {
                     onBackClick = { navController.popBackStack() },
                     onDiscountCodeClick = {},
                     onChangePaymentClick = { navController.navigate(Routes.PAYMENT_METHODS) },
-                    onPayNowClick = { navController.navigate(Routes.PAYMENT_METHODS) }
+                    onPayNowClick = { navController.navigate(Routes.PURCHASE_CONFIRMATION) }
+                )
+            }
+
+            composable(Routes.PURCHASE_RECEIPT) { backStackEntry ->
+                val bookId = backStackEntry.stringArgument("bookId", "book")
+                PurchaseReceiptScreen(
+                    onBackClick = { navController.popBackStack() },
+                    onReadNowClick = {
+                        navController.navigate(Routes.reading(bookId))
+                    },
+                    onReceiptClick = {}
                 )
             }
 
@@ -415,21 +438,18 @@ fun DZNavGraph() {
                     onBackClick = { navController.popBackStack() },
                     onPaymentMethodSelected = { _ -> },
                     onAddPaymentMethodClick = {},
-                    onConfirmClick = {
-                        navController.navigate(Routes.PAYMENT_SUCCESS) {
-                            popUpTo(Routes.PRE_PURCHASE) { inclusive = false }
-                        }
-                    }
+                    onConfirmClick = { navController.popBackStack() }
                 )
             }
 
             composable(Routes.PURCHASE_CONFIRMATION) {
                 PurchaseConfirmationScreen(
-                    onBackClick = {
-                        navController.navigate(Routes.HOME) {
-                            popUpTo(Routes.HOME) { inclusive = false }
+                    onConfirm = {
+                        navController.navigate(Routes.PAYMENT_SUCCESS) {
+                            popUpTo(Routes.STORE) { inclusive = false }
                         }
-                    }
+                    },
+                    onBackClick = { navController.popBackStack() }
                 )
             }
 
@@ -619,8 +639,6 @@ fun DZNavGraph() {
         }
 
         if (showBottomBar) {
-            val usesLightBottomBar = route in lightBottomBarRoutes
-
             CustomBottomBar(
                 currentRoute = route,
                 onItemClick = { selectedRoute ->
@@ -629,22 +647,7 @@ fun DZNavGraph() {
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .navigationBarsPadding()
-                    .zIndex(2f),
-                containerColor = if (usesLightBottomBar) {
-                    colorScheme.surface
-                } else {
-                    colorScheme.primary
-                },
-                selectedContentColor = if (usesLightBottomBar) {
-                    colorScheme.primary
-                } else {
-                    colorScheme.onPrimary
-                },
-                unselectedContentColor = if (usesLightBottomBar) {
-                    colorScheme.onSurface.copy(alpha = 0.34f)
-                } else {
-                    colorScheme.onPrimary.copy(alpha = 0.74f)
-                }
+                    .zIndex(2f)
             )
         }
     }

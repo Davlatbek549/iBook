@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>DZ — Ink &amp; Paper · All screens</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>* { box-sizing: border-box; } html, body { margin: 0; }</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="theme-data.js"></script>
+<script src="icons.js"></script>
+<script src="icons2.js"></script>
+<script src="icons-ink.js"></script>
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="ink-shared.jsx"></script>
+<script type="text/babel" src="redesign-screens.jsx"></script>
+<script type="text/babel" src="ink-auth.jsx"></script>
+<script type="text/babel" src="ink-main.jsx"></script>
+<script type="text/babel" src="ink-books.jsx"></script>
+<script type="text/babel" src="ink-collections.jsx"></script>
+<script type="text/babel" src="ink-social.jsx"></script>
+<script type="text/babel" src="ink-purchase.jsx"></script>
+<script type="text/babel" src="ink-membership.jsx"></script>
+<script type="text/babel" src="ink-brand.jsx"></script>
+<script type="text/babel">
+const { DesignCanvas, DCSection, DCArtboard } = window;
+const { useTweaks, TweaksPanel, TweakRadio, TweakColor } = window;
+const { Home, Detail, Reading } = window.DZScreens2;
+const A = window.DZInkAuth, M = window.DZInkMain, B = window.DZInkBooks,
+      C = window.DZInkCollections, S = window.DZInkSocial, P = window.DZInkPurchase,
+      MS = window.DZInkMembership, BR = window.DZInkBrand;
+
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "mode": "Light",
+  "accent": "#B5532E"
+}/*EDITMODE-END*/;
+
+/* Curated accent variants — each carries its full light/dark accent family */
+const ACCENTS = {
+  '#B5532E': { L: { accent: '#B5532E', accentSoft: '#EBDBCC', onAccent: '#FBF7EF' }, D: { accent: '#D98A5E', accentSoft: '#3A2A20', onAccent: '#17130D' } },
+  '#6E7A53': { L: { accent: '#6E7A53', accentSoft: '#E0E4D0', onAccent: '#FBF7EF' }, D: { accent: '#A8B583', accentSoft: '#2A2D20', onAccent: '#17130D' } },
+  '#25543E': { L: { accent: '#25543E', accentSoft: '#D6E0D6', onAccent: '#FBF7EF' }, D: { accent: '#5C9B79', accentSoft: '#1E2A22', onAccent: '#17130D' } },
+};
+
+const W = 340;
+const SCREENS = [
+  ['auth', 'Onboarding & auth', 'first run · sign in · account recovery', [
+    ['Splash', A.Splash, 640],
+    ['Onboarding 1 · Read beautifully', A.Onboarding1, 760],
+    ['Onboarding 2 · Build your shelf', A.Onboarding2, 760],
+    ['Onboarding 3 · Read together', A.Onboarding3, 760],
+    ['Sign in', A.LogIn, 780],
+    ['Create account', A.SignUp, 820],
+    ['Forgot password', A.ForgotPassword, 640],
+    ['Verification', A.Verification, 640],
+  ]],
+  ['tabs', 'Main tabs', 'home · search · library · store', [
+    ['Home', Home, 880],
+    ['Search', M.Search, 840],
+    ['Library', M.Library, 840],
+    ['Store', M.Store, 860],
+  ]],
+  ['books', 'Books & reading', 'detail · reviews · author · category · reader', [
+    ['Book detail', Detail, 850],
+    ['Reviews', B.BookReviews, 860],
+    ['Author', B.AuthorDetail, 840],
+    ['Category', B.CategoryDetail, 840],
+    ['Reading', Reading, 720],
+  ]],
+  ['collections', 'Collections & goals', 'shelves · editing · reading goals', [
+    ['Collections', C.Collections, 840],
+    ['Collection detail', C.CollectionDetail, 840],
+    ['Edit collection', C.CollectionsEdit, 820],
+    ['Reading goals', C.Goal, 860],
+  ]],
+  ['social', 'Social', 'profile · friends · chat · notifications', [
+    ['Profile', S.Profile, 860],
+    ['Friend profile', S.Friend, 840],
+    ['Friends', S.FriendList, 840],
+    ['Invite friends', S.InviteFriends, 780],
+    ['No friends · empty', S.NoFriends, 720],
+    ['Chat', S.Chat, 840],
+    ['Notifications', S.Notifications, 840],
+  ]],
+  ['purchase', 'Purchase', 'order review · payment · success & failure', [
+    ['Review order', P.PrePurchase, 820],
+    ['Confirm sheet', P.PurchaseConfirmation, 760],
+    ['Purchase details', P.PurchaseDetails, 820],
+    ['Payment methods', P.PaymentMethods, 760],
+    ['Payment success', P.PaymentSuccess, 760],
+    ['Payment failed', P.PaymentFailed, 760],
+  ]],
+  ['membership', 'Membership & settings', 'premium upsell · active plan · settings', [
+    ['Premium upsell', MS.Membership, 860],
+    ['Active membership', MS.PremiumMembership, 840],
+    ['Settings', MS.Settings, 880],
+  ]],
+  ['brand', 'Brand & iconography', 'app icon · bespoke ink-stroke icon set', [
+    ['App icon', BR.AppIcon, 480],
+    ['Icon set', BR.IconSet, 960],
+  ]],
+];
+
+function App() {
+  const [tw, setTweak] = useTweaks(TWEAK_DEFAULTS);
+  const mode = tw.mode === 'Dark' ? 'D' : 'L';
+  const acc = ACCENTS[tw.accent] || ACCENTS['#B5532E'];
+  const base = window.DZDIR.ink;
+  const t = { ...base, L: { ...base.L, ...acc.L }, D: { ...base.D, ...acc.D } };
+  return (
+    <div>
+      <DesignCanvas>
+        {SCREENS.map(([id, title, subtitle, screens]) => (
+          <DCSection key={id} id={id} title={title} subtitle={subtitle}>
+            {screens.map(([label, Comp, h]) => (
+              <DCArtboard key={id + '-' + label} id={id + '-' + label.toLowerCase().replace(/[^a-z0-9]+/g, '-')} label={label} width={W} height={h}>
+                <div data-screen-label={label} style={{ width: '100%', height: '100%' }}>
+                  <Comp t={t} mode={mode} />
+                </div>
+              </DCArtboard>
+            ))}
+          </DCSection>
+        ))}
+      </DesignCanvas>
+      <TweaksPanel>
+        <TweakRadio label="Mode" value={tw.mode} options={['Light', 'Dark']} onChange={(v) => setTweak('mode', v)} />
+        <TweakColor label="Accent" value={tw.accent} options={['#B5532E', '#6E7A53', '#25543E']} onChange={(v) => setTweak('accent', v)} />
+      </TweaksPanel>
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

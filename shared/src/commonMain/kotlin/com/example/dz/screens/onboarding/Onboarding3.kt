@@ -1,36 +1,41 @@
 package com.example.dz.screens.onboarding
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.dz.app_components.buttons.app_button.AppButton
+import com.example.dz.app_components.ink.inkCard
+import com.example.dz.theme.InkShape
+import com.example.dz.theme.inkBodyFontFamily
+import com.example.dz.theme.inkColors
 import dz.shared.generated.resources.Res
-import dz.shared.generated.resources.*
+import dz.shared.generated.resources.get_started
+import dz.shared.generated.resources.img_maria_renzy
+import dz.shared.generated.resources.onb3_copy
+import dz.shared.generated.resources.onb3_title
+import dz.shared.generated.resources.profile_2
+import dz.shared.generated.resources.profile_3
+import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
@@ -39,151 +44,67 @@ fun OnboardingScreenThree(
     onGetStartedClick: () -> Unit = {},
     onLoginClick: () -> Unit = {}
 ) {
-    val primaryText = Color(0xFF353645)
-    val secondaryText = Color(0xFF9B9EAE)
+    OnboardingScaffold(
+        title = stringResource(Res.string.onb3_title),
+        copy = stringResource(Res.string.onb3_copy),
+        pageIndex = 2,
+        buttonText = stringResource(Res.string.get_started),
+        onButtonClick = onGetStartedClick,
+        onSkipClick = onLoginClick,
+        hero = { FriendActivityHero() }
+    )
+}
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFF8F9FF))
+@Composable
+private fun FriendActivityHero() {
+    Column(
+        modifier = Modifier.width(250.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        PhoneChallengeImages(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(496.dp)
-                .align(Alignment.TopCenter)
-        )
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(324.dp)
-                .align(Alignment.BottomCenter)
-                .background(MaterialTheme.colorScheme.background)
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp)
-                    .padding(top = 40.dp),
-                horizontalAlignment = Alignment.Start
-            ) {
-                Text(
-                    text = stringResource(Res.string.onboarding3_bottom_text),
-                    style = MaterialTheme.typography.displaySmall,
-                    fontSize = 28.sp,
-                    lineHeight = 34.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = primaryText,
-                    textAlign = TextAlign.Start
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Text(
-                    text = stringResource(Res.string.onboarding3_bottom_text_2),
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontSize = 14.sp,
-                    lineHeight = 22.sp,
-                    color = secondaryText,
-                    textAlign = TextAlign.Start
-                )
-
-                Spacer(modifier = Modifier.height(28.dp))
-
-                AppButton(
-                    onClick = onGetStartedClick,
-                    text = stringResource(Res.string.get_started),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp)
-                )
-            }
-
-            Box(
-                modifier = Modifier
-                    .width(86.dp)
-                    .height(4.dp)
-                    .align(Alignment.BottomCenter)
-                    .offset(y = (-8).dp)
-                    .clip(RoundedCornerShape(50))
-                    .background(Color(0xFF23242D).copy(alpha = 0.62f))
-            )
-        }
-
-        Row(
-            modifier = Modifier
-                .width(327.dp)
-                .height(4.dp)
-                .align(Alignment.TopCenter)
-                .offset(y = 64.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            val itemCount = 3
-            val gap = 12.dp
-            val totalWidth = 327.dp
-            val itemWidth = (totalWidth - gap * (itemCount - 1)) / itemCount
-
-            repeat(itemCount) { index ->
-                Box(
-                    modifier = Modifier
-                        .height(4.dp)
-                        .width(itemWidth)
-                        .background(
-                            color = if (index == 2) {
-                                MaterialTheme.colorScheme.primary
-                            } else {
-                                secondaryText.copy(alpha = 0.22f)
-                            },
-                            shape = RoundedCornerShape(50)
-                        )
-                )
-            }
-        }
+        ActivityCard(Res.drawable.profile_2, "Patricia", "is reading Olive, Again", offsetX = 0.dp)
+        ActivityCard(Res.drawable.profile_3, "Daniel", "finished Bestiary", offsetX = 16.dp)
+        ActivityCard(Res.drawable.img_maria_renzy, "Maria", "loved Mexican Gothic", offsetX = 4.dp)
     }
 }
 
 @Composable
-private fun PhoneChallengeImages(
-    modifier: Modifier = Modifier
+private fun ActivityCard(
+    avatar: DrawableResource,
+    name: String,
+    activity: String,
+    offsetX: Dp,
 ) {
-    Box(modifier = modifier) {
-        Image(
-            painter = painterResource(Res.drawable.img_onboarding3_phone),
-            contentDescription = null,
-            modifier = Modifier
-                .width(600.dp)
-                .height(650.dp)
-                .align(Alignment.TopCenter)
-                .offset(x = 3.dp, y = 120.dp),
-            contentScale = ContentScale.Fit
-        )
+    val colors = inkColors()
 
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .offset(x = offsetX)
+            .inkCard(colors)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
         Image(
-            painter = painterResource(Res.drawable.onboarding3_3),
+            painter = painterResource(avatar),
             contentDescription = null,
+            contentScale = ContentScale.Crop,
             modifier = Modifier
-                .size(73.dp)
-                .offset(x = 74.dp, y = 88.dp),
-            contentScale = ContentScale.Fit
+                .size(36.dp)
+                .clip(RoundedCornerShape(InkShape.radiusSm))
         )
-
-        Image(
-            painter = painterResource(Res.drawable.onbording3_1),
-            contentDescription = null,
-            modifier = Modifier
-                .size(92.dp)
-                .offset(x = 228.dp, y = 164.dp),
-            contentScale = ContentScale.Fit
-        )
-
-        Image(
-            painter = painterResource(Res.drawable.onborading3_2),
-            contentDescription = null,
-            modifier = Modifier
-                .size(87.dp)
-                .offset(x = 18.dp, y = 300.dp),
-            contentScale = ContentScale.Fit
+        Text(
+            text = buildAnnotatedString {
+                withStyle(SpanStyle(fontWeight = FontWeight.SemiBold, color = colors.ink)) {
+                    append(name)
+                }
+                append(" ")
+                append(activity)
+            },
+            fontFamily = inkBodyFontFamily(),
+            fontSize = 12.5.sp,
+            lineHeight = 17.sp,
+            color = colors.inkSoft
         )
     }
 }
