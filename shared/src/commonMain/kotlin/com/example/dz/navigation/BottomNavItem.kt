@@ -1,8 +1,8 @@
 package com.example.dz.navigation
 
-import org.jetbrains.compose.resources.DrawableResource
+import androidx.compose.ui.graphics.vector.ImageVector
 
 data class BottomNavItem(
     val route: String,
-    val iconRes: DrawableResource
+    val icon: ImageVector
 )

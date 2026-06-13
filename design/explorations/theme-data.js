@@ -1,0 +1,43 @@
+/* DZ redesign — three directions inside the "mono + paper" DNA.
+   Each theme drives the same screen markup, proving the token system. */
+window.DZDIR = {
+  ink: {
+    key: 'ink',
+    name: 'Ink & Paper',
+    tagline: 'Editorial · serif-forward · hairline rules',
+    fontDisplay: "'Newsreader', Georgia, serif",
+    fontAccent: "'Newsreader', Georgia, serif",
+    fontBody: "'Hanken Grotesk', system-ui, sans-serif",
+    displayWeight: 500,
+    radius: 12, radiusSm: 8, cover: 6,
+    card: 'flat',
+    L: { paper:'#F2ECE1', surface:'#FBF7EF', alt:'#ECE3D4', ink:'#211C16', inkSoft:'#4C453A', muted:'#8C8270', line:'#DFD5C5', accent:'#B5532E', accentSoft:'#EBDBCC', onAccent:'#FBF7EF' },
+    D: { paper:'#17130D', surface:'#201B14', alt:'#2A241B', ink:'#EFE7D8', inkSoft:'#C7BEAC', muted:'#988E7C', line:'#332D24', accent:'#D98A5E', accentSoft:'#3A2A20', onAccent:'#17130D' },
+  },
+  quiet: {
+    key: 'quiet',
+    name: 'Quiet',
+    tagline: 'Minimal · airy · sage calm',
+    fontDisplay: "'Mulish', system-ui, sans-serif",
+    fontAccent: "'Instrument Serif', Georgia, serif",
+    fontBody: "'Mulish', system-ui, sans-serif",
+    displayWeight: 800,
+    radius: 20, radiusSm: 13, cover: 11,
+    card: 'soft',
+    L: { paper:'#F4F3EE', surface:'#FFFFFF', alt:'#ECEBE3', ink:'#23241F', inkSoft:'#555750', muted:'#8E9085', line:'#E6E5DC', accent:'#6E7A53', accentSoft:'#E3E7D6', onAccent:'#FFFFFF' },
+    D: { paper:'#15160F', surface:'#1E1F18', alt:'#262820', ink:'#ECEDE3', inkSoft:'#C4C6B9', muted:'#929488', line:'#2E2F27', accent:'#A8B583', accentSoft:'#2A2D20', onAccent:'#15160F' },
+  },
+  atelier: {
+    key: 'atelier',
+    name: 'Atelier',
+    tagline: 'Boutique · structured · evergreen',
+    fontDisplay: "'Spectral', Georgia, serif",
+    fontAccent: "'Spectral', Georgia, serif",
+    fontBody: "'Hanken Grotesk', system-ui, sans-serif",
+    displayWeight: 500,
+    radius: 10, radiusSm: 7, cover: 6,
+    card: 'rich',
+    L: { paper:'#F1EBE0', surface:'#FAF6EC', alt:'#E7DFD0', ink:'#1B1F1A', inkSoft:'#44493F', muted:'#857F71', line:'#DCD3C3', accent:'#25543E', accentSoft:'#D8E1D6', gold:'#A8854C', onAccent:'#FAF6EC' },
+    D: { paper:'#11130E', surface:'#191C15', alt:'#222518', ink:'#ECE7DA', inkSoft:'#C6C0B0', muted:'#968E7D', line:'#2A2D22', accent:'#5C9B79', accentSoft:'#1E2A22', gold:'#C9A35F', onAccent:'#11130E' },
+  },
+};

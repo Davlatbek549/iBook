@@ -1,54 +1,58 @@
 package com.example.dz.screens.login
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.example.dz.app_components.inputs.InputKind
-import com.example.dz.app_components.inputs.UniversalInputField
+import androidx.compose.ui.unit.sp
+import com.example.dz.app_components.icons.InkIcons
+import com.example.dz.app_components.ink.InkButton
+import com.example.dz.app_components.ink.InkField
+import com.example.dz.app_components.ink.InkFooterLink
+import com.example.dz.app_components.ink.InkLabel
+import com.example.dz.app_components.ink.InkOrDivider
+import com.example.dz.app_components.ink.InkSocialButton
+import com.example.dz.theme.inkBodyFontFamily
+import com.example.dz.theme.inkColors
+import com.example.dz.theme.inkDisplayFontFamily
 import dz.shared.generated.resources.Res
-import dz.shared.generated.resources.*
-import org.jetbrains.compose.resources.DrawableResource
-import org.jetbrains.compose.resources.painterResource
+import dz.shared.generated.resources.auth_apple
+import dz.shared.generated.resources.auth_create_account
+import dz.shared.generated.resources.auth_email_placeholder
+import dz.shared.generated.resources.auth_forgot_password
+import dz.shared.generated.resources.auth_google
+import dz.shared.generated.resources.auth_login_eyebrow
+import dz.shared.generated.resources.auth_login_title
+import dz.shared.generated.resources.auth_new_here
+import dz.shared.generated.resources.auth_or
+import dz.shared.generated.resources.auth_password_placeholder
+import dz.shared.generated.resources.auth_sign_in
+import dz.shared.generated.resources.ic_apple
+import dz.shared.generated.resources.ic_google
 import org.jetbrains.compose.resources.stringResource
-
-data class SocialButtonMetrics(
-    val height: Dp,
-    val corner: Dp,
-    val borderWidth: Dp,
-    val horizontalPadding: Dp,
-    val iconGap: Dp
-)
-
-private data class LoginMetrics(
-    val horizontalPadding: Dp,
-    val topSpacing: Dp,
-    val emailTopSpacing: Dp,
-    val fieldTopSpacing: Dp,
-    val passwordTopSpacing: Dp,
-    val forgotPasswordTopSpacing: Dp,
-    val signInTopSpacing: Dp,
-    val signInHeight: Dp,
-    val signInCorner: Dp,
-    val dividerVerticalPadding: Dp,
-    val dividerTextHorizontalPadding: Dp,
-    val socialButtonGap: Dp,
-    val bottomPromptTopSpacing: Dp,
-    val fieldBorderWidth: Dp,
-    val fieldCorner: Dp,
-    val socialButtonMetrics: SocialButtonMetrics
-)
 
 @Composable
 fun LoginScreen(
@@ -56,248 +60,123 @@ fun LoginScreen(
     onForgotPasswordClick: () -> Unit = {},
     onSignUpClick: () -> Unit = {}
 ) {
-
-    val primaryText = MaterialTheme.colorScheme.onSurface
-    val secondaryText = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-    val borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+    val colors = inkColors()
+    val displayFont = inkDisplayFontFamily()
+    val bodyFont = inkBodyFontFamily()
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
-    BoxWithConstraints(
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(colors.paper)
+            .statusBarsPadding()
+            .navigationBarsPadding()
+            .imePadding()
+            .padding(start = 26.dp, end = 26.dp, bottom = 26.dp)
     ) {
-        val metrics = rememberLoginMetrics(maxWidth = maxWidth, maxHeight = maxHeight)
-
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = metrics.horizontalPadding)
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
+                .padding(top = 14.dp)
         ) {
+            InkLabel(text = stringResource(Res.string.auth_login_eyebrow), colors = colors)
 
-        Spacer(modifier = Modifier.height(metrics.topSpacing))
-
-        Text(
-            text = stringResource(Res.string.sign_in_with_email),
-            style = MaterialTheme.typography.headlineLarge,
-            color = primaryText
-        )
-
-        Text(
-            text = stringResource(Res.string.input_your_registered_account),
-            style = MaterialTheme.typography.bodyLarge,
-            color = secondaryText
-        )
-
-        Text(
-            text = stringResource(Res.string.email),
-            modifier = Modifier.padding(top = metrics.emailTopSpacing),
-            style = MaterialTheme.typography.bodyMedium,
-            color = secondaryText
-        )
-
-        UniversalInputField(
-            value = email,
-            onValueChange = { email = it },
-            hint = stringResource(Res.string.email_hint),
-            leftIcon = painterResource(Res.drawable.ic_email),
-            modifier = Modifier
-                .padding(top = metrics.fieldTopSpacing)
-                .border(
-                    metrics.fieldBorderWidth,
-                    borderColor,
-                    RoundedCornerShape(metrics.fieldCorner)
-                ),
-            inputType = InputKind.Email,
-            borderColor = Color.Transparent
-        )
-
-        Text(
-            text = stringResource(Res.string.password),
-            modifier = Modifier.padding(top = metrics.passwordTopSpacing),
-            style = MaterialTheme.typography.bodyMedium,
-            color = secondaryText
-        )
-
-        UniversalInputField(
-            value = password,
-            onValueChange = { password = it },
-            hint = stringResource(Res.string.password_hint),
-            leftIcon = painterResource(Res.drawable.ic_password),
-            modifier = Modifier
-                .padding(top = metrics.fieldTopSpacing)
-                .border(
-                    metrics.fieldBorderWidth,
-                    borderColor,
-                    RoundedCornerShape(metrics.fieldCorner)
-                ),
-            inputType = InputKind.Password,
-            borderColor = Color.Transparent
-        )
-
-        Text(
-            text = stringResource(Res.string.forgot_password),
-            modifier = Modifier
-                .align(Alignment.CenterHorizontally)
-                .padding(top = metrics.forgotPasswordTopSpacing)
-                .clickable { onForgotPasswordClick() },
-            color = MaterialTheme.colorScheme.primary,
-            style = MaterialTheme.typography.bodyMedium
-        )
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = metrics.signInTopSpacing)
-                .height(metrics.signInHeight)
-                .clip(RoundedCornerShape(metrics.signInCorner))
-                .background(MaterialTheme.colorScheme.primary)
-                .clickable { onLoginSuccess() },
-            contentAlignment = Alignment.Center
-        ) {
             Text(
-                text = stringResource(Res.string.sign_in),
-                color = MaterialTheme.colorScheme.onPrimary,
-                style = MaterialTheme.typography.titleMedium
+                text = stringResource(Res.string.auth_login_title),
+                modifier = Modifier.padding(top = 14.dp),
+                fontFamily = displayFont,
+                fontWeight = FontWeight.Medium,
+                fontSize = 32.sp,
+                lineHeight = 35.sp,
+                color = colors.ink
             )
+
+            Spacer(modifier = Modifier.height(28.dp))
+
+            InkField(
+                value = email,
+                onValueChange = { email = it },
+                placeholder = stringResource(Res.string.auth_email_placeholder),
+                leadingIcon = InkIcons.Email,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                colors = colors
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            InkField(
+                value = password,
+                onValueChange = { password = it },
+                placeholder = stringResource(Res.string.auth_password_placeholder),
+                leadingIcon = InkIcons.Lock,
+                isPassword = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                colors = colors
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                horizontalArrangement = Arrangement.End
+            ) {
+                Text(
+                    text = stringResource(Res.string.auth_forgot_password),
+                    modifier = Modifier.clickable(onClick = onForgotPasswordClick),
+                    fontFamily = bodyFont,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 12.5.sp,
+                    color = colors.accent
+                )
+            }
+
+            Spacer(modifier = Modifier.height(22.dp))
+
+            InkButton(
+                text = stringResource(Res.string.auth_sign_in),
+                onClick = onLoginSuccess,
+                colors = colors
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+            InkOrDivider(text = stringResource(Res.string.auth_or), colors = colors)
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                InkSocialButton(
+                    icon = Res.drawable.ic_google,
+                    label = stringResource(Res.string.auth_google),
+                    onClick = {},
+                    modifier = Modifier.weight(1f),
+                    colors = colors
+                )
+                InkSocialButton(
+                    icon = Res.drawable.ic_apple,
+                    label = stringResource(Res.string.auth_apple),
+                    onClick = {},
+                    modifier = Modifier.weight(1f),
+                    colors = colors
+                )
+            }
         }
 
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = metrics.dividerVerticalPadding),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-
-            HorizontalDivider(
-                modifier = Modifier.weight(1f),
-                thickness = DividerDefaults.Thickness,
-                color = DividerDefaults.color
-            )
-            Text(
-                text = stringResource(Res.string.or),
-                modifier = Modifier.padding(horizontal = metrics.dividerTextHorizontalPadding),
-                color = secondaryText
-            )
-            HorizontalDivider(
-                modifier = Modifier.weight(1f),
-                thickness = DividerDefaults.Thickness,
-                color = DividerDefaults.color
-            )
-        }
-
-        SocialButton(
-            text = stringResource(Res.string.sign_in_with_apple),
-            icon = Res.drawable.ic_apple,
-            borderColor = borderColor,
-            metrics = metrics.socialButtonMetrics
-        )
-
-        Spacer(modifier = Modifier.height(metrics.socialButtonGap))
-
-        SocialButton(
-            text = stringResource(Res.string.sign_in_with_google),
-            icon = Res.drawable.ic_google,
-            borderColor = borderColor,
-            metrics = metrics.socialButtonMetrics
-        )
-
-        Spacer(modifier = Modifier.height(metrics.bottomPromptTopSpacing))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
             horizontalArrangement = Arrangement.Center
         ) {
-            Text(
-                text = stringResource(Res.string.dont_have_account),
-                color = secondaryText
-            )
-            Text(
-                text = stringResource(Res.string.sign_up_here),
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.clickable { onSignUpClick() }
+            InkFooterLink(
+                prefix = stringResource(Res.string.auth_new_here),
+                action = stringResource(Res.string.auth_create_account),
+                onClick = onSignUpClick,
+                colors = colors
             )
         }
     }
-    }
-}
-
-@Composable
-fun SocialButton(
-    text: String,
-    icon: DrawableResource,
-    borderColor: Color,
-    metrics: SocialButtonMetrics
-) {
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(metrics.height)
-            .clip(RoundedCornerShape(metrics.corner))
-            .border(metrics.borderWidth, borderColor, RoundedCornerShape(metrics.corner))
-            .background(MaterialTheme.colorScheme.surface)
-            .clickable { }
-            .padding(horizontal = metrics.horizontalPadding),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center
-    ) {
-
-        Icon(
-            painter = painterResource(icon),
-            contentDescription = null,
-            tint = Color.Unspecified
-        )
-
-        Spacer(modifier = Modifier.width(metrics.iconGap))
-
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-    }
-}
-
-@Composable
-private fun rememberLoginMetrics(
-    maxWidth: Dp,
-    maxHeight: Dp
-): LoginMetrics = remember(maxWidth, maxHeight) {
-    val widthScale = (maxWidth / 390.dp).coerceIn(0.86f, 1.22f)
-    val heightScale = (maxHeight / 844.dp).coerceIn(0.82f, 1.18f)
-    val compactness = minOf(widthScale, heightScale)
-
-    LoginMetrics(
-        horizontalPadding = (24.dp * widthScale).coerceIn(20.dp, 34.dp),
-        topSpacing = (72.dp * heightScale).coerceIn(46.dp, 88.dp),
-        emailTopSpacing = (40.dp * heightScale).coerceIn(28.dp, 48.dp),
-        fieldTopSpacing = (8.dp * heightScale).coerceIn(6.dp, 10.dp),
-        passwordTopSpacing = (24.dp * heightScale).coerceIn(18.dp, 30.dp),
-        forgotPasswordTopSpacing = (24.dp * heightScale).coerceIn(18.dp, 30.dp),
-        signInTopSpacing = (24.dp * heightScale).coerceIn(18.dp, 30.dp),
-        signInHeight = (56.dp * compactness).coerceIn(50.dp, 62.dp),
-        signInCorner = (20.dp * compactness).coerceIn(16.dp, 24.dp),
-        dividerVerticalPadding = (24.dp * heightScale).coerceIn(18.dp, 30.dp),
-        dividerTextHorizontalPadding = (8.dp * widthScale).coerceIn(6.dp, 12.dp),
-        socialButtonGap = (15.dp * heightScale).coerceIn(12.dp, 20.dp),
-        bottomPromptTopSpacing = (24.dp * heightScale).coerceIn(18.dp, 30.dp),
-        fieldBorderWidth = (1.5.dp * compactness).coerceIn(1.dp, 2.dp),
-        fieldCorner = (16.dp * compactness).coerceIn(14.dp, 20.dp),
-        socialButtonMetrics = SocialButtonMetrics(
-            height = (56.dp * compactness).coerceIn(50.dp, 62.dp),
-            corner = (20.dp * compactness).coerceIn(16.dp, 24.dp),
-            borderWidth = (1.5.dp * compactness).coerceIn(1.dp, 2.dp),
-            horizontalPadding = (16.dp * widthScale).coerceIn(12.dp, 22.dp),
-            iconGap = (12.dp * widthScale).coerceIn(10.dp, 16.dp)
-        )
-    )
 }
 
 @Preview(showBackground = true, widthDp = 375, heightDp = 820)
 @Composable
-fun LoginScreenPreview(){
+fun LoginScreenPreview() {
     LoginScreen()
 }

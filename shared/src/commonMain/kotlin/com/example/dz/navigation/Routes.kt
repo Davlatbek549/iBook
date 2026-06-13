@@ -26,6 +26,7 @@ object Routes {
 
     // Purchase flow
     const val PURCHASE_DETAILS = "purchase_details/{bookId}"
+    const val PURCHASE_RECEIPT = "purchase_receipt/{bookId}"
     const val PURCHASE_CONFIRMATION = "purchase_confirmation"
     const val PAYMENT_METHODS = "payment_methods"
     const val PAYMENT_SUCCESS = "payment_success"
@@ -62,6 +63,7 @@ object Routes {
     fun reading(bookId: String) = "reading/$bookId"
     fun bookReview(bookId: String) = "book_review/$bookId"
     fun purchaseDetails(bookId: String) = "purchase_details/$bookId"
+    fun purchaseReceipt(bookId: String) = "purchase_receipt/$bookId"
     fun categoryDetail(categoryName: String) = "category_detail/$categoryName"
     fun authorDetail(authorId: String) = "author_detail/$authorId"
     fun collectionDetail(collectionId: String) = "collection_detail/$collectionId"

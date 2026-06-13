@@ -3,89 +3,61 @@ package com.example.dz.screens.settings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.dz.theme.DZTheme
+import com.example.dz.app_components.icons.InkIcons
+import com.example.dz.app_components.ink.InkLabel
+import com.example.dz.app_components.ink.InkToggle
+import com.example.dz.app_components.ink.InkTopBar
+import com.example.dz.app_components.ink.inkCard
+import com.example.dz.theme.InkColors
+import com.example.dz.theme.inkBodyFontFamily
+import com.example.dz.theme.inkColors
 import dz.shared.generated.resources.Res
-import dz.shared.generated.resources.*
-import org.jetbrains.compose.resources.DrawableResource
-import org.jetbrains.compose.resources.painterResource
+import dz.shared.generated.resources.set_about
+import dz.shared.generated.resources.set_account
+import dz.shared.generated.resources.set_appearance
+import dz.shared.generated.resources.set_daily_goal
+import dz.shared.generated.resources.set_edit_profile
+import dz.shared.generated.resources.set_email
+import dz.shared.generated.resources.set_help
+import dz.shared.generated.resources.set_messages
+import dz.shared.generated.resources.set_notifications
+import dz.shared.generated.resources.set_password
+import dz.shared.generated.resources.set_price_drops
+import dz.shared.generated.resources.set_privacy
+import dz.shared.generated.resources.set_reading
+import dz.shared.generated.resources.set_reading_reminders
+import dz.shared.generated.resources.set_sign_out
+import dz.shared.generated.resources.set_terms
+import dz.shared.generated.resources.set_text_size
+import dz.shared.generated.resources.set_title
+import dz.shared.generated.resources.set_version
 import org.jetbrains.compose.resources.stringResource
-
-private data class SettingsMetrics(
-    val horizontalPadding: Dp,
-    val topSpacing: Dp,
-    val backButtonSize: Dp,
-    val backIconSize: Dp,
-    val titleTopSpacing: Dp,
-    val titleSize: TextUnit,
-    val titleBottomSpacing: Dp,
-    val sectionHeight: Dp,
-    val sectionTextSize: TextUnit,
-    val rowHeight: Dp,
-    val rowIconSize: Dp,
-    val rowIconColumnWidth: Dp,
-    val rowTextSize: TextUnit,
-    val rowTextLineHeight: TextUnit,
-    val dividerStartPadding: Dp,
-    val switchWidth: Dp,
-    val switchHeight: Dp,
-    val bottomSpacing: Dp
-)
-
-private data class SettingsSectionUiState(
-    val title: String,
-    val items: List<SettingsItemUiState>
-)
-
-private data class SettingsItemUiState(
-    val title: String,
-    val iconRes: DrawableResource,
-    val type: SettingsItemType,
-    val onClick: () -> Unit
-)
-
-private enum class SettingsItemType {
-    Action,
-    NotificationSwitch
-}
 
 @Composable
 fun Settings(
     modifier: Modifier = Modifier,
-    notificationsEnabled: Boolean = false,
+    notificationsEnabled: Boolean = true,
     onNotificationsEnabledChange: (Boolean) -> Unit = {},
     onBackClick: () -> Unit = {},
     onAppearanceClick: () -> Unit = {},
@@ -97,24 +69,16 @@ fun Settings(
     onPurchasedClick: () -> Unit = {}
 ) {
     SettingsScreen(
-        modifier = modifier,
-        notificationsEnabled = notificationsEnabled,
-        onNotificationsEnabledChange = onNotificationsEnabledChange,
-        onBackClick = onBackClick,
-        onAppearanceClick = onAppearanceClick,
-        onTextSizeClick = onTextSizeClick,
-        onPageBackgroundClick = onPageBackgroundClick,
-        onTextFontClick = onTextFontClick,
-        onTermsClick = onTermsClick,
-        onPrivacyPolicyClick = onPrivacyPolicyClick,
-        onPurchasedClick = onPurchasedClick
+        modifier, notificationsEnabled, onNotificationsEnabledChange, onBackClick,
+        onAppearanceClick, onTextSizeClick, onPageBackgroundClick, onTextFontClick,
+        onTermsClick, onPrivacyPolicyClick, onPurchasedClick
     )
 }
 
 @Composable
 fun SettingsScreen(
     modifier: Modifier = Modifier,
-    notificationsEnabled: Boolean = false,
+    notificationsEnabled: Boolean = true,
     onNotificationsEnabledChange: (Boolean) -> Unit = {},
     onBackClick: () -> Unit = {},
     onAppearanceClick: () -> Unit = {},
@@ -125,328 +89,133 @@ fun SettingsScreen(
     onPrivacyPolicyClick: () -> Unit = {},
     onPurchasedClick: () -> Unit = {}
 ) {
-    BoxWithConstraints(
-        modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-        val metrics = rememberSettingsMetrics(maxWidth = maxWidth, maxHeight = maxHeight)
-        val sections = rememberSettingsSections(
-            onNotificationsClick = { onNotificationsEnabledChange(!notificationsEnabled) },
-            onAppearanceClick = onAppearanceClick,
-            onTextSizeClick = onTextSizeClick,
-            onPageBackgroundClick = onPageBackgroundClick,
-            onTextFontClick = onTextFontClick,
-            onTermsClick = onTermsClick,
-            onPrivacyPolicyClick = onPrivacyPolicyClick,
-            onPurchasedClick = onPurchasedClick
-        )
-        val colorScheme = MaterialTheme.colorScheme
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding()
-                .verticalScroll(rememberScrollState())
-        ) {
-            Spacer(modifier = Modifier.height(metrics.topSpacing))
-
-            SettingsBackButton(
-                metrics = metrics,
-                onClick = onBackClick,
-                modifier = Modifier.padding(horizontal = metrics.horizontalPadding)
-            )
-
-            Spacer(modifier = Modifier.height(metrics.titleTopSpacing))
-
-            Text(
-                text = stringResource(Res.string.settings_title),
-                color = colorScheme.onSurface.copy(alpha = 0.76f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = metrics.horizontalPadding),
-                style = MaterialTheme.typography.displayLarge.copy(
-                    fontSize = metrics.titleSize,
-                    lineHeight = metrics.titleSize * 1.08f,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.sp
-                )
-            )
-
-            Spacer(modifier = Modifier.height(metrics.titleBottomSpacing))
-
-            sections.forEach { section ->
-                SettingsSectionHeader(
-                    title = section.title,
-                    metrics = metrics
-                )
-
-                section.items.forEachIndexed { index, item ->
-                    SettingsRow(
-                        item = item,
-                        metrics = metrics,
-                        notificationsEnabled = notificationsEnabled,
-                        onNotificationsEnabledChange = onNotificationsEnabledChange,
-                        showDivider = index != section.items.lastIndex
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(metrics.bottomSpacing))
-        }
-    }
-}
-
-@Composable
-private fun SettingsBackButton(
-    metrics: SettingsMetrics,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Box(
-        modifier = modifier
-            .size(metrics.backButtonSize)
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.16f))
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            painter = painterResource(Res.drawable.ic_back),
-            contentDescription = stringResource(Res.string.cd_back),
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(metrics.backIconSize)
-        )
-    }
-}
-
-@Composable
-private fun SettingsSectionHeader(
-    title: String,
-    metrics: SettingsMetrics
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(metrics.sectionHeight)
-            .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
-            .padding(horizontal = metrics.horizontalPadding),
-        contentAlignment = Alignment.CenterStart
-    ) {
-        Text(
-            text = title,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            style = MaterialTheme.typography.titleMedium.copy(
-                fontSize = metrics.sectionTextSize,
-                lineHeight = metrics.sectionTextSize * 1.15f,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 0.sp
-            )
-        )
-    }
-}
-
-@Composable
-private fun SettingsRow(
-    item: SettingsItemUiState,
-    metrics: SettingsMetrics,
-    notificationsEnabled: Boolean,
-    onNotificationsEnabledChange: (Boolean) -> Unit,
-    showDivider: Boolean
-) {
-    val colorScheme = MaterialTheme.colorScheme
+    val colors = inkColors()
+    val bodyFont = inkBodyFontFamily()
 
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = metrics.horizontalPadding)
+        modifier = modifier
+            .fillMaxSize()
+            .background(colors.paper)
+            .statusBarsPadding()
+            .verticalScroll(rememberScrollState())
+            .padding(bottom = 26.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(metrics.rowHeight)
-                .clickable(onClick = item.onClick),
-            horizontalArrangement = Arrangement.Start,
-            verticalAlignment = Alignment.CenterVertically
+        InkTopBar(title = stringResource(Res.string.set_title), onBackClick = onBackClick, colors = colors)
+
+        // Account
+        SettingsGroup(stringResource(Res.string.set_account), colors) {
+            ChevronRow(InkIcons.User, stringResource(Res.string.set_edit_profile), onPurchasedClick, colors)
+            RowDivider(colors)
+            ValueRow(InkIcons.Email, stringResource(Res.string.set_email), "amelia@hartwell.co", {}, colors)
+            RowDivider(colors)
+            ChevronRow(InkIcons.Lock, stringResource(Res.string.set_password), {}, colors)
+        }
+
+        // Reading
+        SettingsGroup(stringResource(Res.string.set_reading), colors) {
+            ValueRow(InkIcons.Appearance, stringResource(Res.string.set_appearance), "Light", onAppearanceClick, colors)
+            RowDivider(colors)
+            ValueRow(InkIcons.Book, stringResource(Res.string.set_text_size), "Medium", onTextSizeClick, colors)
+            RowDivider(colors)
+            ValueRow(InkIcons.Stats, stringResource(Res.string.set_daily_goal), "30 min", {}, colors)
+        }
+
+        // Notifications
+        SettingsGroup(stringResource(Res.string.set_notifications), colors) {
+            ToggleRow(InkIcons.Bell, stringResource(Res.string.set_reading_reminders), notificationsEnabled, onNotificationsEnabledChange, colors)
+            RowDivider(colors)
+            ToggleRow(InkIcons.Chat, stringResource(Res.string.set_messages), true, {}, colors)
+            RowDivider(colors)
+            ToggleRow(InkIcons.Tag, stringResource(Res.string.set_price_drops), false, {}, colors)
+        }
+
+        // About
+        SettingsGroup(stringResource(Res.string.set_about), colors) {
+            ChevronRow(InkIcons.HelpCentre, stringResource(Res.string.set_help), {}, colors)
+            RowDivider(colors)
+            ChevronRow(InkIcons.Terms, stringResource(Res.string.set_terms), onTermsClick, colors)
+            RowDivider(colors)
+            ChevronRow(InkIcons.Policy, stringResource(Res.string.set_privacy), onPrivacyPolicyClick, colors)
+        }
+
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(top = 20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Box(
-                modifier = Modifier.width(metrics.rowIconColumnWidth),
-                contentAlignment = Alignment.CenterStart
-            ) {
-                Icon(
-                    painter = painterResource(item.iconRes),
-                    contentDescription = item.title,
-                    tint = Color.Unspecified,
-                    modifier = Modifier.size(metrics.rowIconSize)
-                )
-            }
-
             Text(
-                text = item.title,
-                color = colorScheme.onSurface.copy(alpha = 0.72f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.headlineMedium.copy(
-                    fontSize = metrics.rowTextSize,
-                    lineHeight = metrics.rowTextLineHeight,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.sp
-                )
+                text = stringResource(Res.string.set_sign_out),
+                modifier = Modifier.clickable(onClick = onBackClick).padding(6.dp),
+                fontFamily = bodyFont, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = colors.danger
             )
-
-            if (item.type == SettingsItemType.NotificationSwitch) {
-                Switch(
-                    checked = notificationsEnabled,
-                    onCheckedChange = onNotificationsEnabledChange,
-                    modifier = Modifier
-                        .width(metrics.switchWidth)
-                        .height(metrics.switchHeight),
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = colorScheme.onPrimary,
-                        checkedTrackColor = colorScheme.primary,
-                        uncheckedThumbColor = colorScheme.surface,
-                        uncheckedTrackColor = colorScheme.outline.copy(alpha = 0.75f),
-                        uncheckedBorderColor = Color.Transparent
-                    )
-                )
-            }
-        }
-
-        if (showDivider) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = metrics.dividerStartPadding)
-                    .height(1.dp)
-                    .background(colorScheme.outline.copy(alpha = 0.24f))
+            Text(
+                text = stringResource(Res.string.set_version),
+                fontFamily = bodyFont, fontSize = 10.5.sp, color = colors.muted
             )
         }
     }
 }
 
 @Composable
-private fun rememberSettingsSections(
-    onNotificationsClick: () -> Unit,
-    onAppearanceClick: () -> Unit,
-    onTextSizeClick: () -> Unit,
-    onPageBackgroundClick: () -> Unit,
-    onTextFontClick: () -> Unit,
-    onTermsClick: () -> Unit,
-    onPrivacyPolicyClick: () -> Unit,
-    onPurchasedClick: () -> Unit
-): List<SettingsSectionUiState> {
-    return listOf(
-        SettingsSectionUiState(
-            title = stringResource(Res.string.settings_section_options),
-            items = listOf(
-                SettingsItemUiState(
-                    title = stringResource(Res.string.settings_notifications),
-                    iconRes = Res.drawable.ic_bell,
-                    type = SettingsItemType.NotificationSwitch,
-                    onClick = onNotificationsClick
-                ),
-                SettingsItemUiState(
-                    title = stringResource(Res.string.settings_appearance),
-                    iconRes = Res.drawable.ic_appearance,
-                    type = SettingsItemType.Action,
-                    onClick = onAppearanceClick
-                )
-            )
-        ),
-        SettingsSectionUiState(
-            title = stringResource(Res.string.settings_section_book),
-            items = listOf(
-                SettingsItemUiState(
-                    title = stringResource(Res.string.settings_text_size),
-                    iconRes = Res.drawable.ic_text_size,
-                    type = SettingsItemType.Action,
-                    onClick = onTextSizeClick
-                ),
-                SettingsItemUiState(
-                    title = stringResource(Res.string.settings_page_background),
-                    iconRes = Res.drawable.ic_background,
-                    type = SettingsItemType.Action,
-                    onClick = onPageBackgroundClick
-                ),
-                SettingsItemUiState(
-                    title = stringResource(Res.string.settings_text_font),
-                    iconRes = Res.drawable.ic_text_font,
-                    type = SettingsItemType.Action,
-                    onClick = onTextFontClick
-                )
-            )
-        ),
-        SettingsSectionUiState(
-            title = stringResource(Res.string.settings_section_about),
-            items = listOf(
-                SettingsItemUiState(
-                    title = stringResource(Res.string.settings_terms_of_use),
-                    iconRes = Res.drawable.ic_terms,
-                    type = SettingsItemType.Action,
-                    onClick = onTermsClick
-                ),
-                SettingsItemUiState(
-                    title = stringResource(Res.string.settings_privacy_policy),
-                    iconRes = Res.drawable.ic_policy,
-                    type = SettingsItemType.Action,
-                    onClick = onPrivacyPolicyClick
-                ),
-                SettingsItemUiState(
-                    title = stringResource(Res.string.settings_purchased),
-                    iconRes = Res.drawable.ic_purchased,
-                    type = SettingsItemType.Action,
-                    onClick = onPurchasedClick
-                )
-            )
-        )
-    )
-}
-
-@Composable
-private fun rememberSettingsMetrics(
-    maxWidth: Dp,
-    maxHeight: Dp
-): SettingsMetrics {
-    return remember(maxWidth, maxHeight) {
-        val horizontalPadding = (maxWidth * 0.075f).coerceIn(28.dp, 36.dp)
-        val rowTextSize = (maxWidth.value * 0.043f).coerceIn(18f, 21f).sp
-        val sectionTextSize = (maxWidth.value * 0.039f).coerceIn(16f, 19f).sp
-        val titleSize = (maxWidth.value * 0.084f).coerceIn(34f, 40f).sp
-        val backButtonSize = (maxWidth * 0.108f).coerceIn(46.dp, 54.dp)
-
-        SettingsMetrics(
-            horizontalPadding = horizontalPadding,
-            topSpacing = (maxHeight * 0.052f).coerceIn(36.dp, 52.dp),
-            backButtonSize = backButtonSize,
-            backIconSize = backButtonSize * 0.36f,
-            titleTopSpacing = (maxHeight * 0.032f).coerceIn(24.dp, 34.dp),
-            titleSize = titleSize,
-            titleBottomSpacing = (maxHeight * 0.04f).coerceIn(32.dp, 48.dp),
-            sectionHeight = (maxHeight * 0.053f).coerceIn(50.dp, 58.dp),
-            sectionTextSize = sectionTextSize,
-            rowHeight = (maxHeight * 0.077f).coerceIn(70.dp, 84.dp),
-            rowIconSize = (maxWidth * 0.052f).coerceIn(22.dp, 28.dp),
-            rowIconColumnWidth = (maxWidth * 0.13f).coerceIn(56.dp, 68.dp),
-            rowTextSize = rowTextSize,
-            rowTextLineHeight = rowTextSize * 1.2f,
-            dividerStartPadding = (maxWidth * 0.14f).coerceIn(62.dp, 76.dp),
-            switchWidth = (maxWidth * 0.108f).coerceIn(46.dp, 54.dp),
-            switchHeight = (maxHeight * 0.032f).coerceIn(28.dp, 34.dp),
-            bottomSpacing = (maxHeight * 0.026f).coerceIn(20.dp, 34.dp)
-        )
+private fun SettingsGroup(label: String, colors: InkColors, content: @Composable () -> Unit) {
+    Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 20.dp)) {
+        InkLabel(text = label, colors = colors)
+        Column(modifier = Modifier.padding(top = 11.dp).fillMaxWidth().inkCard(colors)) {
+            content()
+        }
     }
 }
 
-@Preview(showBackground = true)
+@Composable
+private fun RowDivider(colors: InkColors) {
+    HorizontalDivider(thickness = 1.dp, color = colors.line)
+}
+
+@Composable
+private fun BaseRow(
+    icon: ImageVector,
+    title: String,
+    onClick: () -> Unit,
+    colors: InkColors,
+    trailing: @Composable () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 13.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(13.dp)
+    ) {
+        Icon(icon, null, tint = colors.inkSoft, modifier = Modifier.size(16.dp))
+        Text(title, modifier = Modifier.weight(1f), fontFamily = inkBodyFontFamily(), fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = colors.ink)
+        trailing()
+    }
+}
+
+@Composable
+private fun ChevronRow(icon: ImageVector, title: String, onClick: () -> Unit, colors: InkColors) {
+    BaseRow(icon, title, onClick, colors) {
+        Icon(InkIcons.Back, null, tint = colors.muted, modifier = Modifier.size(13.dp).graphicsLayer { rotationZ = 180f })
+    }
+}
+
+@Composable
+private fun ValueRow(icon: ImageVector, title: String, value: String, onClick: () -> Unit, colors: InkColors) {
+    BaseRow(icon, title, onClick, colors) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(value, fontFamily = inkBodyFontFamily(), fontSize = 12.sp, color = colors.muted)
+            Icon(InkIcons.Back, null, tint = colors.muted, modifier = Modifier.size(13.dp).graphicsLayer { rotationZ = 180f })
+        }
+    }
+}
+
+@Composable
+private fun ToggleRow(icon: ImageVector, title: String, checked: Boolean, onChange: (Boolean) -> Unit, colors: InkColors) {
+    BaseRow(icon, title, { onChange(!checked) }, colors) {
+        InkToggle(checked = checked, onCheckedChange = onChange, colors = colors)
+    }
+}
+
+@Preview(showBackground = true, widthDp = 375, heightDp = 820)
 @Composable
 private fun SettingsScreenPreview() {
-    DZTheme {
-        SettingsScreen()
-    }
+    SettingsScreen()
 }

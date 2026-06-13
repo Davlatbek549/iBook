@@ -1,517 +1,319 @@
 package com.example.dz.screens.collections_edit
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.draggable
-import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.dz.theme.ColorPrimary
-import com.example.dz.theme.DZTheme
+import com.example.dz.app_components.icons.InkIcons
+import com.example.dz.app_components.ink.InkField
+import com.example.dz.app_components.ink.InkLabel
+import com.example.dz.app_components.ink.InkToggle
+import com.example.dz.app_components.ink.InkTopBar
+import com.example.dz.theme.InkColors
+import com.example.dz.theme.InkShape
+import com.example.dz.theme.inkBodyFontFamily
+import com.example.dz.theme.inkColors
+import com.example.dz.theme.inkDisplayFontFamily
 import dz.shared.generated.resources.Res
-import dz.shared.generated.resources.*
+import dz.shared.generated.resources.book_cover
+import dz.shared.generated.resources.book_cover_3
+import dz.shared.generated.resources.coll_books_reorder
+import dz.shared.generated.resources.coll_delete
+import dz.shared.generated.resources.coll_description
+import dz.shared.generated.resources.coll_edit_title
+import dz.shared.generated.resources.coll_name
+import dz.shared.generated.resources.coll_save
+import dz.shared.generated.resources.coll_visible
+import dz.shared.generated.resources.coll_visible_sub
+import dz.shared.generated.resources.olive_again_book
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
-import kotlin.math.roundToInt
+import org.jetbrains.compose.resources.stringResource
 
-private val CollectionsEditText = Color(0xFF6D6D70)
-private val CollectionsEditMuted = Color(0xFFC3C3C7)
-private val CollectionsEditDivider = Color(0xFFE0E0E2)
-private val CollectionsEditBackBackground = Color(0xFFE3E3E3)
-private val CollectionsEditDelete = Color(0xFFFF2D2D)
-private val CollectionsEditCreate = Color(0xFFF46656)
-
-data class CollectionsEditItemUiState(
-    val id: String,
+private data class EditableBook(
     val title: String,
-    val count: Int,
-    val iconType: CollectionsEditIconType,
-    val isHighlighted: Boolean = false,
-    val canDelete: Boolean = true
+    val author: String,
+    val coverRes: DrawableResource
 )
 
-enum class CollectionsEditIconType {
-    Folder,
-    Heart,
-    Purchased,
-    Finished,
-    Audiobook
-}
-
-private data class CollectionsEditMetrics(
-    val horizontalPadding: Dp,
-    val topSpacing: Dp,
-    val backButtonSize: Dp,
-    val backIconSize: Dp,
-    val titleTopSpacing: Dp,
-    val titleSize: TextUnit,
-    val subtitleTopSpacing: Dp,
-    val subtitleSize: TextUnit,
-    val subtitleLineHeight: TextUnit,
-    val listTopSpacing: Dp,
-    val rowHeight: Dp,
-    val rowIconSize: Dp,
-    val rowTitleSize: TextUnit,
-    val rowCountSize: TextUnit,
-    val chevronSize: Dp,
-    val deleteWidth: Dp,
-    val deleteButtonSize: Dp,
-    val newCollectionTopSpacing: Dp
-)
-
-private val defaultCollectionItems = listOf(
-    CollectionsEditItemUiState(
-        id = "self-help",
-        title = "Self help book",
-        count = 4,
-        iconType = CollectionsEditIconType.Folder
-    ),
-    CollectionsEditItemUiState(
-        id = "viet-nam",
-        title = "Viet Nam book",
-        count = 3,
-        iconType = CollectionsEditIconType.Folder
-    ),
-    CollectionsEditItemUiState(
-        id = "romantic",
-        title = "Romantic",
-        count = 1,
-        iconType = CollectionsEditIconType.Folder
-    ),
-    CollectionsEditItemUiState(
-        id = "bao-vui",
-        title = "Bao vui ;)",
-        count = 5,
-        iconType = CollectionsEditIconType.Folder
-    ),
-    CollectionsEditItemUiState(
-        id = "designer",
-        title = "Book for designer",
-        count = 5,
-        iconType = CollectionsEditIconType.Folder
-    ),
-    CollectionsEditItemUiState(
-        id = "want-to-read",
-        title = "Want to Read",
-        count = 36,
-        iconType = CollectionsEditIconType.Heart
-    ),
-    CollectionsEditItemUiState(
-        id = "purchased",
-        title = "Purchased book",
-        count = 18,
-        iconType = CollectionsEditIconType.Purchased,
-        isHighlighted = true
-    ),
-    CollectionsEditItemUiState(
-        id = "finished",
-        title = "Finished",
-        count = 12,
-        iconType = CollectionsEditIconType.Finished,
-        isHighlighted = true
-    ),
-    CollectionsEditItemUiState(
-        id = "audiobook",
-        title = "Audiobook",
-        count = 0,
-        iconType = CollectionsEditIconType.Audiobook,
-        isHighlighted = true
-    )
+private val initialBooks = listOf(
+    EditableBook("Olive, Again", "Elizabeth Strout", Res.drawable.olive_again_book),
+    EditableBook("Red at the Bone", "Jacqueline Woodson", Res.drawable.book_cover_3),
+    EditableBook("Mexican Gothic", "Silvia Moreno-Garcia", Res.drawable.book_cover)
 )
 
 @Composable
 fun CollectionsEdit(
     modifier: Modifier = Modifier,
-    collections: List<CollectionsEditItemUiState> = defaultCollectionItems,
     onBackClick: () -> Unit = {},
-    onCollectionClick: (CollectionsEditItemUiState) -> Unit = {},
-    onCollectionDelete: (CollectionsEditItemUiState) -> Unit = {},
-    onNewCollectionClick: () -> Unit = {}
+    onSaveClick: () -> Unit = {},
+    onDeleteClick: () -> Unit = {}
 ) {
-    CollectionsEditScreen(
-        modifier = modifier,
-        collections = collections,
-        onBackClick = onBackClick,
-        onCollectionClick = onCollectionClick,
-        onCollectionDelete = onCollectionDelete,
-        onNewCollectionClick = onNewCollectionClick
-    )
-}
+    val colors = inkColors()
+    val bodyFont = inkBodyFontFamily()
 
-@Composable
-fun CollectionsEditScreen(
-    modifier: Modifier = Modifier,
-    collections: List<CollectionsEditItemUiState> = defaultCollectionItems,
-    onBackClick: () -> Unit = {},
-    onCollectionClick: (CollectionsEditItemUiState) -> Unit = {},
-    onCollectionDelete: (CollectionsEditItemUiState) -> Unit = {},
-    onNewCollectionClick: () -> Unit = {}
-) {
-    BoxWithConstraints(
+    var name by remember { mutableStateOf("Quiet novels") }
+    var description by remember { mutableStateOf("Small lives, carefully observed — the books I reach for on slow evenings.") }
+    var visibleToFriends by remember { mutableStateOf(true) }
+    val books = remember { initialBooks.toMutableStateList() }
+
+    Box(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(colors.paper)
     ) {
-        val metrics = rememberCollectionsEditMetrics(maxWidth = maxWidth, maxHeight = maxHeight)
-        val visibleCollections = remember(collections) {
-            mutableStateListOf<CollectionsEditItemUiState>().apply {
-                addAll(collections)
-            }
-        }
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
-                .navigationBarsPadding()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = metrics.horizontalPadding)
+                .padding(bottom = 130.dp)
         ) {
-            Spacer(modifier = Modifier.height(metrics.topSpacing))
-
-            CollectionsEditBackButton(
-                metrics = metrics,
-                onClick = onBackClick
+            InkTopBar(
+                title = stringResource(Res.string.coll_edit_title),
+                onBackClick = onBackClick,
+                right = {
+                    Text(
+                        text = stringResource(Res.string.coll_save),
+                        modifier = Modifier
+                            .clickable(onClick = onSaveClick)
+                            .padding(6.dp),
+                        fontFamily = bodyFont,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 13.sp,
+                        color = colors.accent
+                    )
+                },
+                colors = colors
             )
 
-            Spacer(modifier = Modifier.height(metrics.titleTopSpacing))
+            // name
+            Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 8.dp)) {
+                InkLabel(text = stringResource(Res.string.coll_name), colors = colors)
+                Box(modifier = Modifier.padding(top = 10.dp)) {
+                    InkField(
+                        value = name,
+                        onValueChange = { name = it },
+                        placeholder = "",
+                        colors = colors
+                    )
+                }
+            }
 
-            Text(
-                text = "Collections",
-                color = CollectionsEditText,
-                style = MaterialTheme.typography.displayLarge.copy(
-                    fontSize = metrics.titleSize,
-                    lineHeight = metrics.titleSize * 1.1f,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.sp
-                )
-            )
-
-            Spacer(modifier = Modifier.height(metrics.subtitleTopSpacing))
-
-            Text(
-                text = "Synthesize favorite books your way. Everyone can see and share this collection",
-                color = CollectionsEditText,
-                style = MaterialTheme.typography.bodyLarge.copy(
-                    fontSize = metrics.subtitleSize,
-                    lineHeight = metrics.subtitleLineHeight,
-                    letterSpacing = 0.sp
-                )
-            )
-
-            Spacer(modifier = Modifier.height(metrics.listTopSpacing))
-
-            visibleCollections.forEach { item ->
-                CollectionsEditSwipeRow(
-                    item = item,
-                    metrics = metrics,
-                    onClick = { onCollectionClick(item) },
-                    onDelete = {
-                        visibleCollections.remove(item)
-                        onCollectionDelete(item)
-                    }
+            // description (multiline)
+            Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 20.dp)) {
+                InkLabel(text = stringResource(Res.string.coll_description), colors = colors)
+                BasicTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 10.dp)
+                        .defaultMinSize(minHeight = 70.dp)
+                        .clip(RoundedCornerShape(InkShape.radiusSm + 2.dp))
+                        .background(colors.surface)
+                        .border(1.dp, colors.line, RoundedCornerShape(InkShape.radiusSm + 2.dp))
+                        .padding(horizontal = 15.dp, vertical = 13.dp),
+                    textStyle = TextStyle(
+                        fontFamily = bodyFont,
+                        fontSize = 13.sp,
+                        lineHeight = 21.sp,
+                        color = colors.ink
+                    ),
+                    cursorBrush = SolidColor(colors.accent)
                 )
             }
 
-            Spacer(modifier = Modifier.height(metrics.newCollectionTopSpacing))
-
-            CollectionsEditNewCollectionRow(
-                metrics = metrics,
-                onClick = onNewCollectionClick
-            )
-
-            Spacer(modifier = Modifier.height(40.dp))
-        }
-    }
-}
-
-@Composable
-private fun CollectionsEditBackButton(
-    metrics: CollectionsEditMetrics,
-    onClick: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .size(metrics.backButtonSize)
-            .clip(CircleShape)
-            .background(CollectionsEditBackBackground)
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            painter = painterResource(Res.drawable.ic_back),
-            contentDescription = "Back",
-            tint = ColorPrimary,
-            modifier = Modifier.size(metrics.backIconSize)
-        )
-    }
-}
-
-@Composable
-private fun CollectionsEditSwipeRow(
-    item: CollectionsEditItemUiState,
-    metrics: CollectionsEditMetrics,
-    onClick: () -> Unit,
-    onDelete: () -> Unit
-) {
-    val density = LocalDensity.current
-    val deleteWidthPx = with(density) { metrics.deleteWidth.toPx() }
-    var offsetX by remember(item.id) { mutableStateOf(0f) }
-    val draggableState = rememberDraggableState { delta ->
-        if (item.canDelete) {
-            offsetX = (offsetX + delta).coerceIn(-deleteWidthPx, 0f)
-        }
-    }
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(metrics.rowHeight)
-    ) {
-        Box(
-            modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .size(metrics.deleteButtonSize)
-                .clip(RoundedCornerShape(12.dp))
-                .background(CollectionsEditDelete)
-                .clickable(enabled = item.canDelete, onClick = onDelete),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                painter = painterResource(Res.drawable.ic_delete),
-                contentDescription = "Delete collection",
-                tint = Color.White,
-                modifier = Modifier.size(24.dp)
-            )
-        }
-
-        CollectionsEditRowContent(
-            item = item,
-            metrics = metrics,
-            modifier = Modifier
-                .offset { IntOffset(offsetX.roundToInt(), 0) }
-                .draggable(
-                    state = draggableState,
-                    orientation = Orientation.Horizontal,
-                    enabled = item.canDelete,
-                    onDragStopped = {
-                        offsetX = when {
-                            offsetX <= -deleteWidthPx * 0.82f -> {
-                                onDelete()
-                                0f
-                            }
-
-                            offsetX <= -deleteWidthPx * 0.34f -> -deleteWidthPx
-                            else -> 0f
-                        }
-                    }
-                )
-                .clickable(onClick = onClick)
-        )
-    }
-}
-
-@Composable
-private fun CollectionsEditRowContent(
-    item: CollectionsEditItemUiState,
-    metrics: CollectionsEditMetrics,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(metrics.rowHeight)
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                painter = painterResource(iconFor(item.iconType)),
-                contentDescription = null,
-                tint = if (item.iconType == CollectionsEditIconType.Folder) {
-                    ColorPrimary
-                } else if (item.iconType == CollectionsEditIconType.Finished) {
-                    ColorPrimary
-                } else {
-                    if (item.isHighlighted) ColorPrimary else CollectionsEditText
-                },
-                modifier = Modifier.size(metrics.rowIconSize)
-            )
-
-            Spacer(modifier = Modifier.width(13.dp))
-
-            Text(
-                text = item.title,
-                color = if (item.isHighlighted) ColorPrimary else CollectionsEditText,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                style = MaterialTheme.typography.headlineMedium.copy(
-                    fontSize = metrics.rowTitleSize,
-                    lineHeight = metrics.rowTitleSize * 1.25f,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.sp
-                ),
-                modifier = Modifier.weight(1f)
-            )
-
-            Text(
-                text = item.count.toString(),
-                color = CollectionsEditText,
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontSize = metrics.rowCountSize,
-                    lineHeight = metrics.rowCountSize,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.sp
-                )
-            )
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            Icon(
-                painter = painterResource(Res.drawable.ic_back),
-                contentDescription = null,
-                tint = CollectionsEditMuted,
+            // visibility toggle
+            Row(
                 modifier = Modifier
-                    .size(metrics.chevronSize)
-                    .graphicsLayer { rotationZ = 180f }
-            )
+                    .fillMaxWidth()
+                    .padding(start = 22.dp, end = 22.dp, top = 20.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(Res.string.coll_visible),
+                        fontFamily = bodyFont,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 13.5.sp,
+                        color = colors.ink
+                    )
+                    Text(
+                        text = stringResource(Res.string.coll_visible_sub),
+                        modifier = Modifier.padding(top = 5.dp),
+                        fontFamily = bodyFont,
+                        fontSize = 11.5.sp,
+                        color = colors.muted
+                    )
+                }
+                InkToggle(
+                    checked = visibleToFriends,
+                    onCheckedChange = { visibleToFriends = it },
+                    colors = colors
+                )
+            }
+
+            // books
+            Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 22.dp)) {
+                InkLabel(text = stringResource(Res.string.coll_books_reorder), colors = colors)
+                Column(modifier = Modifier.padding(top = 4.dp)) {
+                    books.forEachIndexed { i, book ->
+                        if (i > 0) {
+                            HorizontalDivider(thickness = 1.dp, color = colors.line)
+                        }
+                        EditableBookRow(
+                            book = book,
+                            onRemove = { books.remove(book) },
+                            colors = colors
+                        )
+                    }
+                }
+            }
         }
 
-        Box(
+        // pinned delete bar
+        Column(
             modifier = Modifier
+                .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .padding(start = 30.dp)
-                .height(0.5.dp)
-                .background(CollectionsEditDivider)
-        )
+                .background(colors.paper)
+        ) {
+            HorizontalDivider(thickness = 1.dp, color = colors.line)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(top = 14.dp, bottom = 18.dp),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Row(
+                    modifier = Modifier
+                        .clickable(onClick = onDeleteClick)
+                        .padding(6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = InkIcons.Delete,
+                        contentDescription = null,
+                        tint = colors.danger,
+                        modifier = Modifier.size(15.dp)
+                    )
+                    Text(
+                        text = stringResource(Res.string.coll_delete),
+                        fontFamily = bodyFont,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 13.sp,
+                        color = colors.danger
+                    )
+                }
+            }
+        }
     }
 }
 
 @Composable
-private fun CollectionsEditNewCollectionRow(
-    metrics: CollectionsEditMetrics,
-    onClick: () -> Unit
+private fun EditableBookRow(
+    book: EditableBook,
+    onRemove: () -> Unit,
+    colors: InkColors,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(metrics.rowHeight)
-            .clickable(onClick = onClick),
-        verticalAlignment = Alignment.CenterVertically
+            .padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(13.dp)
     ) {
         Icon(
-            painter = painterResource(Res.drawable.ic_plus),
+            imageVector = InkIcons.Move,
             contentDescription = null,
-            tint = CollectionsEditCreate,
-            modifier = Modifier.size(metrics.rowIconSize)
+            tint = colors.muted,
+            modifier = Modifier.size(15.dp)
         )
-
-        Spacer(modifier = Modifier.width(13.dp))
-
-        Text(
-            text = "New Collection",
-            color = ColorPrimary,
-            style = MaterialTheme.typography.headlineMedium.copy(
-                fontSize = metrics.rowTitleSize,
-                lineHeight = metrics.rowTitleSize * 1.25f,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 0.sp
+        Image(
+            painter = painterResource(book.coverRes),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .size(width = 38.dp, height = 56.dp)
+                .clip(RoundedCornerShape(InkShape.cover - 1.dp))
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = book.title,
+                fontFamily = inkDisplayFontFamily(),
+                fontWeight = FontWeight.Medium,
+                fontSize = 14.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                color = colors.ink
             )
-        )
+            Text(
+                text = book.author,
+                modifier = Modifier.padding(top = 4.dp),
+                fontFamily = inkBodyFontFamily(),
+                fontSize = 11.5.sp,
+                color = colors.muted
+            )
+        }
+        Box(
+            modifier = Modifier
+                .size(30.dp)
+                .clip(CircleShape)
+                .border(1.dp, colors.line, CircleShape)
+                .clickable(onClick = onRemove),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = InkIcons.Close,
+                contentDescription = null,
+                tint = colors.muted,
+                modifier = Modifier.size(10.dp)
+            )
+        }
     }
 }
 
-private fun iconFor(type: CollectionsEditIconType): DrawableResource {
-    return when (type) {
-        CollectionsEditIconType.Folder -> Res.drawable.ic_add_collection
-        CollectionsEditIconType.Heart -> Res.drawable.ic_bookmark
-        CollectionsEditIconType.Purchased -> Res.drawable.ic_purchased
-        CollectionsEditIconType.Finished -> Res.drawable.ic_done
-        CollectionsEditIconType.Audiobook -> Res.drawable.ic_book_open
-    }
-}
-
+@Preview(showBackground = true, widthDp = 375, heightDp = 820)
 @Composable
-private fun rememberCollectionsEditMetrics(
-    maxWidth: Dp,
-    maxHeight: Dp
-): CollectionsEditMetrics {
-    val compact = maxWidth < 370.dp
-    val short = maxHeight < 760.dp
-
-    return remember(maxWidth, maxHeight) {
-        CollectionsEditMetrics(
-            horizontalPadding = if (compact) 24.dp else 29.dp,
-            topSpacing = if (short) 33.dp else 48.dp,
-            backButtonSize = if (compact) 44.dp else 46.dp,
-            backIconSize = if (compact) 31.dp else 33.dp,
-            titleTopSpacing = if (short) 26.dp else 34.dp,
-            titleSize = if (compact) 37.sp else 40.sp,
-            subtitleTopSpacing = 19.dp,
-            subtitleSize = if (compact) 14.sp else 15.sp,
-            subtitleLineHeight = if (compact) 22.sp else 24.sp,
-            listTopSpacing = if (short) 30.dp else 36.dp,
-            rowHeight = if (short) 59.dp else 62.dp,
-            rowIconSize = 22.dp,
-            rowTitleSize = if (compact) 18.sp else 19.sp,
-            rowCountSize = if (compact) 18.sp else 19.sp,
-            chevronSize = 23.dp,
-            deleteWidth = 78.dp,
-            deleteButtonSize = 50.dp,
-            newCollectionTopSpacing = 12.dp
-        )
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-private fun CollectionsEditScreenPreview() {
-    DZTheme {
-        CollectionsEditScreen()
-    }
+private fun CollectionsEditPreview() {
+    CollectionsEdit()
 }

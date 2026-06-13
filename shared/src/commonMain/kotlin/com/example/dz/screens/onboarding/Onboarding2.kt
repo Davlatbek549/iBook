@@ -1,22 +1,48 @@
 package com.example.dz.screens.onboarding
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.dz.app_components.buttons.app_button.AppButton
+import com.example.dz.app_components.icons.InkIcons
+import com.example.dz.app_components.ink.InkChip
+import com.example.dz.app_components.ink.InkLabel
+import com.example.dz.app_components.ink.inkCard
+import com.example.dz.theme.InkShape
+import com.example.dz.theme.inkBodyFontFamily
+import com.example.dz.theme.inkColors
 import dz.shared.generated.resources.Res
-import dz.shared.generated.resources.*
+import dz.shared.generated.resources.book_cover_2
+import dz.shared.generated.resources.book_cover_4
+import dz.shared.generated.resources.chip_finished
+import dz.shared.generated.resources.chip_loved
+import dz.shared.generated.resources.chip_to_read
+import dz.shared.generated.resources.continue_btn
+import dz.shared.generated.resources.my_shelf
+import dz.shared.generated.resources.new_collection
+import dz.shared.generated.resources.olive_again_book
+import dz.shared.generated.resources.onb2_copy
+import dz.shared.generated.resources.onb2_title
+import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
@@ -25,99 +51,86 @@ fun OnboardingScreenTwo(
     onNextClick: () -> Unit = {},
     onSkipClick: () -> Unit = {}
 ) {
-    val primaryText = MaterialTheme.colorScheme.onSurface
-    val secondaryText = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+    OnboardingScaffold(
+        title = stringResource(Res.string.onb2_title),
+        copy = stringResource(Res.string.onb2_copy),
+        pageIndex = 1,
+        buttonText = stringResource(Res.string.continue_btn),
+        onButtonClick = onNextClick,
+        onSkipClick = onSkipClick,
+        hero = { ShelfHero() }
+    )
+}
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.White)
-    ) {
+@Composable
+private fun ShelfHero() {
+    val colors = inkColors()
 
-        Image(
-            painter = painterResource(Res.drawable.onboarding_2),
-            contentDescription = null,
-            modifier = Modifier
-                .width(600.dp)
-                .height(650.dp)
-                .offset(x = (+10).dp, y = 120.dp)
-        )
-
-        Box(
+    Column(modifier = Modifier.width(250.dp)) {
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(324.dp)
-                .align(Alignment.BottomCenter)
-                .background(
-                    MaterialTheme.colorScheme.background,
-                    shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
-                )
+                .inkCard(colors)
+                .padding(16.dp)
         ) {
+            InkLabel(text = stringResource(Res.string.my_shelf), colors = colors)
 
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp)
-                    .padding(top = 40.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+            Row(
+                modifier = Modifier.padding(top = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
+                ShelfCover(Res.drawable.olive_again_book)
+                ShelfCover(Res.drawable.book_cover_4)
+                ShelfCover(Res.drawable.book_cover_2)
+            }
 
-                Text(
-                    text = stringResource(Res.string.onboarding2_bottom_text),
-                    style = MaterialTheme.typography.displaySmall,
-                    fontWeight = FontWeight.Bold,
-                    color = primaryText
+            Spacer(modifier = Modifier.height(14.dp))
+            HorizontalDivider(thickness = 1.dp, color = colors.line)
+
+            Row(
+                modifier = Modifier.padding(top = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = InkIcons.Plus,
+                    contentDescription = null,
+                    tint = colors.accent,
+                    modifier = Modifier.size(15.dp)
                 )
-
-                Spacer(modifier = Modifier.height(20.dp))
-
                 Text(
-                    fontSize = 15.sp,
-                    text = stringResource(Res.string.onboarding2_bottom_text_2),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = secondaryText,
-                    textAlign = TextAlign.Center
-                )
-
-                Spacer(modifier = Modifier.height(32.dp))
-
-                AppButton(
-                    onClick = onNextClick,
-                    text = stringResource(Res.string.next),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp)
+                    text = stringResource(Res.string.new_collection),
+                    fontFamily = inkBodyFontFamily(),
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 12.sp,
+                    color = colors.accent
                 )
             }
         }
+
         Row(
             modifier = Modifier
-                .width(327.dp)
-                .height(4.dp)
-                .align(Alignment.TopCenter)
-                .offset(y = 64.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                .fillMaxWidth()
+                .padding(top = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(7.dp, Alignment.CenterHorizontally)
         ) {
-
-            val itemCount = 3
-            val gap = 12.dp
-            val totalWidth = 327.dp
-
-            val itemWidth = (totalWidth - gap * (itemCount - 1)) / itemCount
-
-            repeat(itemCount) { index ->
-                Box(
-                    modifier = Modifier
-                        .height(4.dp)
-                        .width(itemWidth)
-                        .background(if (index == 1) MaterialTheme.colorScheme.primary else secondaryText.copy(alpha = 0.3f),
-                            shape = RoundedCornerShape(50)
-                        )
-                )
-            }
+            InkChip(text = stringResource(Res.string.chip_to_read), solid = true, colors = colors)
+            InkChip(text = stringResource(Res.string.chip_finished), colors = colors)
+            InkChip(text = stringResource(Res.string.chip_loved), colors = colors)
         }
-
     }
+}
+
+@Composable
+private fun ShelfCover(cover: DrawableResource) {
+    Image(
+        painter = painterResource(cover),
+        contentDescription = null,
+        contentScale = ContentScale.Crop,
+        modifier = Modifier
+            .size(width = 62.dp, height = 92.dp)
+            .shadow(6.dp, RoundedCornerShape(InkShape.cover), clip = true)
+    )
 }
 
 @Preview(showBackground = true, widthDp = 375, heightDp = 820)
