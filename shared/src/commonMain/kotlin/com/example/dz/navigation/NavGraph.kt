@@ -56,6 +56,7 @@ import com.example.dz.screens.onboarding.OnboardingScreenOne
 import com.example.dz.screens.onboarding.OnboardingScreenThree
 import com.example.dz.screens.onboarding.OnboardingScreenTwo
 import com.example.dz.screens.payment_failed.PurchaseFailedScreen
+import com.example.dz.screens.payment_methods.PaymentBrand
 import com.example.dz.screens.payment_methods.PaymentMethodsScreen
 import com.example.dz.screens.payment_success.PurchaseSuccessScreen
 import com.example.dz.screens.pre_purchase.PrePurchaseScreen
@@ -158,6 +159,7 @@ fun DZNavGraph() {
         Routes.NOTIFICATIONS,
         Routes.INVITE_FRIENDS,
         Routes.NO_FRIENDS,
+        Routes.PROFILE_TAB,
         Routes.SETTINGS,
         Routes.MEMBERSHIP,
         Routes.PREMIUM_MEMBERSHIP,
@@ -172,14 +174,7 @@ fun DZNavGraph() {
         Routes.PAYMENT_FAILED
     )
 
-    val lightBottomBarRoutes = setOf(
-        Routes.LIBRARY,
-        Routes.STORE,
-        Routes.SEARCH
-    )
-
     val showBottomBar = route != null && route !in bottomBarHiddenRoutes && !isSearchFocused
-    val colorScheme = MaterialTheme.colorScheme
 
     fun navigateBottomTab(selectedRoute: String) {
         navController.navigate(selectedRoute) {
@@ -305,7 +300,7 @@ fun DZNavGraph() {
                         navController.navigate(Routes.reading("current-book"))
                     },
                     onNotificationsClick = { navController.navigate(Routes.NOTIFICATIONS) },
-                    onProfileClick = { navigateBottomTab(Routes.PROFILE_TAB) }
+                    onProfileClick = { navController.navigate(Routes.PROFILE_TAB) }
                 )
             }
 
@@ -322,7 +317,7 @@ fun DZNavGraph() {
 
             composable(Routes.STORE) {
                 StoreScreen(
-                    onViewMoreClick = { navController.navigate(Routes.PREMIUM_MEMBERSHIP) },
+                    onViewMoreClick = { navController.navigate(Routes.MEMBERSHIP) },
                     onCategoryClick = { categoryName ->
                         navController.navigate(Routes.categoryDetail(routeKey(categoryName)))
                     },
@@ -349,13 +344,14 @@ fun DZNavGraph() {
 
             composable(Routes.PROFILE_TAB) {
                 ProfileScreen(
+                    onBackClick = { navController.popBackStack() },
                     onEditClick = {},
                     onNotificationsClick = { navController.navigate(Routes.NOTIFICATIONS) },
                     onFriendsClick = { navController.navigate(Routes.FRIEND_LIST) },
                     onGoalsClick = { navController.navigate(Routes.GOAL) },
                     onCollectionsClick = { navController.navigate(Routes.COLLECTIONS) },
                     onPurchasesClick = { navController.navigate(Routes.purchaseReceipt("history")) },
-                    onMembershipClick = { navController.navigate(Routes.MEMBERSHIP) },
+                    onMembershipClick = { navController.navigate(Routes.PREMIUM_MEMBERSHIP) },
                     onSettingsClick = { navController.navigate(Routes.SETTINGS) }
                 )
             }
@@ -436,19 +432,25 @@ fun DZNavGraph() {
             composable(Routes.PAYMENT_METHODS) {
                 PaymentMethodsScreen(
                     onBackClick = { navController.popBackStack() },
-                    onPaymentMethodSelected = { _ -> },
+                    // A declined method (Apple Pay) demonstrates the failure branch;
+                    // any other method completes the purchase. (No backend in the demo.)
+                    onPaymentMethodSelected = { method ->
+                        if (method.brand == PaymentBrand.ApplePay) {
+                            navController.navigate(Routes.PAYMENT_FAILED)
+                        } else {
+                            navController.navigate(Routes.PAYMENT_SUCCESS) {
+                                popUpTo(Routes.PRE_PURCHASE) { inclusive = true }
+                            }
+                        }
+                    },
                     onAddPaymentMethodClick = {},
-                    onConfirmClick = { navController.popBackStack() }
+                    onConfirmClick = {}
                 )
             }
 
             composable(Routes.PURCHASE_CONFIRMATION) {
                 PurchaseConfirmationScreen(
-                    onConfirm = {
-                        navController.navigate(Routes.PAYMENT_SUCCESS) {
-                            popUpTo(Routes.STORE) { inclusive = false }
-                        }
-                    },
+                    onConfirm = { navController.navigate(Routes.PAYMENT_METHODS) },
                     onBackClick = { navController.popBackStack() }
                 )
             }
@@ -474,15 +476,13 @@ fun DZNavGraph() {
                 PurchaseFailedScreen(
                     onBackClick = { navController.popBackStack() },
                     onDiscountCodeClick = {},
+                    // Change payment → back to the methods picker
                     onChangePaymentClick = {
-                        navController.navigate(Routes.PAYMENT_METHODS) {
-                            popUpTo(Routes.PAYMENT_METHODS) { inclusive = true }
-                        }
+                        navController.popBackStack(Routes.PAYMENT_METHODS, inclusive = false)
                     },
+                    // Retry → back to Review order
                     onGetBackClick = {
-                        navController.navigate(Routes.HOME) {
-                            popUpTo(Routes.HOME) { inclusive = false }
-                        }
+                        navController.popBackStack(Routes.PURCHASE_DETAILS, inclusive = false)
                     }
                 )
             }
@@ -501,7 +501,10 @@ fun DZNavGraph() {
 
             composable(Routes.AUTHOR_DETAIL) {
                 AuthorsDetailsScreen(
-                    onBackClick = { navController.popBackStack() }
+                    onBackClick = { navController.popBackStack() },
+                    onBookClick = { bookTitle ->
+                        navController.navigate(Routes.prePurchase(routeKey(bookTitle)))
+                    }
                 )
             }
 
@@ -526,7 +529,10 @@ fun DZNavGraph() {
                         navController.navigate(Routes.collectionsEdit(collectionId))
                     },
                     onRemoveEverywhereClick = { _ -> },
-                    onBookOptionsClick = { _ -> }
+                    onBookOptionsClick = { _ -> },
+                    onBookClick = { bookTitle ->
+                        navController.navigate(Routes.prePurchase(routeKey(bookTitle)))
+                    }
                 )
             }
 
@@ -570,7 +576,8 @@ fun DZNavGraph() {
 
             composable(Routes.MEMBERSHIP) {
                 MembershipScreen(
-                    onBackClick = { navController.popBackStack() }
+                    onBackClick = { navController.popBackStack() },
+                    onStartTrialClick = { navController.navigate(Routes.PREMIUM_MEMBERSHIP) }
                 )
             }
 
@@ -631,9 +638,9 @@ fun DZNavGraph() {
             composable(Routes.NO_FRIENDS) {
                 NoFriendsScreen(
                     onBackClick = { navController.popBackStack() },
-                    onMessageClick = {},
-                    onFacebookInviteClick = {},
-                    onInstagramInviteClick = {}
+                    onMessageClick = { navController.navigate(Routes.INVITE_FRIENDS) },
+                    onFacebookInviteClick = { navController.navigate(Routes.INVITE_FRIENDS) },
+                    onInstagramInviteClick = { navController.navigate(Routes.INVITE_FRIENDS) }
                 )
             }
         }
