@@ -124,7 +124,7 @@ The shared Kotlin Multiplatform module. This is where the cross-platform Compose
 Important areas:
 
 - `shared/src/commonMain/kotlin/com/example/dz/App.kt`
-- `shared/src/commonMain/kotlin/com/example/dz/screens`
+- `shared/src/commonMain/kotlin/com/example/dz/features`
 - `shared/src/commonMain/kotlin/com/example/dz/navigation`
 - `shared/src/commonMain/kotlin/com/example/dz/theme`
 - `shared/src/commonMain/composeResources`
@@ -137,50 +137,26 @@ The shared module builds:
 
 ## Shared Screens
 
-Screen packages live in:
+Feature screen packages live in:
 
 ```text
-shared/src/commonMain/kotlin/com/example/dz/screens
+shared/src/commonMain/kotlin/com/example/dz/features
 ```
 
-Current screen packages include:
+Current feature groups include:
 
-- `authors_details`
-- `book_detail`
-- `book_review`
-- `category_detail`
-- `chat`
-- `collection_details`
-- `collections`
-- `collections_edit`
-- `first_friend_list`
-- `forgot_password`
-- `friend`
-- `goal`
-- `home`
-- `invite_friend_list_2`
-- `library`
-- `login`
-- `membership`
-- `no_friends`
-- `noMembership`
-- `notification`
+- `auth`
 - `onboarding`
-- `payment_failed`
-- `payment_methods`
-- `payment_success`
-- `pre_purchase`
-- `premium_membership`
-- `profile`
-- `purchase_confirmation`
-- `purchase_details`
-- `reading`
-- `search`
-- `settings`
-- `sign_up`
-- `splash`
+- `home`
+- `library`
 - `store`
-- `verification`
+- `search`
+- `book`
+- `payment`
+- `profile`
+- `collections`
+- `social`
+- `notification`
 
 When adding or fixing a screen, prefer keeping it in `commonMain` unless it truly needs platform-specific APIs.
 
