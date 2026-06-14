@@ -12,7 +12,6 @@ fun createRemoteHttpClient(): HttpClient =
                 Json {
                     ignoreUnknownKeys = true
                     isLenient = true
-                    explicitNulls = false
                 }
             )
         }
