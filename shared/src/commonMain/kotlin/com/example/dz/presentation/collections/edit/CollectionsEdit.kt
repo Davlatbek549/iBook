@@ -1,6 +1,5 @@
 package com.example.dz.presentation.collections.edit
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -24,11 +23,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,6 +39,7 @@ import com.example.dz.designsystem.components.ink.InkField
 import com.example.dz.designsystem.components.ink.InkLabel
 import com.example.dz.designsystem.components.ink.InkToggle
 import com.example.dz.designsystem.components.ink.InkTopBar
+import com.example.dz.designsystem.components.remote.RemoteBookCover
 import com.example.dz.designsystem.theme.InkColors
 import com.example.dz.designsystem.theme.InkShape
 import com.example.dz.designsystem.theme.inkBodyFontFamily
@@ -62,36 +57,27 @@ import dz.shared.generated.resources.coll_save
 import dz.shared.generated.resources.coll_visible
 import dz.shared.generated.resources.coll_visible_sub
 import dz.shared.generated.resources.olive_again_book
-import org.jetbrains.compose.resources.DrawableResource
-import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
-private data class EditableBook(
-    val title: String,
-    val author: String,
-    val coverRes: DrawableResource
-)
-
-private val initialBooks = listOf(
-    EditableBook("Olive, Again", "Elizabeth Strout", Res.drawable.olive_again_book),
-    EditableBook("Red at the Bone", "Jacqueline Woodson", Res.drawable.book_cover_3),
-    EditableBook("Mexican Gothic", "Silvia Moreno-Garcia", Res.drawable.book_cover)
+private val previewUiState = CollectionsEditUiState(
+    collectionId = "quiet-novels",
+    name = "Quiet novels",
+    description = "Small lives, carefully observed — the books I reach for on slow evenings.",
+    books = listOf(
+        CollectionsEditBookUi("olive-again", "Olive, Again", "Elizabeth Strout", Res.drawable.olive_again_book),
+        CollectionsEditBookUi("red-at-the-bone", "Red at the Bone", "Jacqueline Woodson", Res.drawable.book_cover_3),
+        CollectionsEditBookUi("mexican-gothic", "Mexican Gothic", "Silvia Moreno-Garcia", Res.drawable.book_cover)
+    )
 )
 
 @Composable
 fun CollectionsEdit(
-    modifier: Modifier = Modifier,
-    onBackClick: () -> Unit = {},
-    onSaveClick: () -> Unit = {},
-    onDeleteClick: () -> Unit = {}
+    uiState: CollectionsEditUiState = previewUiState,
+    onEvent: (CollectionsEditEvent) -> Unit = {},
+    modifier: Modifier = Modifier
 ) {
     val colors = inkColors()
     val bodyFont = inkBodyFontFamily()
-
-    var name by remember { mutableStateOf("Quiet novels") }
-    var description by remember { mutableStateOf("Small lives, carefully observed — the books I reach for on slow evenings.") }
-    var visibleToFriends by remember { mutableStateOf(true) }
-    val books = remember { initialBooks.toMutableStateList() }
 
     Box(
         modifier = modifier
@@ -107,12 +93,12 @@ fun CollectionsEdit(
         ) {
             InkTopBar(
                 title = stringResource(Res.string.coll_edit_title),
-                onBackClick = onBackClick,
+                onBackClick = { onEvent(CollectionsEditEvent.BackClicked) },
                 right = {
                     Text(
                         text = stringResource(Res.string.coll_save),
                         modifier = Modifier
-                            .clickable(onClick = onSaveClick)
+                            .clickable { onEvent(CollectionsEditEvent.SaveClicked) }
                             .padding(6.dp),
                         fontFamily = bodyFont,
                         fontWeight = FontWeight.SemiBold,
@@ -128,8 +114,8 @@ fun CollectionsEdit(
                 InkLabel(text = stringResource(Res.string.coll_name), colors = colors)
                 Box(modifier = Modifier.padding(top = 10.dp)) {
                     InkField(
-                        value = name,
-                        onValueChange = { name = it },
+                        value = uiState.name,
+                        onValueChange = { onEvent(CollectionsEditEvent.NameChanged(it)) },
                         placeholder = "",
                         colors = colors
                     )
@@ -140,8 +126,8 @@ fun CollectionsEdit(
             Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 20.dp)) {
                 InkLabel(text = stringResource(Res.string.coll_description), colors = colors)
                 BasicTextField(
-                    value = description,
-                    onValueChange = { description = it },
+                    value = uiState.description,
+                    onValueChange = { onEvent(CollectionsEditEvent.DescriptionChanged(it)) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 10.dp)
@@ -184,8 +170,8 @@ fun CollectionsEdit(
                     )
                 }
                 InkToggle(
-                    checked = visibleToFriends,
-                    onCheckedChange = { visibleToFriends = it },
+                    checked = uiState.visibleToFriends,
+                    onCheckedChange = { onEvent(CollectionsEditEvent.VisibilityChanged(it)) },
                     colors = colors
                 )
             }
@@ -194,13 +180,13 @@ fun CollectionsEdit(
             Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 22.dp)) {
                 InkLabel(text = stringResource(Res.string.coll_books_reorder), colors = colors)
                 Column(modifier = Modifier.padding(top = 4.dp)) {
-                    books.forEachIndexed { i, book ->
+                    uiState.books.forEachIndexed { i, book ->
                         if (i > 0) {
                             HorizontalDivider(thickness = 1.dp, color = colors.line)
                         }
                         EditableBookRow(
                             book = book,
-                            onRemove = { books.remove(book) },
+                            onRemove = { onEvent(CollectionsEditEvent.BookRemoved(book.id)) },
                             colors = colors
                         )
                     }
@@ -225,7 +211,7 @@ fun CollectionsEdit(
             ) {
                 Row(
                     modifier = Modifier
-                        .clickable(onClick = onDeleteClick)
+                        .clickable { onEvent(CollectionsEditEvent.DeleteClicked) }
                         .padding(6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -251,7 +237,7 @@ fun CollectionsEdit(
 
 @Composable
 private fun EditableBookRow(
-    book: EditableBook,
+    book: CollectionsEditBookUi,
     onRemove: () -> Unit,
     colors: InkColors,
 ) {
@@ -268,8 +254,9 @@ private fun EditableBookRow(
             tint = colors.muted,
             modifier = Modifier.size(15.dp)
         )
-        Image(
-            painter = painterResource(book.coverRes),
+        RemoteBookCover(
+            coverUrl = book.coverUrl,
+            fallback = book.coverRes,
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = Modifier

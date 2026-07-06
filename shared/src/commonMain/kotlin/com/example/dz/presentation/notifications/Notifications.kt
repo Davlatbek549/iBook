@@ -22,7 +22,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
@@ -32,7 +31,6 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.dz.designsystem.components.icons.InkIcons
 import com.example.dz.designsystem.components.ink.InkChip
 import com.example.dz.designsystem.components.ink.InkTopBar
 import com.example.dz.designsystem.theme.InkColors
@@ -40,82 +38,19 @@ import com.example.dz.designsystem.theme.InkShape
 import com.example.dz.designsystem.theme.inkBodyFontFamily
 import com.example.dz.designsystem.theme.inkColors
 import dz.shared.generated.resources.Res
-import dz.shared.generated.resources.book_cover_2
-import dz.shared.generated.resources.book_cover_3
-import dz.shared.generated.resources.img_maria_renzy
 import dz.shared.generated.resources.notif_all
 import dz.shared.generated.resources.notif_friends
 import dz.shared.generated.resources.notif_mark_all
 import dz.shared.generated.resources.notif_store
 import dz.shared.generated.resources.notif_title
-import dz.shared.generated.resources.profile_2
-import dz.shared.generated.resources.profile_3
-import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
-private class NotificationItem(
-    val avatarRes: DrawableResource? = null,
-    val icon: ImageVector? = null,
-    val time: String,
-    val unread: Boolean = false,
-    val coverRes: DrawableResource? = null,
-    val text: @Composable (InkColors) -> AnnotatedString
-)
-
-private val notifications = listOf(
-    NotificationItem(
-        avatarRes = Res.drawable.profile_2,
-        time = "2m",
-        unread = true,
-        coverRes = Res.drawable.book_cover_3,
-        text = { c -> richText(c, "Patricia Lane", " sent you a book — ", "Red at the Bone") }
-    ),
-    NotificationItem(
-        avatarRes = Res.drawable.img_maria_renzy,
-        time = "1h",
-        unread = true,
-        text = { c -> richText(c, "Maria Renzy", " accepted your friend request") }
-    ),
-    NotificationItem(
-        avatarRes = Res.drawable.profile_3,
-        time = "3h",
-        text = { c -> richText(c, "Daniel Moreau", " reviewed ", "Bestiary", " · 4★") }
-    ),
-    NotificationItem(
-        icon = InkIcons.Stats,
-        time = "9h",
-        text = { c -> richText(c, "Goal reached", " — 30 minutes today. 21-day streak.") }
-    ),
-    NotificationItem(
-        icon = InkIcons.Tag,
-        time = "1d",
-        coverRes = Res.drawable.book_cover_2,
-        text = { c -> richText(c, "Price drop", " — ", "The Archer", " is now $5.99") }
-    )
-)
-
-@Composable
-fun Notifications(
-    modifier: Modifier = Modifier,
-    onBackClick: () -> Unit = {},
-    onReadFilterClick: () -> Unit = {},
-    onChatClick: () -> Unit = {}
-) {
-    NotificationsScreen(
-        modifier = modifier,
-        onBackClick = onBackClick,
-        onReadFilterClick = onReadFilterClick,
-        onChatClick = onChatClick
-    )
-}
-
 @Composable
 fun NotificationsScreen(
-    modifier: Modifier = Modifier,
-    onBackClick: () -> Unit = {},
-    onReadFilterClick: () -> Unit = {},
-    onChatClick: () -> Unit = {}
+    uiState: NotificationsUiState = NotificationsUiState(),
+    onEvent: (NotificationsEvent) -> Unit = {},
+    modifier: Modifier = Modifier
 ) {
     val colors = inkColors()
     val bodyFont = inkBodyFontFamily()
@@ -130,12 +65,12 @@ fun NotificationsScreen(
     ) {
         InkTopBar(
             title = stringResource(Res.string.notif_title),
-            onBackClick = onBackClick,
+            onBackClick = { onEvent(NotificationsEvent.BackClicked) },
             right = {
                 Text(
                     text = stringResource(Res.string.notif_mark_all),
                     modifier = Modifier
-                        .clickable(onClick = onReadFilterClick)
+                        .clickable { onEvent(NotificationsEvent.MarkAllReadClicked) }
                         .padding(6.dp),
                     fontFamily = bodyFont,
                     fontWeight = FontWeight.SemiBold,
@@ -150,15 +85,20 @@ fun NotificationsScreen(
             modifier = Modifier.padding(start = 22.dp, end = 22.dp, bottom = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            InkChip(text = stringResource(Res.string.notif_all), solid = true, colors = colors)
-            InkChip(text = stringResource(Res.string.notif_friends), colors = colors)
-            InkChip(text = stringResource(Res.string.notif_store), colors = colors)
+            FilterChip(stringResource(Res.string.notif_all), NotificationFilter.All, uiState.filter, onEvent, colors)
+            FilterChip(stringResource(Res.string.notif_friends), NotificationFilter.Friends, uiState.filter, onEvent, colors)
+            FilterChip(stringResource(Res.string.notif_store), NotificationFilter.Store, uiState.filter, onEvent, colors)
         }
 
         Column(modifier = Modifier.padding(horizontal = 22.dp)) {
-            notifications.forEachIndexed { i, item ->
-                NotificationRow(item = item, onClick = onChatClick, colors = colors)
-                if (i < notifications.size - 1) {
+            val items = uiState.visibleItems
+            items.forEachIndexed { i, item ->
+                NotificationRow(
+                    item = item,
+                    onClick = { onEvent(NotificationsEvent.NotificationClicked(item.id)) },
+                    colors = colors
+                )
+                if (i < items.size - 1) {
                     HorizontalDivider(thickness = 1.dp, color = colors.line)
                 }
             }
@@ -167,8 +107,21 @@ fun NotificationsScreen(
 }
 
 @Composable
+private fun FilterChip(
+    text: String,
+    filter: NotificationFilter,
+    selected: NotificationFilter,
+    onEvent: (NotificationsEvent) -> Unit,
+    colors: InkColors,
+) {
+    Box(modifier = Modifier.clickable { onEvent(NotificationsEvent.FilterSelected(filter)) }) {
+        InkChip(text = text, solid = filter == selected, colors = colors)
+    }
+}
+
+@Composable
 private fun NotificationRow(
-    item: NotificationItem,
+    item: NotificationUi,
     onClick: () -> Unit,
     colors: InkColors,
 ) {
@@ -209,7 +162,7 @@ private fun NotificationRow(
         }
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = item.text(colors),
+                text = richText(colors, item.textParts),
                 fontFamily = bodyFont,
                 fontSize = 13.sp,
                 lineHeight = 19.sp,
@@ -246,7 +199,7 @@ private fun NotificationRow(
 }
 
 @Composable
-private fun richText(colors: InkColors, vararg parts: String): AnnotatedString =
+private fun richText(colors: InkColors, parts: List<String>): AnnotatedString =
     buildAnnotatedString {
         parts.forEachIndexed { i, part ->
             if (i % 2 == 0) {

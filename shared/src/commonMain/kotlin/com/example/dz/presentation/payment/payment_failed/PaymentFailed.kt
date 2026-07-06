@@ -47,12 +47,10 @@ import dz.shared.generated.resources.pf_try_again
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
-fun PaymentFailedScreen(
-    modifier: Modifier = Modifier,
-    onBackClick: () -> Unit = {},
-    onDiscountCodeClick: () -> Unit = {},
-    onChangePaymentClick: () -> Unit = {},
-    onGetBackClick: () -> Unit = {}
+fun PurchaseFailedScreen(
+    uiState: PaymentFailedUiState = PaymentFailedUiState(),
+    onEvent: (PaymentFailedEvent) -> Unit = {},
+    modifier: Modifier = Modifier
 ) {
     val colors = inkColors()
     val displayFont = inkDisplayFontFamily()
@@ -67,7 +65,7 @@ fun PaymentFailedScreen(
             .padding(start = 26.dp, end = 26.dp, bottom = 26.dp)
     ) {
         Row(modifier = Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.End) {
-            InkIconButton(icon = InkIcons.Close, onClick = onBackClick, colors = colors)
+            InkIconButton(icon = InkIcons.Close, onClick = { onEvent(PaymentFailedEvent.CloseClicked) }, colors = colors)
         }
 
         Column(
@@ -115,27 +113,16 @@ fun PaymentFailedScreen(
             }
         }
 
-        InkButton(text = stringResource(Res.string.pf_try_again), onClick = onGetBackClick, colors = colors)
+        InkButton(text = stringResource(Res.string.pf_try_again), onClick = { onEvent(PaymentFailedEvent.TryAgainClicked) }, colors = colors)
         Spacer(modifier = Modifier.height(10.dp))
-        InkSecondaryButton(text = stringResource(Res.string.pf_change_method), onClick = onChangePaymentClick, colors = colors)
+        InkSecondaryButton(text = stringResource(Res.string.pf_change_method), onClick = { onEvent(PaymentFailedEvent.ChangeMethodClicked) }, colors = colors)
         Spacer(modifier = Modifier.height(6.dp))
-        InkGhostButton(text = stringResource(Res.string.pf_contact), onClick = onDiscountCodeClick, height = 40.dp, colors = colors)
+        InkGhostButton(text = stringResource(Res.string.pf_contact), onClick = { onEvent(PaymentFailedEvent.ContactSupportClicked) }, height = 40.dp, colors = colors)
     }
-}
-
-@Composable
-fun PurchaseFailedScreen(
-    modifier: Modifier = Modifier,
-    onBackClick: () -> Unit = {},
-    onDiscountCodeClick: () -> Unit = {},
-    onChangePaymentClick: () -> Unit = {},
-    onGetBackClick: () -> Unit = {}
-) {
-    PaymentFailedScreen(modifier, onBackClick, onDiscountCodeClick, onChangePaymentClick, onGetBackClick)
 }
 
 @Preview(showBackground = true, widthDp = 375, heightDp = 820)
 @Composable
-private fun PaymentFailedScreenPreview() {
-    PaymentFailedScreen()
+private fun PurchaseFailedScreenPreview() {
+    PurchaseFailedScreen()
 }

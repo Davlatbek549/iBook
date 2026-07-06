@@ -58,23 +58,11 @@ import dz.shared.generated.resources.po_yours_forever
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
-data class PurchaseDetailsUiState(
-    val title: String = "Mexican Gothic",
-    val author: String = "Silvia Moreno-Garcia",
-    val bookPrice: String = "$12.99",
-    val coinsDiscount: String = "−$2.40",
-    val tax: String = "$0.84",
-    val total: String = "$11.43"
-)
-
 @Composable
 fun PurchaseDetailsScreen(
-    modifier: Modifier = Modifier,
     uiState: PurchaseDetailsUiState = PurchaseDetailsUiState(),
-    onBackClick: () -> Unit = {},
-    onDiscountCodeClick: () -> Unit = {},
-    onChangePaymentClick: () -> Unit = {},
-    onPayNowClick: () -> Unit = {}
+    onEvent: (PurchaseDetailsEvent) -> Unit = {},
+    modifier: Modifier = Modifier
 ) {
     val colors = inkColors()
     val displayFont = inkDisplayFontFamily()
@@ -92,7 +80,7 @@ fun PurchaseDetailsScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(bottom = 110.dp)
         ) {
-            InkTopBar(title = stringResource(Res.string.po_review_title), onBackClick = onBackClick, colors = colors)
+            InkTopBar(title = stringResource(Res.string.po_review_title), onBackClick = { onEvent(PurchaseDetailsEvent.BackClicked) }, colors = colors)
 
             // book row
             Row(
@@ -143,7 +131,7 @@ fun PurchaseDetailsScreen(
                 )
                 Text(
                     text = stringResource(Res.string.po_apply),
-                    modifier = Modifier.clickable(onClick = onDiscountCodeClick),
+                    modifier = Modifier.clickable { onEvent(PurchaseDetailsEvent.ApplyCoinsClicked) },
                     fontFamily = bodyFont, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = colors.accent
                 )
             }
@@ -167,7 +155,7 @@ fun PurchaseDetailsScreen(
                     }
                     Text(
                         text = stringResource(Res.string.po_change),
-                        modifier = Modifier.clickable(onClick = onChangePaymentClick),
+                        modifier = Modifier.clickable { onEvent(PurchaseDetailsEvent.ChangePaymentClicked) },
                         fontFamily = bodyFont, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = colors.accent
                     )
                 }
@@ -204,7 +192,7 @@ fun PurchaseDetailsScreen(
                     .padding(start = 22.dp, end = 22.dp, top = 14.dp, bottom = 18.dp)
                     .clip(RoundedCornerShape(InkShape.radiusSm + 2.dp))
                     .background(colors.accent)
-                    .clickable(onClick = onPayNowClick)
+                    .clickable { onEvent(PurchaseDetailsEvent.PayNowClicked) }
                     .padding(vertical = 16.dp),
                 contentAlignment = Alignment.Center
             ) {

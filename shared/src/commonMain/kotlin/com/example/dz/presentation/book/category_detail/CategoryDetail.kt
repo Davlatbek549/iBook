@@ -44,39 +44,28 @@ import dz.shared.generated.resources.category_chip_new
 import dz.shared.generated.resources.category_chip_under
 import dz.shared.generated.resources.category_sorted_by
 import dz.shared.generated.resources.olive_again_book
-import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
-data class CategoryDetailBook(
-    val title: String,
-    val author: String,
-    val coverRes: DrawableResource,
-    val views: String = "",
-    val tags: List<String> = emptyList(),
-    val rating: String = "4.5",
-    val price: String = "12.99",
-    val bookmarked: Boolean = false
+private val previewBooks = listOf(
+    CategoryDetailBookUi(id = "mexican-gothic", title = "Mexican Gothic", author = "Silvia Moreno-Garcia", coverRes = Res.drawable.book_cover, tag = "Literary", rating = "4.6", price = "12.99"),
+    CategoryDetailBookUi(id = "red-at-the-bone", title = "Red at the Bone", author = "Jacqueline Woodson", coverRes = Res.drawable.book_cover_3, tag = "Literary", rating = "4.5", price = "10.00", bookmarked = true),
+    CategoryDetailBookUi(id = "olive-again", title = "Olive, Again", author = "Elizabeth Strout", coverRes = Res.drawable.olive_again_book, tag = "Quiet", rating = "4.3", price = "13.00"),
+    CategoryDetailBookUi(id = "bestiary", title = "Bestiary", author = "K-Ming Chang", coverRes = Res.drawable.book_cover_4, tag = "Myth", rating = "4.2", price = "9.20")
 )
 
-private val defaultBooks = listOf(
-    CategoryDetailBook("Mexican Gothic", "Silvia Moreno-Garcia", Res.drawable.book_cover, tags = listOf("Literary"), rating = "4.6", price = "12.99"),
-    CategoryDetailBook("Red at the Bone", "Jacqueline Woodson", Res.drawable.book_cover_3, tags = listOf("Literary"), rating = "4.5", price = "10.00", bookmarked = true),
-    CategoryDetailBook("Olive, Again", "Elizabeth Strout", Res.drawable.olive_again_book, tags = listOf("Quiet"), rating = "4.3", price = "13.00"),
-    CategoryDetailBook("Bestiary", "K-Ming Chang", Res.drawable.book_cover_4, tags = listOf("Myth"), rating = "4.2", price = "9.20")
+private val previewUiState = CategoryDetailUiState(
+    categoryId = "literary-fiction",
+    title = "Literary fiction",
+    description = "412 books · quiet, character-first novels that stay with you.",
+    books = previewBooks
 )
-
-private const val DefaultDescription = "412 books · quiet, character-first novels that stay with you."
 
 @Composable
 fun CategoryDetailScreen(
-    modifier: Modifier = Modifier,
-    title: String = "Literary fiction",
-    description: String = DefaultDescription,
-    books: List<CategoryDetailBook> = defaultBooks,
-    onBackClick: () -> Unit = {},
-    onBookClick: (CategoryDetailBook) -> Unit = {},
-    onOptionsClick: (CategoryDetailBook) -> Unit = {}
+    uiState: CategoryDetailUiState = previewUiState,
+    onEvent: (CategoryDetailEvent) -> Unit = {},
+    modifier: Modifier = Modifier
 ) {
     val colors = inkColors()
     val displayFont = inkDisplayFontFamily()
@@ -96,9 +85,9 @@ fun CategoryDetailScreen(
                 .fillMaxWidth()
                 .padding(start = 22.dp, end = 22.dp, top = 4.dp)
         ) {
-            InkIconButton(icon = InkIcons.Back, onClick = onBackClick, colors = colors)
+            InkIconButton(icon = InkIcons.Back, onClick = { onEvent(CategoryDetailEvent.BackClicked) }, colors = colors)
             Spacer(modifier = Modifier.weight(1f))
-            InkIconButton(icon = InkIcons.Search, onClick = {}, colors = colors)
+            InkIconButton(icon = InkIcons.Search, onClick = { onEvent(CategoryDetailEvent.SearchClicked) }, colors = colors)
         }
 
         // header
@@ -111,7 +100,7 @@ fun CategoryDetailScreen(
                 color = colors.accent
             )
             Text(
-                text = title,
+                text = uiState.title,
                 modifier = Modifier.padding(top = 10.dp),
                 fontFamily = displayFont,
                 fontWeight = FontWeight.Medium,
@@ -120,7 +109,7 @@ fun CategoryDetailScreen(
                 color = colors.ink
             )
             Text(
-                text = description,
+                text = uiState.description,
                 modifier = Modifier.padding(top = 10.dp),
                 fontFamily = bodyFont,
                 fontSize = 13.sp,
@@ -150,7 +139,11 @@ fun CategoryDetailScreen(
                 .padding(start = 22.dp, end = 22.dp, top = 20.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(modifier = Modifier.weight(1f)) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable { onEvent(CategoryDetailEvent.SortClicked) }
+            ) {
                 InkLabel(text = stringResource(Res.string.category_sorted_by), colors = colors)
             }
             Icon(
@@ -163,12 +156,13 @@ fun CategoryDetailScreen(
 
         // book list
         Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 4.dp)) {
-            books.forEachIndexed { i, book ->
+            uiState.books.forEachIndexed { i, book ->
                 InkBookRow(
                     cover = book.coverRes,
+                    coverUrl = book.coverUrl,
                     title = book.title,
                     author = book.author,
-                    modifier = Modifier.clickable { onBookClick(book) },
+                    modifier = Modifier.clickable { onEvent(CategoryDetailEvent.BookClicked(book.id)) },
                     showDivider = i > 0,
                     meta = {
                         Row(
@@ -189,7 +183,7 @@ fun CategoryDetailScreen(
                                 color = colors.inkSoft
                             )
                             Text(
-                                text = "· ${book.tags.firstOrNull().orEmpty()}",
+                                text = "· ${book.tag}",
                                 fontFamily = bodyFont,
                                 fontSize = 11.sp,
                                 color = colors.muted
@@ -214,7 +208,7 @@ fun CategoryDetailScreen(
                                 tint = if (book.bookmarked) colors.accent else colors.muted,
                                 modifier = Modifier
                                     .size(15.dp)
-                                    .clickable { onOptionsClick(book) }
+                                    .clickable { onEvent(CategoryDetailEvent.BookmarkClicked(book.id)) }
                             )
                         }
                     },

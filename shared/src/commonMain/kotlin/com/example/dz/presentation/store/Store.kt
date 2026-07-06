@@ -39,11 +39,13 @@ import com.example.dz.designsystem.components.ink.InkBookRow
 import com.example.dz.designsystem.components.ink.InkChip
 import com.example.dz.designsystem.components.ink.InkLabel
 import com.example.dz.designsystem.components.ink.InkSectionTitle
+import com.example.dz.designsystem.components.remote.RemoteBookCover
 import com.example.dz.designsystem.theme.InkColors
 import com.example.dz.designsystem.theme.InkShape
 import com.example.dz.designsystem.theme.inkBodyFontFamily
 import com.example.dz.designsystem.theme.inkColors
 import com.example.dz.designsystem.theme.inkDisplayFontFamily
+import com.example.dz.domain.model.Book
 import dz.shared.generated.resources.Res
 import dz.shared.generated.resources.book_cover
 import dz.shared.generated.resources.book_cover_2
@@ -66,7 +68,9 @@ data class StoreBook(
     val views: String = "",
     val tags: List<String> = emptyList(),
     val price: String = "",
-    val rating: String = "4.5"
+    val rating: String = "4.5",
+    val id: String = title,
+    val coverUrl: String? = null
 )
 
 private val featuredBook = StoreBook(
@@ -90,8 +94,17 @@ private val topSellers = listOf(
     StoreBook("Bestiary", "K-Ming Chang", Res.drawable.book_cover_4, price = "9.20", rating = "4.2")
 )
 
+private val storeCoverFallbacks = listOf(
+    Res.drawable.book_cover_3,
+    Res.drawable.book_cover_2,
+    Res.drawable.olive_again_book,
+    Res.drawable.book_cover,
+    Res.drawable.book_cover_4
+)
+
 @Composable
 fun StoreScreen(
+    uiState: StoreUiState = StoreUiState(),
     onViewMoreClick: () -> Unit = {},
     onCategoryClick: (String) -> Unit = {},
     onBookClick: (StoreBook) -> Unit = {}
@@ -99,6 +112,10 @@ fun StoreScreen(
     val colors = inkColors()
     val displayFont = inkDisplayFontFamily()
     val bodyFont = inkBodyFontFamily()
+    val domainBooks = uiState.featuredBooks.mapIndexed { index, book -> book.toStoreBook(index) }
+    val displayFeaturedBook = domainBooks.firstOrNull() ?: featuredBook
+    val displayNewReleases = domainBooks.drop(1).take(3).ifEmpty { newReleases }
+    val displayTopSellers = domainBooks.ifEmpty { topSellers }
 
     Column(
         modifier = Modifier
@@ -156,13 +173,14 @@ fun StoreScreen(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(InkShape.radius))
                 .background(colors.alt)
-                .clickable { onBookClick(featuredBook) }
+                .clickable { onBookClick(displayFeaturedBook) }
                 .padding(18.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Image(
-                painter = painterResource(featuredBook.coverRes),
+            RemoteBookCover(
+                coverUrl = displayFeaturedBook.coverUrl,
+                fallback = displayFeaturedBook.coverRes,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
@@ -179,7 +197,7 @@ fun StoreScreen(
                     color = colors.accent
                 )
                 Text(
-                    text = featuredBook.title,
+                    text = displayFeaturedBook.title,
                     modifier = Modifier.padding(top = 8.dp),
                     fontFamily = displayFont,
                     fontWeight = FontWeight.Medium,
@@ -188,7 +206,7 @@ fun StoreScreen(
                     color = colors.ink
                 )
                 Text(
-                    text = featuredBook.author,
+                    text = displayFeaturedBook.author,
                     modifier = Modifier.padding(top = 4.dp),
                     fontFamily = bodyFont,
                     fontSize = 12.sp,
@@ -200,7 +218,7 @@ fun StoreScreen(
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Text(
-                        text = "$${featuredBook.price}",
+                        text = "$${displayFeaturedBook.price}",
                         fontFamily = displayFont,
                         fontWeight = FontWeight.Medium,
                         fontSize = 16.sp,
@@ -234,7 +252,7 @@ fun StoreScreen(
                     .padding(horizontal = 22.dp),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                newReleases.forEach { book ->
+                displayNewReleases.forEach { book ->
                     ReleaseCard(book = book, onClick = { onBookClick(book) }, colors = colors)
                 }
             }
@@ -247,9 +265,10 @@ fun StoreScreen(
                 colors = colors
             )
             Column(modifier = Modifier.padding(top = 4.dp)) {
-                topSellers.forEachIndexed { i, book ->
+                displayTopSellers.forEachIndexed { i, book ->
                     InkBookRow(
                         cover = book.coverRes,
+                        coverUrl = book.coverUrl,
                         title = book.title,
                         author = book.author,
                         modifier = Modifier.clickable { onBookClick(book) },
@@ -286,6 +305,21 @@ fun StoreScreen(
     }
 }
 
+private fun Book.toStoreBook(index: Int): StoreBook =
+    StoreBook(
+        title = title,
+        author = authors.firstOrNull()?.name.orEmpty().ifBlank { "Unknown author" },
+        coverRes = storeCoverFallbacks[index % storeCoverFallbacks.size],
+        tags = categories.take(2).map { it.name },
+        price = price?.removePrefix("\$") ?: if (isFree) "0.00" else "12.99",
+        rating = rating?.toRatingText() ?: "4.5",
+        id = id,
+        coverUrl = coverUrl
+    )
+
+private fun Double.toRatingText(): String =
+    ((this * 10).toInt() / 10.0).toString()
+
 @Composable
 private fun ReleaseCard(
     book: StoreBook,
@@ -293,8 +327,9 @@ private fun ReleaseCard(
     colors: InkColors,
 ) {
     Column(modifier = Modifier.width(104.dp).clickable(onClick = onClick)) {
-        Image(
-            painter = painterResource(book.coverRes),
+        RemoteBookCover(
+            coverUrl = book.coverUrl,
+            fallback = book.coverRes,
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = Modifier

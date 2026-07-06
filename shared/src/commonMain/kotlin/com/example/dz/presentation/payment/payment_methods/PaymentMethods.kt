@@ -20,10 +20,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -54,33 +50,14 @@ import dz.shared.generated.resources.pm_title
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
-enum class PaymentBrand { Paypal, Visa, ApplePay }
-
-data class PaymentMethodItem(
-    val id: String,
-    val brand: PaymentBrand,
-    val title: String,
-    val subtitle: String
-)
-
-private val defaultMethods = listOf(
-    PaymentMethodItem("paypal", PaymentBrand.Paypal, "PayPal", "amelia@hartwell.co"),
-    PaymentMethodItem("visa", PaymentBrand.Visa, "Visa ·· 4129", "Expires 08/27"),
-    PaymentMethodItem("apple", PaymentBrand.ApplePay, "Apple Pay", "Device wallet")
-)
-
 @Composable
 fun PaymentMethodsScreen(
-    modifier: Modifier = Modifier,
-    methods: List<PaymentMethodItem> = defaultMethods,
-    onBackClick: () -> Unit = {},
-    onPaymentMethodSelected: (PaymentMethodItem) -> Unit = {},
-    onAddPaymentMethodClick: () -> Unit = {},
-    onConfirmClick: () -> Unit = {}
+    uiState: PaymentMethodsUiState = PaymentMethodsUiState(),
+    onEvent: (PaymentMethodsEvent) -> Unit = {},
+    modifier: Modifier = Modifier
 ) {
     val colors = inkColors()
     val bodyFont = inkBodyFontFamily()
-    var selectedId by remember { mutableStateOf(methods.firstOrNull()?.id ?: "") }
 
     Column(
         modifier = modifier
@@ -90,21 +67,17 @@ fun PaymentMethodsScreen(
             .verticalScroll(rememberScrollState())
             .padding(bottom = 30.dp)
     ) {
-        InkTopBar(title = stringResource(Res.string.pm_title), onBackClick = onBackClick, colors = colors)
+        InkTopBar(title = stringResource(Res.string.pm_title), onBackClick = { onEvent(PaymentMethodsEvent.BackClicked) }, colors = colors)
 
         Column(
             modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            methods.forEach { method ->
+            uiState.methods.forEach { method ->
                 MethodRow(
                     method = method,
-                    selected = method.id == selectedId,
-                    onClick = {
-                        selectedId = method.id
-                        onPaymentMethodSelected(method)
-                        onConfirmClick()
-                    },
+                    selected = method.id == uiState.selectedId,
+                    onClick = { onEvent(PaymentMethodsEvent.MethodSelected(method.id)) },
                     colors = colors
                 )
             }
@@ -114,7 +87,7 @@ fun PaymentMethodsScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(InkShape.radius))
-                    .clickable(onClick = onAddPaymentMethodClick)
+                    .clickable { onEvent(PaymentMethodsEvent.AddMethodClicked) }
                     .padding(horizontal = 16.dp, vertical = 15.dp)
             ) {
                 val lineColor = colors.line
@@ -213,18 +186,6 @@ private fun MethodRow(
             }
         }
     }
-}
-
-@Composable
-fun PaymentMethods(
-    modifier: Modifier = Modifier,
-    methods: List<PaymentMethodItem> = defaultMethods,
-    onBackClick: () -> Unit = {},
-    onPaymentMethodSelected: (PaymentMethodItem) -> Unit = {},
-    onAddPaymentMethodClick: () -> Unit = {},
-    onConfirmClick: () -> Unit = {}
-) {
-    PaymentMethodsScreen(modifier, methods, onBackClick, onPaymentMethodSelected, onAddPaymentMethodClick, onConfirmClick)
 }
 
 @Preview(showBackground = true, widthDp = 375, heightDp = 820)

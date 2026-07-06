@@ -17,10 +17,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -59,17 +55,12 @@ import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun SignUpScreen(
-    onSignInClick: () -> Unit = {},
-    onSignUpSuccess: () -> Unit = {}
+    uiState: SignUpUiState = SignUpUiState(),
+    onEvent: (SignUpEvent) -> Unit = {}
 ) {
     val colors = inkColors()
     val displayFont = inkDisplayFontFamily()
     val bodyFont = inkBodyFontFamily()
-
-    var fullName by remember { mutableStateOf("") }
-    var username by remember { mutableStateOf("") }
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
 
     Column(
         modifier = Modifier
@@ -101,24 +92,24 @@ fun SignUpScreen(
             Spacer(modifier = Modifier.height(26.dp))
 
             InkField(
-                value = fullName,
-                onValueChange = { fullName = it },
+                value = uiState.fullName,
+                onValueChange = { onEvent(SignUpEvent.FullNameChanged(it)) },
                 placeholder = stringResource(Res.string.auth_full_name),
                 leadingIcon = InkIcons.User,
                 colors = colors
             )
             Spacer(modifier = Modifier.height(12.dp))
             InkField(
-                value = username,
-                onValueChange = { username = it },
+                value = uiState.username,
+                onValueChange = { onEvent(SignUpEvent.UsernameChanged(it)) },
                 placeholder = stringResource(Res.string.auth_username_placeholder),
                 leadingIcon = InkIcons.At,
                 colors = colors
             )
             Spacer(modifier = Modifier.height(12.dp))
             InkField(
-                value = email,
-                onValueChange = { email = it },
+                value = uiState.email,
+                onValueChange = { onEvent(SignUpEvent.EmailChanged(it)) },
                 placeholder = stringResource(Res.string.auth_email_placeholder),
                 leadingIcon = InkIcons.Email,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
@@ -126,8 +117,8 @@ fun SignUpScreen(
             )
             Spacer(modifier = Modifier.height(12.dp))
             InkField(
-                value = password,
-                onValueChange = { password = it },
+                value = uiState.password,
+                onValueChange = { onEvent(SignUpEvent.PasswordChanged(it)) },
                 placeholder = stringResource(Res.string.auth_password_placeholder),
                 leadingIcon = InkIcons.Lock,
                 isPassword = true,
@@ -154,11 +145,21 @@ fun SignUpScreen(
                 color = colors.muted
             )
 
+            uiState.errorMessage?.let { message ->
+                Text(
+                    text = message,
+                    modifier = Modifier.padding(start = 2.dp, end = 2.dp, top = 12.dp),
+                    fontFamily = bodyFont,
+                    fontSize = 12.5.sp,
+                    color = colors.accent
+                )
+            }
+
             Spacer(modifier = Modifier.height(18.dp))
 
             InkButton(
                 text = stringResource(Res.string.auth_create_account),
-                onClick = onSignUpSuccess,
+                onClick = { onEvent(SignUpEvent.CreateAccountClicked) },
                 colors = colors
             )
 
@@ -170,14 +171,14 @@ fun SignUpScreen(
                 InkSocialButton(
                     icon = Res.drawable.ic_google,
                     label = stringResource(Res.string.auth_google),
-                    onClick = {},
+                    onClick = { onEvent(SignUpEvent.GoogleClicked) },
                     modifier = Modifier.weight(1f),
                     colors = colors
                 )
                 InkSocialButton(
                     icon = Res.drawable.ic_apple,
                     label = stringResource(Res.string.auth_apple),
-                    onClick = {},
+                    onClick = { onEvent(SignUpEvent.AppleClicked) },
                     modifier = Modifier.weight(1f),
                     colors = colors
                 )
@@ -191,7 +192,7 @@ fun SignUpScreen(
             InkFooterLink(
                 prefix = stringResource(Res.string.auth_already_reader),
                 action = stringResource(Res.string.auth_sign_in),
-                onClick = onSignInClick,
+                onClick = { onEvent(SignUpEvent.SignInClicked) },
                 colors = colors
             )
         }

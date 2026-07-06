@@ -49,37 +49,20 @@ import com.example.dz.designsystem.theme.inkColors
 import com.example.dz.designsystem.theme.inkDisplayFontFamily
 import dz.shared.generated.resources.Res
 import dz.shared.generated.resources.author_by_this
-import dz.shared.generated.resources.author_detail_bestiary
-import dz.shared.generated.resources.author_detail_patricia_avatar
-import dz.shared.generated.resources.author_detail_red_at_bone
 import dz.shared.generated.resources.author_follow
 import dz.shared.generated.resources.author_stat_avg
 import dz.shared.generated.resources.author_stat_books
 import dz.shared.generated.resources.author_stat_readers
-import dz.shared.generated.resources.book_olive_again
 import dz.shared.generated.resources.detail_about
 import dz.shared.generated.resources.home_see_all
-import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
-private data class AuthorBook(
-    val title: String,
-    val rating: String,
-    val coverRes: DrawableResource
-)
-
-private val authorBooks = listOf(
-    AuthorBook("Red at the Bone", "4.5", Res.drawable.author_detail_red_at_bone),
-    AuthorBook("Bestiary", "4.2", Res.drawable.author_detail_bestiary),
-    AuthorBook("Olive, Again", "4.3", Res.drawable.book_olive_again)
-)
-
 @Composable
 fun AuthorsDetailsScreen(
-    modifier: Modifier = Modifier,
-    onBackClick: () -> Unit = {},
-    onBookClick: (String) -> Unit = {}
+    uiState: AuthorDetailUiState = AuthorDetailUiState(),
+    onEvent: (AuthorDetailEvent) -> Unit = {},
+    modifier: Modifier = Modifier
 ) {
     val colors = inkColors()
     val displayFont = inkDisplayFontFamily()
@@ -99,9 +82,17 @@ fun AuthorsDetailsScreen(
                 .fillMaxWidth()
                 .padding(start = 22.dp, end = 22.dp, top = 4.dp)
         ) {
-            InkIconButton(icon = InkIcons.Back, onClick = onBackClick, colors = colors)
+            InkIconButton(
+                icon = InkIcons.Back,
+                onClick = { onEvent(AuthorDetailEvent.BackClicked) },
+                colors = colors
+            )
             Spacer(modifier = Modifier.weight(1f))
-            InkIconButton(icon = InkIcons.Share, onClick = {}, colors = colors)
+            InkIconButton(
+                icon = InkIcons.Share,
+                onClick = { onEvent(AuthorDetailEvent.ShareClicked) },
+                colors = colors
+            )
         }
 
         // identity
@@ -111,16 +102,18 @@ fun AuthorsDetailsScreen(
                 .padding(start = 26.dp, end = 26.dp, top = 14.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Image(
-                painter = painterResource(Res.drawable.author_detail_patricia_avatar),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .size(96.dp)
-                    .shadow(14.dp, RoundedCornerShape(InkShape.radiusSm + 6.dp), clip = true)
-            )
+            uiState.avatarRes?.let { avatar ->
+                Image(
+                    painter = painterResource(avatar),
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(96.dp)
+                        .shadow(14.dp, RoundedCornerShape(InkShape.radiusSm + 6.dp), clip = true)
+                )
+            }
             Text(
-                text = "Jacqueline Woodson",
+                text = uiState.name,
                 modifier = Modifier.padding(top = 18.dp),
                 fontFamily = displayFont,
                 fontWeight = FontWeight.Medium,
@@ -128,7 +121,7 @@ fun AuthorsDetailsScreen(
                 color = colors.ink
             )
             Text(
-                text = "Novelist · National Book Award winner",
+                text = uiState.tagline,
                 modifier = Modifier.padding(top = 8.dp),
                 fontFamily = displayFont,
                 fontStyle = FontStyle.Italic,
@@ -146,11 +139,11 @@ fun AuthorsDetailsScreen(
                 .inkCard(colors)
                 .padding(vertical = 15.dp)
         ) {
-            StatCell(value = "34", label = stringResource(Res.string.author_stat_books), colors = colors, modifier = Modifier.weight(1f))
+            StatCell(value = uiState.booksCount, label = stringResource(Res.string.author_stat_books), colors = colors, modifier = Modifier.weight(1f))
             VerticalDivider(modifier = Modifier.fillMaxHeight(), thickness = 1.dp, color = colors.line)
-            StatCell(value = "212k", label = stringResource(Res.string.author_stat_readers), colors = colors, modifier = Modifier.weight(1f))
+            StatCell(value = uiState.readersCount, label = stringResource(Res.string.author_stat_readers), colors = colors, modifier = Modifier.weight(1f))
             VerticalDivider(modifier = Modifier.fillMaxHeight(), thickness = 1.dp, color = colors.line)
-            StatCell(value = "4.5", label = stringResource(Res.string.author_stat_avg), colors = colors, modifier = Modifier.weight(1f))
+            StatCell(value = uiState.averageRating, label = stringResource(Res.string.author_stat_avg), colors = colors, modifier = Modifier.weight(1f))
         }
 
         // actions
@@ -163,16 +156,16 @@ fun AuthorsDetailsScreen(
                     .weight(1f)
                     .height(46.dp)
                     .clip(RoundedCornerShape(InkShape.radiusSm + 2.dp))
-                    .background(colors.accent)
-                    .clickable {},
+                    .background(if (uiState.isFollowing) colors.alt else colors.accent)
+                    .clickable { onEvent(AuthorDetailEvent.FollowClicked) },
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = stringResource(Res.string.author_follow),
+                    text = if (uiState.isFollowing) "Following" else stringResource(Res.string.author_follow),
                     fontFamily = bodyFont,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 14.sp,
-                    color = colors.onAccent
+                    color = if (uiState.isFollowing) colors.ink else colors.onAccent
                 )
             }
             Box(
@@ -180,7 +173,7 @@ fun AuthorsDetailsScreen(
                     .size(46.dp)
                     .clip(RoundedCornerShape(InkShape.radiusSm + 2.dp))
                     .border(1.dp, colors.line, RoundedCornerShape(InkShape.radiusSm + 2.dp))
-                    .clickable {},
+                    .clickable { onEvent(AuthorDetailEvent.MessageClicked) },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -196,7 +189,7 @@ fun AuthorsDetailsScreen(
         Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 24.dp)) {
             InkLabel(text = stringResource(Res.string.detail_about), colors = colors)
             Text(
-                text = "Jacqueline Woodson writes spare, luminous novels about family, memory and belonging. Her work moves between generations with a poet’s ear for what’s left unsaid.",
+                text = uiState.about,
                 modifier = Modifier.padding(top = 11.dp),
                 fontFamily = bodyFont,
                 fontSize = 13.5.sp,
@@ -213,6 +206,7 @@ fun AuthorsDetailsScreen(
                 text = stringResource(Res.string.author_by_this),
                 modifier = Modifier.padding(horizontal = 22.dp),
                 action = stringResource(Res.string.home_see_all),
+                onActionClick = { onEvent(AuthorDetailEvent.SeeAllClicked) },
                 colors = colors
             )
             Row(
@@ -222,8 +216,8 @@ fun AuthorsDetailsScreen(
                     .padding(horizontal = 22.dp),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                authorBooks.forEach { book ->
-                    Column(modifier = Modifier.width(104.dp).clickable { onBookClick(book.title) }) {
+                uiState.books.forEach { book ->
+                    Column(modifier = Modifier.width(104.dp).clickable { onEvent(AuthorDetailEvent.BookClicked(book.id)) }) {
                         Image(
                             painter = painterResource(book.coverRes),
                             contentDescription = null,
@@ -301,5 +295,5 @@ private fun StatCell(
 @Preview(showBackground = true, widthDp = 375, heightDp = 820)
 @Composable
 private fun AuthorsDetailsScreenPreview() {
-    AuthorsDetailsScreen()
+    AuthorsDetailsScreen(uiState = sampleAuthorDetail("preview"))
 }

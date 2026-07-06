@@ -15,10 +15,6 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -44,14 +40,12 @@ import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun ForgotPasswordScreen(
-    onBack: () -> Unit = {},
-    onSendLink: () -> Unit = {}
+    uiState: ForgotPasswordUiState = ForgotPasswordUiState(),
+    onEvent: (ForgotPasswordEvent) -> Unit = {}
 ) {
     val colors = inkColors()
     val displayFont = inkDisplayFontFamily()
     val bodyFont = inkBodyFontFamily()
-
-    var email by remember { mutableStateOf("") }
 
     Column(
         modifier = Modifier
@@ -62,7 +56,11 @@ fun ForgotPasswordScreen(
             .imePadding()
             .padding(start = 26.dp, end = 26.dp, top = 4.dp, bottom = 26.dp)
     ) {
-        InkIconButton(icon = InkIcons.Back, onClick = onBack, colors = colors)
+        InkIconButton(
+            icon = InkIcons.Back,
+            onClick = { onEvent(ForgotPasswordEvent.BackClicked) },
+            colors = colors
+        )
 
         Text(
             text = stringResource(Res.string.auth_forgot_title),
@@ -86,19 +84,29 @@ fun ForgotPasswordScreen(
         Spacer(modifier = Modifier.height(26.dp))
 
         InkField(
-            value = email,
-            onValueChange = { email = it },
+            value = uiState.email,
+            onValueChange = { onEvent(ForgotPasswordEvent.EmailChanged(it)) },
             placeholder = stringResource(Res.string.auth_email_placeholder),
             leadingIcon = InkIcons.Email,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
             colors = colors
         )
 
+        uiState.errorMessage?.let { message ->
+            Text(
+                text = message,
+                modifier = Modifier.padding(top = 12.dp),
+                fontFamily = bodyFont,
+                fontSize = 12.5.sp,
+                color = colors.accent
+            )
+        }
+
         Spacer(modifier = Modifier.height(18.dp))
 
         InkButton(
             text = stringResource(Res.string.auth_send_reset),
-            onClick = onSendLink,
+            onClick = { onEvent(ForgotPasswordEvent.SendLinkClicked) },
             colors = colors
         )
 
@@ -111,7 +119,7 @@ fun ForgotPasswordScreen(
             InkFooterLink(
                 prefix = stringResource(Res.string.auth_remembered),
                 action = stringResource(Res.string.auth_back_to_sign_in),
-                onClick = onBack,
+                onClick = { onEvent(ForgotPasswordEvent.BackClicked) },
                 colors = colors
             )
         }

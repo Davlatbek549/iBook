@@ -55,39 +55,10 @@ import dz.shared.generated.resources.set_version
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
-fun Settings(
-    modifier: Modifier = Modifier,
-    notificationsEnabled: Boolean = true,
-    onNotificationsEnabledChange: (Boolean) -> Unit = {},
-    onBackClick: () -> Unit = {},
-    onAppearanceClick: () -> Unit = {},
-    onTextSizeClick: () -> Unit = {},
-    onPageBackgroundClick: () -> Unit = {},
-    onTextFontClick: () -> Unit = {},
-    onTermsClick: () -> Unit = {},
-    onPrivacyPolicyClick: () -> Unit = {},
-    onPurchasedClick: () -> Unit = {}
-) {
-    SettingsScreen(
-        modifier, notificationsEnabled, onNotificationsEnabledChange, onBackClick,
-        onAppearanceClick, onTextSizeClick, onPageBackgroundClick, onTextFontClick,
-        onTermsClick, onPrivacyPolicyClick, onPurchasedClick
-    )
-}
-
-@Composable
 fun SettingsScreen(
-    modifier: Modifier = Modifier,
-    notificationsEnabled: Boolean = true,
-    onNotificationsEnabledChange: (Boolean) -> Unit = {},
-    onBackClick: () -> Unit = {},
-    onAppearanceClick: () -> Unit = {},
-    onTextSizeClick: () -> Unit = {},
-    onPageBackgroundClick: () -> Unit = {},
-    onTextFontClick: () -> Unit = {},
-    onTermsClick: () -> Unit = {},
-    onPrivacyPolicyClick: () -> Unit = {},
-    onPurchasedClick: () -> Unit = {}
+    uiState: SettingsUiState = SettingsUiState(),
+    onEvent: (SettingsEvent) -> Unit = {},
+    modifier: Modifier = Modifier
 ) {
     val colors = inkColors()
     val bodyFont = inkBodyFontFamily()
@@ -100,42 +71,42 @@ fun SettingsScreen(
             .verticalScroll(rememberScrollState())
             .padding(bottom = 26.dp)
     ) {
-        InkTopBar(title = stringResource(Res.string.set_title), onBackClick = onBackClick, colors = colors)
+        InkTopBar(title = stringResource(Res.string.set_title), onBackClick = { onEvent(SettingsEvent.BackClicked) }, colors = colors)
 
         // Account
         SettingsGroup(stringResource(Res.string.set_account), colors) {
-            ChevronRow(InkIcons.User, stringResource(Res.string.set_edit_profile), onPurchasedClick, colors)
+            ChevronRow(InkIcons.User, stringResource(Res.string.set_edit_profile), { onEvent(SettingsEvent.EditProfileClicked) }, colors)
             RowDivider(colors)
-            ValueRow(InkIcons.Email, stringResource(Res.string.set_email), "amelia@hartwell.co", {}, colors)
+            ValueRow(InkIcons.Email, stringResource(Res.string.set_email), uiState.email, { onEvent(SettingsEvent.EmailClicked) }, colors)
             RowDivider(colors)
-            ChevronRow(InkIcons.Lock, stringResource(Res.string.set_password), {}, colors)
+            ChevronRow(InkIcons.Lock, stringResource(Res.string.set_password), { onEvent(SettingsEvent.PasswordClicked) }, colors)
         }
 
         // Reading
         SettingsGroup(stringResource(Res.string.set_reading), colors) {
-            ValueRow(InkIcons.Appearance, stringResource(Res.string.set_appearance), "Light", onAppearanceClick, colors)
+            ValueRow(InkIcons.Appearance, stringResource(Res.string.set_appearance), uiState.appearance, { onEvent(SettingsEvent.AppearanceClicked) }, colors)
             RowDivider(colors)
-            ValueRow(InkIcons.Book, stringResource(Res.string.set_text_size), "Medium", onTextSizeClick, colors)
+            ValueRow(InkIcons.Book, stringResource(Res.string.set_text_size), uiState.textSize, { onEvent(SettingsEvent.TextSizeClicked) }, colors)
             RowDivider(colors)
-            ValueRow(InkIcons.Stats, stringResource(Res.string.set_daily_goal), "30 min", {}, colors)
+            ValueRow(InkIcons.Stats, stringResource(Res.string.set_daily_goal), uiState.dailyGoal, { onEvent(SettingsEvent.DailyGoalClicked) }, colors)
         }
 
         // Notifications
         SettingsGroup(stringResource(Res.string.set_notifications), colors) {
-            ToggleRow(InkIcons.Bell, stringResource(Res.string.set_reading_reminders), notificationsEnabled, onNotificationsEnabledChange, colors)
+            ToggleRow(InkIcons.Bell, stringResource(Res.string.set_reading_reminders), uiState.readingRemindersEnabled, { onEvent(SettingsEvent.ReadingRemindersToggled(it)) }, colors)
             RowDivider(colors)
-            ToggleRow(InkIcons.Chat, stringResource(Res.string.set_messages), true, {}, colors)
+            ToggleRow(InkIcons.Chat, stringResource(Res.string.set_messages), uiState.messagesEnabled, { onEvent(SettingsEvent.MessagesToggled(it)) }, colors)
             RowDivider(colors)
-            ToggleRow(InkIcons.Tag, stringResource(Res.string.set_price_drops), false, {}, colors)
+            ToggleRow(InkIcons.Tag, stringResource(Res.string.set_price_drops), uiState.priceDropsEnabled, { onEvent(SettingsEvent.PriceDropsToggled(it)) }, colors)
         }
 
         // About
         SettingsGroup(stringResource(Res.string.set_about), colors) {
-            ChevronRow(InkIcons.HelpCentre, stringResource(Res.string.set_help), {}, colors)
+            ChevronRow(InkIcons.HelpCentre, stringResource(Res.string.set_help), { onEvent(SettingsEvent.HelpClicked) }, colors)
             RowDivider(colors)
-            ChevronRow(InkIcons.Terms, stringResource(Res.string.set_terms), onTermsClick, colors)
+            ChevronRow(InkIcons.Terms, stringResource(Res.string.set_terms), { onEvent(SettingsEvent.TermsClicked) }, colors)
             RowDivider(colors)
-            ChevronRow(InkIcons.Policy, stringResource(Res.string.set_privacy), onPrivacyPolicyClick, colors)
+            ChevronRow(InkIcons.Policy, stringResource(Res.string.set_privacy), { onEvent(SettingsEvent.PrivacyClicked) }, colors)
         }
 
         Column(
@@ -145,7 +116,7 @@ fun SettingsScreen(
         ) {
             Text(
                 text = stringResource(Res.string.set_sign_out),
-                modifier = Modifier.clickable(onClick = onBackClick).padding(6.dp),
+                modifier = Modifier.clickable { onEvent(SettingsEvent.SignOutClicked) }.padding(6.dp),
                 fontFamily = bodyFont, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = colors.danger
             )
             Text(

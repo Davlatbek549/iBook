@@ -25,6 +25,9 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
@@ -32,46 +35,120 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.savedstate.read
+import com.example.dz.presentation.book.author_detail.AuthorDetailEffect
+import com.example.dz.presentation.book.author_detail.AuthorDetailViewModel
 import com.example.dz.presentation.book.author_detail.AuthorsDetailsScreen
-import com.example.dz.presentation.book.detail.BookDetailScreen
-import com.example.dz.presentation.book.review.BookReviewScreen
+import com.example.dz.presentation.book.category_detail.CategoryDetailEffect
+import com.example.dz.presentation.book.category_detail.CategoryDetailViewModel
 import com.example.dz.presentation.book.category_detail.CategoryDetailScreen
-import com.example.dz.presentation.social.chat.ChatScreen
-import com.example.dz.presentation.collections.details.CollectionDetails
-import com.example.dz.presentation.collections.list.Collections
-import com.example.dz.presentation.collections.edit.CollectionsEdit
-import com.example.dz.presentation.social.friends.FriendListScreen
-import com.example.dz.presentation.auth.forgot_password.ForgotPasswordScreen
-import com.example.dz.presentation.social.friend_detail.FriendScreen
-import com.example.dz.presentation.goal.Goal
-import com.example.dz.presentation.home.HomeScreen
-import com.example.dz.presentation.social.invite_friends.InviteFriendList2Screen
-import com.example.dz.presentation.library.Library
-import com.example.dz.presentation.auth.login.LoginScreen
-import com.example.dz.presentation.membership.MembershipScreen
-import com.example.dz.presentation.membership.NoMembershipScreen
-import com.example.dz.presentation.social.no_friends.NoFriendsScreen
-import com.example.dz.presentation.notifications.Notifications
-import com.example.dz.presentation.onboarding.OnboardingScreenOne
-import com.example.dz.presentation.onboarding.OnboardingScreenThree
-import com.example.dz.presentation.onboarding.OnboardingScreenTwo
-import com.example.dz.presentation.payment.payment_failed.PurchaseFailedScreen
-import com.example.dz.presentation.payment.payment_methods.PaymentBrand
-import com.example.dz.presentation.payment.payment_methods.PaymentMethodsScreen
-import com.example.dz.presentation.payment.payment_success.PurchaseSuccessScreen
+import com.example.dz.presentation.book.pre_purchase.PrePurchaseEffect
+import com.example.dz.presentation.book.pre_purchase.PrePurchaseViewModel
 import com.example.dz.presentation.book.pre_purchase.PrePurchaseScreen
-import com.example.dz.presentation.membership.PremiumMembership
+import com.example.dz.presentation.book.review.BookReviewEffect
+import com.example.dz.presentation.book.review.BookReviewViewModel
+import com.example.dz.presentation.book.review.BookReviewScreen
+import com.example.dz.presentation.social.chat.ChatEffect
+import com.example.dz.presentation.social.chat.ChatScreen
+import com.example.dz.presentation.social.chat.ChatViewModel
+import com.example.dz.presentation.collections.details.CollectionDetails
+import com.example.dz.presentation.collections.details.CollectionDetailsEffect
+import com.example.dz.presentation.collections.details.CollectionDetailsViewModel
+import com.example.dz.presentation.collections.list.CollectionsScreen
+import com.example.dz.presentation.collections.list.CollectionsEffect
+import com.example.dz.presentation.collections.list.CollectionsViewModel
+import com.example.dz.presentation.collections.edit.CollectionsEdit
+import com.example.dz.presentation.collections.edit.CollectionsEditEffect
+import com.example.dz.presentation.collections.edit.CollectionsEditViewModel
+import com.example.dz.presentation.social.friends.FriendListEffect
+import com.example.dz.presentation.social.friends.FriendListScreen
+import com.example.dz.presentation.social.friends.FriendListViewModel
+import com.example.dz.presentation.auth.forgot_password.ForgotPasswordEffect
+import com.example.dz.presentation.auth.forgot_password.ForgotPasswordScreen
+import com.example.dz.presentation.auth.forgot_password.ForgotPasswordViewModel
+import com.example.dz.presentation.social.friend_detail.FriendDetailEffect
+import com.example.dz.presentation.social.friend_detail.FriendDetailViewModel
+import com.example.dz.presentation.social.friend_detail.FriendScreen
+import com.example.dz.presentation.goal.GoalEffect
+import com.example.dz.presentation.goal.GoalScreen
+import com.example.dz.presentation.goal.GoalViewModel
+import com.example.dz.presentation.home.HomeEffect
+import com.example.dz.presentation.home.HomeEvent
+import com.example.dz.presentation.home.HomeScreen
+import com.example.dz.presentation.home.HomeViewModel
+import com.example.dz.presentation.social.invite_friends.InviteFriendList2Screen
+import com.example.dz.presentation.social.invite_friends.InviteFriendsEffect
+import com.example.dz.presentation.social.invite_friends.InviteFriendsViewModel
+import com.example.dz.presentation.library.Library
+import com.example.dz.presentation.library.LibraryEffect
+import com.example.dz.presentation.library.LibraryEvent
+import com.example.dz.presentation.library.LibraryViewModel
+import com.example.dz.presentation.auth.login.LoginEffect
+import com.example.dz.presentation.auth.login.LoginScreen
+import com.example.dz.presentation.auth.login.LoginViewModel
+import com.example.dz.presentation.membership.MembershipEffect
+import com.example.dz.presentation.membership.MembershipScreen
+import com.example.dz.presentation.membership.MembershipViewModel
+import com.example.dz.presentation.social.no_friends.NoFriendsEffect
+import com.example.dz.presentation.social.no_friends.NoFriendsScreen
+import com.example.dz.presentation.social.no_friends.NoFriendsViewModel
+import com.example.dz.presentation.notifications.NotificationsEffect
+import com.example.dz.presentation.notifications.NotificationsScreen
+import com.example.dz.presentation.notifications.NotificationsViewModel
+import com.example.dz.presentation.onboarding.onboarding_one.OnboardingOneEffect
+import com.example.dz.presentation.onboarding.onboarding_one.OnboardingOneViewModel
+import com.example.dz.presentation.onboarding.onboarding_one.OnboardingScreenOne
+import com.example.dz.presentation.onboarding.onboarding_three.OnboardingScreenThree
+import com.example.dz.presentation.onboarding.onboarding_three.OnboardingThreeEffect
+import com.example.dz.presentation.onboarding.onboarding_three.OnboardingThreeViewModel
+import com.example.dz.presentation.onboarding.onboarding_two.OnboardingScreenTwo
+import com.example.dz.presentation.onboarding.onboarding_two.OnboardingTwoEffect
+import com.example.dz.presentation.onboarding.onboarding_two.OnboardingTwoViewModel
+import com.example.dz.presentation.payment.payment_failed.PaymentFailedEffect
+import com.example.dz.presentation.payment.payment_failed.PaymentFailedViewModel
+import com.example.dz.presentation.payment.payment_failed.PurchaseFailedScreen
+import com.example.dz.presentation.payment.payment_methods.PaymentMethodsEffect
+import com.example.dz.presentation.payment.payment_methods.PaymentMethodsScreen
+import com.example.dz.presentation.payment.payment_methods.PaymentMethodsViewModel
+import com.example.dz.presentation.payment.payment_success.PaymentSuccessEffect
+import com.example.dz.presentation.payment.payment_success.PaymentSuccessViewModel
+import com.example.dz.presentation.payment.payment_success.PurchaseSuccessScreen
+import com.example.dz.presentation.premium_membership.PremiumMembershipEffect
+import com.example.dz.presentation.premium_membership.PremiumMembershipScreen
+import com.example.dz.presentation.premium_membership.PremiumMembershipViewModel
+import com.example.dz.presentation.profile.ProfileEffect
 import com.example.dz.presentation.profile.ProfileScreen
+import com.example.dz.presentation.profile.ProfileViewModel
+import com.example.dz.presentation.payment.purchase_confirmation.PurchaseConfirmationEffect
 import com.example.dz.presentation.payment.purchase_confirmation.PurchaseConfirmationScreen
+import com.example.dz.presentation.payment.purchase_confirmation.PurchaseConfirmationViewModel
+import com.example.dz.presentation.payment.purchase_details.PurchaseDetailsEffect
 import com.example.dz.presentation.payment.purchase_details.PurchaseDetailsScreen
-import com.example.dz.presentation.payment.purchase_details.PurchaseReceiptScreen
+import com.example.dz.presentation.payment.purchase_details.PurchaseDetailsViewModel
+import com.example.dz.presentation.payment.purchase_receipt.PurchaseReceiptEffect
+import com.example.dz.presentation.payment.purchase_receipt.PurchaseReceiptScreen
+import com.example.dz.presentation.payment.purchase_receipt.PurchaseReceiptViewModel
+import com.example.dz.presentation.reading.ReadingEffect
 import com.example.dz.presentation.reading.ReadingScreen
+import com.example.dz.presentation.reading.ReadingViewModel
+import com.example.dz.presentation.search.SearchEffect
 import com.example.dz.presentation.search.SearchScreen
-import com.example.dz.presentation.settings.Settings
+import com.example.dz.presentation.search.SearchViewModel
+import com.example.dz.presentation.settings.SettingsEffect
+import com.example.dz.presentation.settings.SettingsScreen
+import com.example.dz.presentation.settings.SettingsViewModel
+import com.example.dz.presentation.auth.sign_up.SignUpEffect
 import com.example.dz.presentation.auth.sign_up.SignUpScreen
+import com.example.dz.presentation.auth.sign_up.SignUpViewModel
 import com.example.dz.presentation.splash.SplashScreen
+import com.example.dz.presentation.store.StoreEffect
+import com.example.dz.presentation.store.StoreEvent
 import com.example.dz.presentation.store.StoreScreen
+import com.example.dz.presentation.store.StoreViewModel
+import com.example.dz.presentation.auth.verification.VerificationEffect
 import com.example.dz.presentation.auth.verification.VerificationScreen
+import com.example.dz.presentation.auth.verification.VerificationViewModel
+import org.koin.mp.KoinPlatform
+import org.koin.core.parameter.parametersOf
 import org.jetbrains.compose.resources.painterResource
 
 @Composable
@@ -145,7 +222,6 @@ fun DZNavGraph() {
         Routes.SIGN_UP,
         Routes.FORGOT_PASSWORD,
         Routes.VERIFICATION,
-        Routes.BOOK_DETAIL,
         Routes.PRE_PURCHASE,
         Routes.BOOK_REVIEW,
         Routes.AUTHOR_DETAIL,
@@ -163,7 +239,6 @@ fun DZNavGraph() {
         Routes.SETTINGS,
         Routes.MEMBERSHIP,
         Routes.PREMIUM_MEMBERSHIP,
-        Routes.NO_MEMBERSHIP,
         Routes.PROFILE_EDIT,
         Routes.READING,
         Routes.PURCHASE_DETAILS,
@@ -203,444 +278,777 @@ fun DZNavGraph() {
             }
 
             composable(Routes.ONBOARDING_1) {
-                OnboardingScreenOne(
-                    onNextClick = { navController.navigate(Routes.ONBOARDING_2) },
-                    onSkipClick = {
-                        navController.navigate(Routes.LOGIN) {
-                            popUpTo(Routes.ONBOARDING_1) { inclusive = true }
+                val onboardingOneViewModel = koinViewModel<OnboardingOneViewModel>()
+                val uiState by onboardingOneViewModel.uiState.collectAsStateWithLifecycle()
+
+                LaunchedEffect(onboardingOneViewModel) {
+                    onboardingOneViewModel.effects.collect { effect ->
+                        when (effect) {
+                            OnboardingOneEffect.NavigateToNext -> navController.navigate(Routes.ONBOARDING_2)
+                            OnboardingOneEffect.NavigateToLogin -> navController.navigate(Routes.LOGIN) {
+                                popUpTo(Routes.ONBOARDING_1) { inclusive = true }
+                            }
                         }
                     }
+                }
+
+                OnboardingScreenOne(
+                    uiState = uiState,
+                    onEvent = onboardingOneViewModel::onEvent
                 )
             }
 
             composable(Routes.ONBOARDING_2) {
-                OnboardingScreenTwo(
-                    onNextClick = { navController.navigate(Routes.ONBOARDING_3) },
-                    onSkipClick = {
-                        navController.navigate(Routes.LOGIN) {
-                            popUpTo(Routes.ONBOARDING_1) { inclusive = true }
+                val onboardingTwoViewModel = koinViewModel<OnboardingTwoViewModel>()
+                val uiState by onboardingTwoViewModel.uiState.collectAsStateWithLifecycle()
+
+                LaunchedEffect(onboardingTwoViewModel) {
+                    onboardingTwoViewModel.effects.collect { effect ->
+                        when (effect) {
+                            OnboardingTwoEffect.NavigateToNext -> navController.navigate(Routes.ONBOARDING_3)
+                            OnboardingTwoEffect.NavigateToLogin -> navController.navigate(Routes.LOGIN) {
+                                popUpTo(Routes.ONBOARDING_1) { inclusive = true }
+                            }
                         }
                     }
+                }
+
+                OnboardingScreenTwo(
+                    uiState = uiState,
+                    onEvent = onboardingTwoViewModel::onEvent
                 )
             }
 
             composable(Routes.ONBOARDING_3) {
-                OnboardingScreenThree(
-                    onGetStartedClick = {
-                        navController.navigate(Routes.SIGN_UP) {
-                            popUpTo(Routes.ONBOARDING_1) { inclusive = true }
-                        }
-                    },
-                    onLoginClick = {
-                        navController.navigate(Routes.LOGIN) {
-                            popUpTo(Routes.ONBOARDING_1) { inclusive = true }
+                val onboardingThreeViewModel = koinViewModel<OnboardingThreeViewModel>()
+                val uiState by onboardingThreeViewModel.uiState.collectAsStateWithLifecycle()
+
+                LaunchedEffect(onboardingThreeViewModel) {
+                    onboardingThreeViewModel.effects.collect { effect ->
+                        when (effect) {
+                            OnboardingThreeEffect.NavigateToSignUp -> navController.navigate(Routes.SIGN_UP) {
+                                popUpTo(Routes.ONBOARDING_1) { inclusive = true }
+                            }
+                            OnboardingThreeEffect.NavigateToLogin -> navController.navigate(Routes.LOGIN) {
+                                popUpTo(Routes.ONBOARDING_1) { inclusive = true }
+                            }
                         }
                     }
+                }
+
+                OnboardingScreenThree(
+                    uiState = uiState,
+                    onEvent = onboardingThreeViewModel::onEvent
                 )
             }
 
             composable(Routes.LOGIN) {
-                LoginScreen(
-                    onLoginSuccess = {
-                        navController.navigate(Routes.HOME) {
-                            popUpTo(Routes.LOGIN) { inclusive = true }
-                        }
-                    },
-                    onForgotPasswordClick = { navController.navigate(Routes.FORGOT_PASSWORD) },
-                    onSignUpClick = {
-                        navController.navigate(Routes.SIGN_UP) {
-                            popUpTo(Routes.LOGIN) { inclusive = true }
+                val loginViewModel = koinViewModel<LoginViewModel>()
+                val uiState by loginViewModel.uiState.collectAsStateWithLifecycle()
+
+                LaunchedEffect(loginViewModel) {
+                    loginViewModel.effects.collect { effect ->
+                        when (effect) {
+                            LoginEffect.NavigateToHome -> navController.navigate(Routes.HOME) {
+                                popUpTo(Routes.LOGIN) { inclusive = true }
+                            }
+                            LoginEffect.NavigateToForgotPassword ->
+                                navController.navigate(Routes.FORGOT_PASSWORD)
+                            LoginEffect.NavigateToSignUp -> navController.navigate(Routes.SIGN_UP) {
+                                popUpTo(Routes.LOGIN) { inclusive = true }
+                            }
                         }
                     }
+                }
+
+                LoginScreen(
+                    uiState = uiState,
+                    onEvent = loginViewModel::onEvent
                 )
             }
 
             composable(Routes.SIGN_UP) {
-                SignUpScreen(
-                    onSignInClick = {
-                        navController.navigate(Routes.LOGIN) {
-                            popUpTo(Routes.SIGN_UP) { inclusive = true }
+                val signUpViewModel = koinViewModel<SignUpViewModel>()
+                val uiState by signUpViewModel.uiState.collectAsStateWithLifecycle()
+
+                LaunchedEffect(signUpViewModel) {
+                    signUpViewModel.effects.collect { effect ->
+                        when (effect) {
+                            SignUpEffect.NavigateToVerification ->
+                                navController.navigate(Routes.VERIFICATION)
+                            SignUpEffect.NavigateToLogin -> navController.navigate(Routes.LOGIN) {
+                                popUpTo(Routes.SIGN_UP) { inclusive = true }
+                            }
                         }
-                    },
-                    onSignUpSuccess = { navController.navigate(Routes.VERIFICATION) }
+                    }
+                }
+
+                SignUpScreen(
+                    uiState = uiState,
+                    onEvent = signUpViewModel::onEvent
                 )
             }
 
             composable(Routes.FORGOT_PASSWORD) {
+                val forgotPasswordViewModel = koinViewModel<ForgotPasswordViewModel>()
+                val uiState by forgotPasswordViewModel.uiState.collectAsStateWithLifecycle()
+
+                LaunchedEffect(forgotPasswordViewModel) {
+                    forgotPasswordViewModel.effects.collect { effect ->
+                        when (effect) {
+                            ForgotPasswordEffect.NavigateToVerification ->
+                                navController.navigate(Routes.VERIFICATION)
+                            ForgotPasswordEffect.NavigateBack -> navController.popBackStack()
+                        }
+                    }
+                }
+
                 ForgotPasswordScreen(
-                    onBack = { navController.popBackStack() },
-                    onSendLink = { navController.navigate(Routes.VERIFICATION) }
+                    uiState = uiState,
+                    onEvent = forgotPasswordViewModel::onEvent
                 )
             }
 
             composable(Routes.VERIFICATION) {
-                VerificationScreen(
-                    onVerified = {
-                        navController.navigate(Routes.HOME) {
-                            popUpTo(0) { inclusive = true }
+                val verificationViewModel = koinViewModel<VerificationViewModel>()
+                val uiState by verificationViewModel.uiState.collectAsStateWithLifecycle()
+
+                LaunchedEffect(verificationViewModel) {
+                    verificationViewModel.effects.collect { effect ->
+                        when (effect) {
+                            VerificationEffect.NavigateToHome -> navController.navigate(Routes.HOME) {
+                                popUpTo(0) { inclusive = true }
+                            }
+                            VerificationEffect.NavigateBack -> navController.popBackStack()
                         }
-                    },
-                    onBack = { navController.popBackStack() }
+                    }
+                }
+
+                VerificationScreen(
+                    uiState = uiState,
+                    onEvent = verificationViewModel::onEvent
                 )
             }
 
             composable(Routes.HOME) {
+                val homeViewModel = koinViewModel<HomeViewModel>()
+                val uiState by homeViewModel.uiState.collectAsStateWithLifecycle()
+
+                LaunchedEffect(homeViewModel) {
+                    homeViewModel.effects.collect { effect ->
+                        when (effect) {
+                            is HomeEffect.NavigateToBook -> navController.navigate(Routes.prePurchase(effect.bookId))
+                            is HomeEffect.NavigateToAuthor -> navController.navigate(Routes.authorDetail(effect.authorId))
+                            is HomeEffect.NavigateToReading -> navController.navigate(Routes.reading(effect.bookId))
+                            HomeEffect.NavigateToNotifications -> navController.navigate(Routes.NOTIFICATIONS)
+                            HomeEffect.NavigateToProfile -> navController.navigate(Routes.PROFILE_TAB)
+                        }
+                    }
+                }
+
                 HomeScreen(
-                    onKeepReadingClick = {
-                        navController.navigate(Routes.reading("current-book"))
-                    },
+                    uiState = uiState,
+                    onKeepReadingClick = { homeViewModel.onEvent(HomeEvent.KeepReadingClicked) },
                     onViewAllCategoriesClick = { navigateBottomTab(Routes.SEARCH) },
                     onBookClick = { book ->
-                        navController.navigate(Routes.prePurchase(routeKey(book.title)))
+                        homeViewModel.onEvent(HomeEvent.BookClicked(book.id))
                     },
                     onAuthorClick = { author ->
-                        navController.navigate(Routes.authorDetail(routeKey(author.name)))
+                        homeViewModel.onEvent(HomeEvent.AuthorClicked(routeKey(author.name)))
                     },
-                    onGoalsKeepReadingClick = {
-                        navController.navigate(Routes.reading("current-book"))
-                    },
-                    onNotificationsClick = { navController.navigate(Routes.NOTIFICATIONS) },
-                    onProfileClick = { navController.navigate(Routes.PROFILE_TAB) }
+                    onGoalsKeepReadingClick = { homeViewModel.onEvent(HomeEvent.GoalsKeepReadingClicked) },
+                    onNotificationsClick = { homeViewModel.onEvent(HomeEvent.NotificationsClicked) },
+                    onProfileClick = { homeViewModel.onEvent(HomeEvent.ProfileClicked) }
                 )
             }
 
             composable(Routes.LIBRARY) {
+                val libraryViewModel = koinViewModel<LibraryViewModel>()
+                val uiState by libraryViewModel.uiState.collectAsStateWithLifecycle()
+
+                LaunchedEffect(libraryViewModel) {
+                    libraryViewModel.effects.collect { effect ->
+                        when (effect) {
+                            is LibraryEffect.NavigateToBook -> navController.navigate(Routes.reading(effect.bookId))
+                            LibraryEffect.NavigateToGoal -> navController.navigate(Routes.GOAL)
+                            LibraryEffect.OpenSort -> Unit
+                        }
+                    }
+                }
+
                 Library(
+                    uiState = uiState,
                     onSettingsClick = { navController.navigate(Routes.COLLECTIONS) },
-                    onSortClick = {},
+                    onSortClick = { libraryViewModel.onEvent(LibraryEvent.SortClicked) },
                     onBookClick = { book ->
-                        navController.navigate(Routes.reading(routeKey(book.title)))
+                        libraryViewModel.onEvent(LibraryEvent.BookClicked(book.id))
                     },
-                    onGoalClick = { navController.navigate(Routes.GOAL) }
+                    onGoalClick = { libraryViewModel.onEvent(LibraryEvent.GoalClicked) }
                 )
             }
 
             composable(Routes.STORE) {
+                val storeViewModel = koinViewModel<StoreViewModel>()
+                val uiState by storeViewModel.uiState.collectAsStateWithLifecycle()
+
+                LaunchedEffect(storeViewModel) {
+                    storeViewModel.effects.collect { effect ->
+                        when (effect) {
+                            is StoreEffect.NavigateToBook -> navController.navigate(Routes.prePurchase(effect.bookId))
+                            is StoreEffect.NavigateToCategory -> navController.navigate(Routes.categoryDetail(effect.categoryId))
+                            StoreEffect.NavigateToMembership -> navController.navigate(Routes.MEMBERSHIP)
+                        }
+                    }
+                }
+
                 StoreScreen(
-                    onViewMoreClick = { navController.navigate(Routes.MEMBERSHIP) },
+                    uiState = uiState,
+                    onViewMoreClick = { storeViewModel.onEvent(StoreEvent.ViewMoreClicked) },
                     onCategoryClick = { categoryName ->
-                        navController.navigate(Routes.categoryDetail(routeKey(categoryName)))
+                        storeViewModel.onEvent(StoreEvent.CategoryClicked(categoryName))
                     },
                     onBookClick = { book ->
-                        navController.navigate(Routes.prePurchase(routeKey(book.title)))
+                        storeViewModel.onEvent(StoreEvent.BookClicked(book.id))
                     }
                 )
             }
 
             composable(Routes.SEARCH) {
-                SearchScreen(
-                    onSearchFocusChange = { isSearchFocused = it },
-                    onCategoryClick = { categoryName ->
-                        navController.navigate(Routes.categoryDetail(routeKey(categoryName)))
-                    },
-                    onBookClick = { bookId ->
-                        navController.navigate(Routes.prePurchase(routeKey(bookId)))
-                    },
-                    onAuthorClick = { authorId ->
-                        navController.navigate(Routes.authorDetail(routeKey(authorId)))
+                val searchViewModel = koinViewModel<SearchViewModel>()
+                val uiState by searchViewModel.uiState.collectAsStateWithLifecycle()
+
+                LaunchedEffect(searchViewModel) {
+                    searchViewModel.effects.collect { effect ->
+                        when (effect) {
+                            is SearchEffect.NavigateToBook -> navController.navigate(Routes.prePurchase(effect.bookId))
+                            is SearchEffect.NavigateToAuthor -> navController.navigate(Routes.authorDetail(effect.authorId))
+                            is SearchEffect.NavigateToCategory -> navController.navigate(Routes.categoryDetail(effect.categoryId))
+                        }
                     }
+                }
+
+                SearchScreen(
+                    uiState = uiState,
+                    onEvent = searchViewModel::onEvent,
+                    onSearchFocusChange = { isSearchFocused = it },
+                    onCategoryClick = {},
+                    onBookClick = {},
+                    onAuthorClick = {}
                 )
             }
 
             composable(Routes.PROFILE_TAB) {
+                val profileViewModel = koinViewModel<ProfileViewModel>()
+                val uiState by profileViewModel.uiState.collectAsStateWithLifecycle()
+
+                LaunchedEffect(profileViewModel) {
+                    profileViewModel.effects.collect { effect ->
+                        when (effect) {
+                            ProfileEffect.NavigateBack -> navController.popBackStack()
+                            ProfileEffect.NavigateToNotifications -> navController.navigate(Routes.NOTIFICATIONS)
+                            ProfileEffect.NavigateToFriends -> navController.navigate(Routes.FRIEND_LIST)
+                            ProfileEffect.NavigateToGoals -> navController.navigate(Routes.GOAL)
+                            ProfileEffect.NavigateToCollections -> navController.navigate(Routes.COLLECTIONS)
+                            ProfileEffect.NavigateToPurchases -> navController.navigate(Routes.purchaseReceipt("history"))
+                            ProfileEffect.NavigateToMembership -> navController.navigate(Routes.PREMIUM_MEMBERSHIP)
+                            ProfileEffect.NavigateToSettings -> navController.navigate(Routes.SETTINGS)
+                        }
+                    }
+                }
+
                 ProfileScreen(
-                    onBackClick = { navController.popBackStack() },
-                    onEditClick = {},
-                    onNotificationsClick = { navController.navigate(Routes.NOTIFICATIONS) },
-                    onFriendsClick = { navController.navigate(Routes.FRIEND_LIST) },
-                    onGoalsClick = { navController.navigate(Routes.GOAL) },
-                    onCollectionsClick = { navController.navigate(Routes.COLLECTIONS) },
-                    onPurchasesClick = { navController.navigate(Routes.purchaseReceipt("history")) },
-                    onMembershipClick = { navController.navigate(Routes.PREMIUM_MEMBERSHIP) },
-                    onSettingsClick = { navController.navigate(Routes.SETTINGS) }
+                    uiState = uiState,
+                    onEvent = profileViewModel::onEvent
                 )
             }
 
             composable(Routes.PRE_PURCHASE) { backStackEntry ->
                 val bookId = backStackEntry.stringArgument("bookId", "book")
-                PrePurchaseScreen(
-                    onBackClick = { navController.popBackStack() },
-                    onShareClick = {},
-                    onFavoriteClick = {},
-                    onViewSampleClick = {
-                        navController.navigate(Routes.bookDetail(bookId))
-                    },
-                    onPurchaseClick = {
-                        navController.navigate(Routes.purchaseDetails(bookId))
-                    },
-                    onTagsBookClick = {
-                        navController.navigate(Routes.prePurchase("related-book"))
-                    },
-                    onAuthorClick = {
-                        navController.navigate(Routes.authorDetail("author"))
-                    }
-                )
-            }
+                val prePurchaseViewModel = koinPrePurchaseViewModel(bookId)
+                val uiState by prePurchaseViewModel.uiState.collectAsStateWithLifecycle()
 
-            composable(Routes.BOOK_DETAIL) {
-                BookDetailScreen(
-                    onBackClick = { navController.popBackStack() }
+                LaunchedEffect(prePurchaseViewModel) {
+                    prePurchaseViewModel.effects.collect { effect ->
+                        when (effect) {
+                            PrePurchaseEffect.NavigateBack -> navController.popBackStack()
+                            is PrePurchaseEffect.NavigateToReading -> navController.navigate(Routes.reading(effect.bookId))
+                            is PrePurchaseEffect.NavigateToPurchase -> navController.navigate(Routes.purchaseDetails(effect.bookId))
+                            is PrePurchaseEffect.NavigateToAuthor -> navController.navigate(Routes.authorDetail(effect.authorId))
+                            is PrePurchaseEffect.NavigateToBook -> navController.navigate(Routes.prePurchase(effect.bookId))
+                        }
+                    }
+                }
+
+                PrePurchaseScreen(
+                    uiState = uiState,
+                    onEvent = prePurchaseViewModel::onEvent
                 )
             }
 
             composable(Routes.READING) { backStackEntry ->
                 val bookId = backStackEntry.stringArgument("bookId", "book")
-                ReadingScreen(
-                    onBackClick = { navController.popBackStack() },
-                    onMenuClick = { navController.navigate(Routes.SETTINGS) },
-                    onCommentsClick = {
-                        navController.navigate(Routes.bookReview(bookId))
-                    },
-                    onKeepReadingClick = {
-                        navController.navigate(Routes.bookDetail(bookId))
+                val readingViewModel = koinReadingViewModel(bookId)
+                val uiState by readingViewModel.uiState.collectAsStateWithLifecycle()
+
+                LaunchedEffect(readingViewModel) {
+                    readingViewModel.effects.collect { effect ->
+                        when (effect) {
+                            ReadingEffect.NavigateBack -> navController.popBackStack()
+                            ReadingEffect.NavigateToSettings -> navController.navigate(Routes.SETTINGS)
+                            is ReadingEffect.NavigateToComments -> navController.navigate(Routes.bookReview(effect.bookId))
+                        }
                     }
+                }
+
+                ReadingScreen(
+                    uiState = uiState,
+                    onEvent = readingViewModel::onEvent
                 )
             }
 
             composable(Routes.BOOK_REVIEW) { backStackEntry ->
                 val bookId = backStackEntry.stringArgument("bookId", "book")
-                BookReviewScreen(
-                    onBackClick = { navController.popBackStack() },
-                    onShareClick = {},
-                    onReviewsClick = {},
-                    onStartReadingClick = {
-                        navController.navigate(Routes.bookDetail(bookId))
+                val bookReviewViewModel = koinBookReviewViewModel(bookId)
+                val uiState by bookReviewViewModel.uiState.collectAsStateWithLifecycle()
+
+                LaunchedEffect(bookReviewViewModel) {
+                    bookReviewViewModel.effects.collect { effect ->
+                        when (effect) {
+                            BookReviewEffect.NavigateBack -> navController.popBackStack()
+                            is BookReviewEffect.NavigateToReading -> navController.navigate(Routes.reading(effect.bookId))
+                        }
                     }
+                }
+
+                BookReviewScreen(
+                    uiState = uiState,
+                    onEvent = bookReviewViewModel::onEvent
                 )
             }
 
-            composable(Routes.PURCHASE_DETAILS) {
+            composable(Routes.PURCHASE_DETAILS) { backStackEntry ->
+                val bookId = backStackEntry.stringArgument("bookId", "book")
+                val purchaseDetailsViewModel = koinPurchaseDetailsViewModel(bookId)
+                val uiState by purchaseDetailsViewModel.uiState.collectAsStateWithLifecycle()
+
+                LaunchedEffect(purchaseDetailsViewModel) {
+                    purchaseDetailsViewModel.effects.collect { effect ->
+                        when (effect) {
+                            PurchaseDetailsEffect.NavigateBack -> navController.popBackStack()
+                            PurchaseDetailsEffect.NavigateToPaymentMethods -> navController.navigate(Routes.PAYMENT_METHODS)
+                            PurchaseDetailsEffect.NavigateToConfirmation -> navController.navigate(Routes.PURCHASE_CONFIRMATION)
+                        }
+                    }
+                }
+
                 PurchaseDetailsScreen(
-                    onBackClick = { navController.popBackStack() },
-                    onDiscountCodeClick = {},
-                    onChangePaymentClick = { navController.navigate(Routes.PAYMENT_METHODS) },
-                    onPayNowClick = { navController.navigate(Routes.PURCHASE_CONFIRMATION) }
+                    uiState = uiState,
+                    onEvent = purchaseDetailsViewModel::onEvent
                 )
             }
 
             composable(Routes.PURCHASE_RECEIPT) { backStackEntry ->
                 val bookId = backStackEntry.stringArgument("bookId", "book")
+                val purchaseReceiptViewModel = koinPurchaseReceiptViewModel(bookId)
+                val uiState by purchaseReceiptViewModel.uiState.collectAsStateWithLifecycle()
+
+                LaunchedEffect(purchaseReceiptViewModel) {
+                    purchaseReceiptViewModel.effects.collect { effect ->
+                        when (effect) {
+                            PurchaseReceiptEffect.NavigateBack -> navController.popBackStack()
+                            is PurchaseReceiptEffect.NavigateToReading -> navController.navigate(Routes.reading(effect.bookId))
+                        }
+                    }
+                }
+
                 PurchaseReceiptScreen(
-                    onBackClick = { navController.popBackStack() },
-                    onReadNowClick = {
-                        navController.navigate(Routes.reading(bookId))
-                    },
-                    onReceiptClick = {}
+                    uiState = uiState,
+                    onEvent = purchaseReceiptViewModel::onEvent
                 )
             }
 
             composable(Routes.PAYMENT_METHODS) {
-                PaymentMethodsScreen(
-                    onBackClick = { navController.popBackStack() },
-                    // A declined method (Apple Pay) demonstrates the failure branch;
-                    // any other method completes the purchase. (No backend in the demo.)
-                    onPaymentMethodSelected = { method ->
-                        if (method.brand == PaymentBrand.ApplePay) {
-                            navController.navigate(Routes.PAYMENT_FAILED)
-                        } else {
-                            navController.navigate(Routes.PAYMENT_SUCCESS) {
+                val paymentMethodsViewModel = koinViewModel<PaymentMethodsViewModel>()
+                val uiState by paymentMethodsViewModel.uiState.collectAsStateWithLifecycle()
+
+                LaunchedEffect(paymentMethodsViewModel) {
+                    paymentMethodsViewModel.effects.collect { effect ->
+                        when (effect) {
+                            PaymentMethodsEffect.NavigateBack -> navController.popBackStack()
+                            PaymentMethodsEffect.NavigateToFailure -> navController.navigate(Routes.PAYMENT_FAILED)
+                            PaymentMethodsEffect.NavigateToSuccess -> navController.navigate(Routes.PAYMENT_SUCCESS) {
                                 popUpTo(Routes.PRE_PURCHASE) { inclusive = true }
                             }
                         }
-                    },
-                    onAddPaymentMethodClick = {},
-                    onConfirmClick = {}
+                    }
+                }
+
+                PaymentMethodsScreen(
+                    uiState = uiState,
+                    onEvent = paymentMethodsViewModel::onEvent
                 )
             }
 
             composable(Routes.PURCHASE_CONFIRMATION) {
+                val purchaseConfirmationViewModel = koinViewModel<PurchaseConfirmationViewModel>()
+                val uiState by purchaseConfirmationViewModel.uiState.collectAsStateWithLifecycle()
+
+                LaunchedEffect(purchaseConfirmationViewModel) {
+                    purchaseConfirmationViewModel.effects.collect { effect ->
+                        when (effect) {
+                            PurchaseConfirmationEffect.NavigateToPaymentMethods -> navController.navigate(Routes.PAYMENT_METHODS)
+                            PurchaseConfirmationEffect.NavigateBack -> navController.popBackStack()
+                        }
+                    }
+                }
+
                 PurchaseConfirmationScreen(
-                    onConfirm = { navController.navigate(Routes.PAYMENT_METHODS) },
-                    onBackClick = { navController.popBackStack() }
+                    uiState = uiState,
+                    onEvent = purchaseConfirmationViewModel::onEvent
                 )
             }
 
             composable(Routes.PAYMENT_SUCCESS) {
-                PurchaseSuccessScreen(
-                    onBackClick = {
-                        navController.navigate(Routes.HOME) {
-                            popUpTo(Routes.HOME) { inclusive = false }
-                        }
-                    },
-                    onDiscountCodeClick = {},
-                    onChangePaymentClick = { navController.popBackStack() },
-                    onReadNowClick = {
-                        navController.navigate(Routes.reading("purchased-book")) {
-                            popUpTo(Routes.HOME) { inclusive = false }
+                val paymentSuccessViewModel = koinViewModel<PaymentSuccessViewModel>()
+                val uiState by paymentSuccessViewModel.uiState.collectAsStateWithLifecycle()
+
+                LaunchedEffect(paymentSuccessViewModel) {
+                    paymentSuccessViewModel.effects.collect { effect ->
+                        when (effect) {
+                            PaymentSuccessEffect.NavigateToHome -> navController.navigate(Routes.HOME) {
+                                popUpTo(Routes.HOME) { inclusive = false }
+                            }
+                            PaymentSuccessEffect.NavigateToReading -> navController.navigate(Routes.reading("purchased-book")) {
+                                popUpTo(Routes.HOME) { inclusive = false }
+                            }
                         }
                     }
+                }
+
+                PurchaseSuccessScreen(
+                    uiState = uiState,
+                    onEvent = paymentSuccessViewModel::onEvent
                 )
             }
 
             composable(Routes.PAYMENT_FAILED) {
-                PurchaseFailedScreen(
-                    onBackClick = { navController.popBackStack() },
-                    onDiscountCodeClick = {},
-                    // Change payment → back to the methods picker
-                    onChangePaymentClick = {
-                        navController.popBackStack(Routes.PAYMENT_METHODS, inclusive = false)
-                    },
-                    // Retry → back to Review order
-                    onGetBackClick = {
-                        navController.popBackStack(Routes.PURCHASE_DETAILS, inclusive = false)
+                val paymentFailedViewModel = koinViewModel<PaymentFailedViewModel>()
+                val uiState by paymentFailedViewModel.uiState.collectAsStateWithLifecycle()
+
+                LaunchedEffect(paymentFailedViewModel) {
+                    paymentFailedViewModel.effects.collect { effect ->
+                        when (effect) {
+                            PaymentFailedEffect.NavigateBack -> navController.popBackStack()
+                            // Change payment → back to the methods picker
+                            PaymentFailedEffect.NavigateToPaymentMethods ->
+                                navController.popBackStack(Routes.PAYMENT_METHODS, inclusive = false)
+                            // Retry → back to Review order
+                            PaymentFailedEffect.NavigateToPurchaseDetails ->
+                                navController.popBackStack(Routes.PURCHASE_DETAILS, inclusive = false)
+                        }
                     }
+                }
+
+                PurchaseFailedScreen(
+                    uiState = uiState,
+                    onEvent = paymentFailedViewModel::onEvent
                 )
             }
 
             composable(Routes.CATEGORY_DETAIL) { backStackEntry ->
-                val categoryName = backStackEntry.stringArgument("categoryName", "Horror")
+                val categoryId = backStackEntry.stringArgument("categoryName", "horror")
+                val categoryDetailViewModel = koinCategoryDetailViewModel(categoryId)
+                val uiState by categoryDetailViewModel.uiState.collectAsStateWithLifecycle()
+
+                LaunchedEffect(categoryDetailViewModel) {
+                    categoryDetailViewModel.effects.collect { effect ->
+                        when (effect) {
+                            CategoryDetailEffect.NavigateBack -> navController.popBackStack()
+                            is CategoryDetailEffect.NavigateToBook -> navController.navigate(Routes.prePurchase(effect.bookId))
+                        }
+                    }
+                }
+
                 CategoryDetailScreen(
-                    title = categoryName.replace('-', ' ').replaceFirstChar { it.uppercase() },
-                    onBackClick = { navController.popBackStack() },
-                    onBookClick = { book ->
-                        navController.navigate(Routes.prePurchase(routeKey(book.title)))
-                    },
-                    onOptionsClick = { _ -> }
+                    uiState = uiState,
+                    onEvent = categoryDetailViewModel::onEvent
                 )
             }
 
-            composable(Routes.AUTHOR_DETAIL) {
-                AuthorsDetailsScreen(
-                    onBackClick = { navController.popBackStack() },
-                    onBookClick = { bookTitle ->
-                        navController.navigate(Routes.prePurchase(routeKey(bookTitle)))
+            composable(Routes.AUTHOR_DETAIL) { backStackEntry ->
+                val authorId = backStackEntry.stringArgument("authorId", "author")
+                val authorViewModel = koinAuthorDetailViewModel(authorId)
+                val uiState by authorViewModel.uiState.collectAsStateWithLifecycle()
+
+                LaunchedEffect(authorViewModel) {
+                    authorViewModel.effects.collect { effect ->
+                        when (effect) {
+                            AuthorDetailEffect.NavigateBack -> navController.popBackStack()
+                            is AuthorDetailEffect.NavigateToBook ->
+                                navController.navigate(Routes.prePurchase(effect.bookId))
+                        }
                     }
+                }
+
+                AuthorsDetailsScreen(
+                    uiState = uiState,
+                    onEvent = authorViewModel::onEvent
                 )
             }
 
             composable(Routes.COLLECTIONS) {
-                Collections(
-                    onBackClick = { navController.popBackStack() },
-                    onSettingsClick = {
-                        navController.navigate(Routes.collectionsEdit("all"))
-                    },
-                    onCollectionClick = { collectionId ->
-                        navController.navigate(Routes.collectionDetail(routeKey(collectionId)))
+                val collectionsViewModel = koinViewModel<CollectionsViewModel>()
+                val uiState by collectionsViewModel.uiState.collectAsStateWithLifecycle()
+
+                LaunchedEffect(collectionsViewModel) {
+                    collectionsViewModel.effects.collect { effect ->
+                        when (effect) {
+                            CollectionsEffect.NavigateBack -> navController.popBackStack()
+                            is CollectionsEffect.NavigateToDetail ->
+                                navController.navigate(Routes.collectionDetail(routeKey(effect.collectionId)))
+                            is CollectionsEffect.NavigateToEdit ->
+                                navController.navigate(Routes.collectionsEdit(effect.collectionId))
+                        }
                     }
+                }
+
+                CollectionsScreen(
+                    uiState = uiState,
+                    onEvent = collectionsViewModel::onEvent
                 )
             }
 
             composable(Routes.COLLECTION_DETAIL) { backStackEntry ->
                 val collectionId = backStackEntry.stringArgument("collectionId", "collection")
-                CollectionDetails(
-                    onBackClick = { navController.popBackStack() },
-                    onAddClick = {},
-                    onSettingsClick = {
-                        navController.navigate(Routes.collectionsEdit(collectionId))
-                    },
-                    onRemoveEverywhereClick = { _ -> },
-                    onBookOptionsClick = { _ -> },
-                    onBookClick = { bookTitle ->
-                        navController.navigate(Routes.prePurchase(routeKey(bookTitle)))
+                val collectionDetailsViewModel = koinCollectionDetailsViewModel(collectionId)
+                val uiState by collectionDetailsViewModel.uiState.collectAsStateWithLifecycle()
+
+                LaunchedEffect(collectionDetailsViewModel) {
+                    collectionDetailsViewModel.effects.collect { effect ->
+                        when (effect) {
+                            CollectionDetailsEffect.NavigateBack -> navController.popBackStack()
+                            is CollectionDetailsEffect.NavigateToEdit ->
+                                navController.navigate(Routes.collectionsEdit(effect.collectionId))
+                            is CollectionDetailsEffect.NavigateToBook ->
+                                navController.navigate(Routes.prePurchase(routeKey(effect.bookId)))
+                        }
                     }
+                }
+
+                CollectionDetails(
+                    uiState = uiState,
+                    onEvent = collectionDetailsViewModel::onEvent
                 )
             }
 
-            composable(Routes.COLLECTIONS_EDIT) {
+            composable(Routes.COLLECTIONS_EDIT) { backStackEntry ->
+                val collectionId = backStackEntry.stringArgument("collectionId", "new")
+                val collectionsEditViewModel = koinCollectionsEditViewModel(collectionId)
+                val uiState by collectionsEditViewModel.uiState.collectAsStateWithLifecycle()
+
+                LaunchedEffect(collectionsEditViewModel) {
+                    collectionsEditViewModel.effects.collect { effect ->
+                        when (effect) {
+                            CollectionsEditEffect.NavigateBack -> navController.popBackStack()
+                        }
+                    }
+                }
+
                 CollectionsEdit(
-                    onBackClick = { navController.popBackStack() }
+                    uiState = uiState,
+                    onEvent = collectionsEditViewModel::onEvent
                 )
             }
 
             composable(Routes.SETTINGS) {
-                Settings(
-                    onBackClick = { navController.popBackStack() },
-                    onNotificationsEnabledChange = { _ -> },
-                    onAppearanceClick = {},
-                    onTextSizeClick = {},
-                    onPageBackgroundClick = {},
-                    onTextFontClick = {},
-                    onTermsClick = {},
-                    onPrivacyPolicyClick = {},
-                    onPurchasedClick = {
-                        navController.navigate(Routes.purchaseDetails("history"))
+                val settingsViewModel = koinViewModel<SettingsViewModel>()
+                val uiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
+
+                LaunchedEffect(settingsViewModel) {
+                    settingsViewModel.effects.collect { effect ->
+                        when (effect) {
+                            SettingsEffect.NavigateBack -> navController.popBackStack()
+                            // "Edit profile" reuses the purchase-history destination (existing behavior)
+                            SettingsEffect.NavigateToEditProfile -> navController.navigate(Routes.purchaseDetails("history"))
+                        }
                     }
+                }
+
+                SettingsScreen(
+                    uiState = uiState,
+                    onEvent = settingsViewModel::onEvent
                 )
             }
 
             composable(Routes.NOTIFICATIONS) {
-                Notifications(
-                    onBackClick = { navController.popBackStack() },
-                    onReadFilterClick = {},
-                    onChatClick = { navController.navigate(Routes.FRIEND_LIST) }
+                val notificationsViewModel = koinViewModel<NotificationsViewModel>()
+                val uiState by notificationsViewModel.uiState.collectAsStateWithLifecycle()
+
+                LaunchedEffect(notificationsViewModel) {
+                    notificationsViewModel.effects.collect { effect ->
+                        when (effect) {
+                            NotificationsEffect.NavigateBack -> navController.popBackStack()
+                            is NotificationsEffect.NavigateToChat -> navController.navigate(Routes.FRIEND_LIST)
+                        }
+                    }
+                }
+
+                NotificationsScreen(
+                    uiState = uiState,
+                    onEvent = notificationsViewModel::onEvent
                 )
             }
 
             composable(Routes.GOAL) {
-                Goal(
-                    onBackClick = { navController.popBackStack() },
-                    onSettingsClick = { navController.navigate(Routes.SETTINGS) },
-                    onShareClick = {}
+                val goalViewModel = koinViewModel<GoalViewModel>()
+                val uiState by goalViewModel.uiState.collectAsStateWithLifecycle()
+
+                LaunchedEffect(goalViewModel) {
+                    goalViewModel.effects.collect { effect ->
+                        when (effect) {
+                            GoalEffect.NavigateBack -> navController.popBackStack()
+                            GoalEffect.NavigateToSettings -> navController.navigate(Routes.SETTINGS)
+                        }
+                    }
+                }
+
+                GoalScreen(
+                    uiState = uiState,
+                    onEvent = goalViewModel::onEvent
                 )
             }
 
             composable(Routes.MEMBERSHIP) {
+                val membershipViewModel = koinViewModel<MembershipViewModel>()
+                val uiState by membershipViewModel.uiState.collectAsStateWithLifecycle()
+
+                LaunchedEffect(membershipViewModel) {
+                    membershipViewModel.effects.collect { effect ->
+                        when (effect) {
+                            MembershipEffect.NavigateBack -> navController.popBackStack()
+                            MembershipEffect.NavigateToPremium -> navController.navigate(Routes.PREMIUM_MEMBERSHIP)
+                        }
+                    }
+                }
+
                 MembershipScreen(
-                    onBackClick = { navController.popBackStack() },
-                    onStartTrialClick = { navController.navigate(Routes.PREMIUM_MEMBERSHIP) }
+                    uiState = uiState,
+                    onEvent = membershipViewModel::onEvent
                 )
             }
 
             composable(Routes.PREMIUM_MEMBERSHIP) {
-                PremiumMembership(
-                    onBackClick = { navController.popBackStack() },
-                    onNotificationClick = { navController.navigate(Routes.NOTIFICATIONS) },
-                    onMenuClick = { navController.navigate(Routes.SETTINGS) }
-                )
-            }
+                val premiumMembershipViewModel = koinViewModel<PremiumMembershipViewModel>()
+                val uiState by premiumMembershipViewModel.uiState.collectAsStateWithLifecycle()
 
-            composable(Routes.NO_MEMBERSHIP) {
-                NoMembershipScreen(
-                    onBackClick = { navController.popBackStack() },
-                    onNotificationClick = { navController.navigate(Routes.NOTIFICATIONS) },
-                    onMenuClick = { navController.navigate(Routes.SETTINGS) }
+                LaunchedEffect(premiumMembershipViewModel) {
+                    premiumMembershipViewModel.effects.collect { effect ->
+                        when (effect) {
+                            PremiumMembershipEffect.NavigateBack -> navController.popBackStack()
+                            PremiumMembershipEffect.NavigateToSettings -> navController.navigate(Routes.SETTINGS)
+                        }
+                    }
+                }
+
+                PremiumMembershipScreen(
+                    uiState = uiState,
+                    onEvent = premiumMembershipViewModel::onEvent
                 )
             }
 
             composable(Routes.FRIEND_LIST) {
-                FriendListScreen(
-                    onBackClick = { navController.popBackStack() },
-                    onEditClick = {},
-                    onAddFriendClick = { navController.navigate(Routes.INVITE_FRIENDS) },
-                    onFriendClick = { friendId ->
-                        navController.navigate(Routes.friendDetail(routeKey(friendId)))
+                val friendListViewModel = koinViewModel<FriendListViewModel>()
+                val uiState by friendListViewModel.uiState.collectAsStateWithLifecycle()
+
+                LaunchedEffect(friendListViewModel) {
+                    friendListViewModel.effects.collect { effect ->
+                        when (effect) {
+                            FriendListEffect.NavigateBack -> navController.popBackStack()
+                            FriendListEffect.NavigateToInvite -> navController.navigate(Routes.INVITE_FRIENDS)
+                            is FriendListEffect.NavigateToFriendDetail ->
+                                navController.navigate(Routes.friendDetail(routeKey(effect.friendId)))
+                        }
                     }
+                }
+
+                FriendListScreen(
+                    uiState = uiState,
+                    onEvent = friendListViewModel::onEvent
                 )
             }
 
             composable(Routes.FRIEND_DETAIL) { backStackEntry ->
                 val friendId = backStackEntry.stringArgument("friendId", "friend")
+                val friendDetailViewModel = koinFriendDetailViewModel(friendId)
+                val uiState by friendDetailViewModel.uiState.collectAsStateWithLifecycle()
+
+                LaunchedEffect(friendDetailViewModel) {
+                    friendDetailViewModel.effects.collect { effect ->
+                        when (effect) {
+                            FriendDetailEffect.NavigateBack -> navController.popBackStack()
+                            is FriendDetailEffect.NavigateToChat -> navController.navigate(Routes.chat(effect.friendId))
+                        }
+                    }
+                }
+
                 FriendScreen(
-                    onBackClick = { navController.popBackStack() },
-                    onMessageClick = {
-                        navController.navigate(Routes.chat(friendId))
-                    },
-                    onSettingsClick = {}
+                    uiState = uiState,
+                    onEvent = friendDetailViewModel::onEvent
                 )
             }
 
-            composable(Routes.CHAT) {
+            composable(Routes.CHAT) { backStackEntry ->
+                val friendId = backStackEntry.stringArgument("friendId", "friend")
+                val chatViewModel = koinChatViewModel(friendId)
+                val uiState by chatViewModel.uiState.collectAsStateWithLifecycle()
+
+                LaunchedEffect(chatViewModel) {
+                    chatViewModel.effects.collect { effect ->
+                        when (effect) {
+                            ChatEffect.NavigateBack -> navController.popBackStack()
+                        }
+                    }
+                }
+
                 ChatScreen(
-                    onBackClick = { navController.popBackStack() },
-                    onAttachClick = {},
-                    onSendClick = {}
+                    uiState = uiState,
+                    onEvent = chatViewModel::onEvent
                 )
             }
 
             composable(Routes.INVITE_FRIENDS) {
+                val inviteFriendsViewModel = koinViewModel<InviteFriendsViewModel>()
+                val uiState by inviteFriendsViewModel.uiState.collectAsStateWithLifecycle()
+
+                LaunchedEffect(inviteFriendsViewModel) {
+                    inviteFriendsViewModel.effects.collect { effect ->
+                        when (effect) {
+                            InviteFriendsEffect.NavigateBack -> navController.popBackStack()
+                            InviteFriendsEffect.NavigateToDiscover -> navigateBottomTab(Routes.SEARCH)
+                        }
+                    }
+                }
+
                 InviteFriendList2Screen(
-                    onBackClick = { navController.popBackStack() },
-                    onMessageClick = {},
-                    onDiscoverPeopleClick = { navigateBottomTab(Routes.SEARCH) }
+                    uiState = uiState,
+                    onEvent = inviteFriendsViewModel::onEvent
                 )
             }
 
             composable(Routes.NO_FRIENDS) {
+                val noFriendsViewModel = koinViewModel<NoFriendsViewModel>()
+
+                LaunchedEffect(noFriendsViewModel) {
+                    noFriendsViewModel.effects.collect { effect ->
+                        when (effect) {
+                            NoFriendsEffect.NavigateBack -> navController.popBackStack()
+                            NoFriendsEffect.NavigateToInvite -> navController.navigate(Routes.INVITE_FRIENDS)
+                        }
+                    }
+                }
+
                 NoFriendsScreen(
-                    onBackClick = { navController.popBackStack() },
-                    onMessageClick = { navController.navigate(Routes.INVITE_FRIENDS) },
-                    onFacebookInviteClick = { navController.navigate(Routes.INVITE_FRIENDS) },
-                    onInstagramInviteClick = { navController.navigate(Routes.INVITE_FRIENDS) }
+                    onEvent = noFriendsViewModel::onEvent
                 )
             }
         }
@@ -671,3 +1079,97 @@ private fun routeKey(value: String): String =
 
 private fun NavBackStackEntry.stringArgument(key: String, defaultValue: String): String =
     arguments?.read { getStringOrNull(key) } ?: defaultValue
+
+@Composable
+private inline fun <reified VM : ViewModel> koinViewModel(): VM {
+    val koin = remember { KoinPlatform.getKoin() }
+    return viewModel { koin.get<VM>() }
+}
+
+@Composable
+private fun koinAuthorDetailViewModel(authorId: String): AuthorDetailViewModel {
+    val koin = remember { KoinPlatform.getKoin() }
+    return viewModel(key = "author-$authorId") {
+        koin.get<AuthorDetailViewModel> { parametersOf(authorId) }
+    }
+}
+
+@Composable
+private fun koinPrePurchaseViewModel(bookId: String): PrePurchaseViewModel {
+    val koin = remember { KoinPlatform.getKoin() }
+    return viewModel(key = "pre-purchase-$bookId") {
+        koin.get<PrePurchaseViewModel> { parametersOf(bookId) }
+    }
+}
+
+@Composable
+private fun koinBookReviewViewModel(bookId: String): BookReviewViewModel {
+    val koin = remember { KoinPlatform.getKoin() }
+    return viewModel(key = "book-review-$bookId") {
+        koin.get<BookReviewViewModel> { parametersOf(bookId) }
+    }
+}
+
+@Composable
+private fun koinCategoryDetailViewModel(categoryId: String): CategoryDetailViewModel {
+    val koin = remember { KoinPlatform.getKoin() }
+    return viewModel(key = "category-detail-$categoryId") {
+        koin.get<CategoryDetailViewModel> { parametersOf(categoryId) }
+    }
+}
+
+@Composable
+private fun koinCollectionDetailsViewModel(collectionId: String): CollectionDetailsViewModel {
+    val koin = remember { KoinPlatform.getKoin() }
+    return viewModel(key = "collection-details-$collectionId") {
+        koin.get<CollectionDetailsViewModel> { parametersOf(collectionId) }
+    }
+}
+
+@Composable
+private fun koinCollectionsEditViewModel(collectionId: String): CollectionsEditViewModel {
+    val koin = remember { KoinPlatform.getKoin() }
+    return viewModel(key = "collections-edit-$collectionId") {
+        koin.get<CollectionsEditViewModel> { parametersOf(collectionId) }
+    }
+}
+
+@Composable
+private fun koinPurchaseDetailsViewModel(bookId: String): PurchaseDetailsViewModel {
+    val koin = remember { KoinPlatform.getKoin() }
+    return viewModel(key = "purchase-details-$bookId") {
+        koin.get<PurchaseDetailsViewModel> { parametersOf(bookId) }
+    }
+}
+
+@Composable
+private fun koinPurchaseReceiptViewModel(bookId: String): PurchaseReceiptViewModel {
+    val koin = remember { KoinPlatform.getKoin() }
+    return viewModel(key = "purchase-receipt-$bookId") {
+        koin.get<PurchaseReceiptViewModel> { parametersOf(bookId) }
+    }
+}
+
+@Composable
+private fun koinReadingViewModel(bookId: String): ReadingViewModel {
+    val koin = remember { KoinPlatform.getKoin() }
+    return viewModel(key = "reading-$bookId") {
+        koin.get<ReadingViewModel> { parametersOf(bookId) }
+    }
+}
+
+@Composable
+private fun koinFriendDetailViewModel(friendId: String): FriendDetailViewModel {
+    val koin = remember { KoinPlatform.getKoin() }
+    return viewModel(key = "friend-detail-$friendId") {
+        koin.get<FriendDetailViewModel> { parametersOf(friendId) }
+    }
+}
+
+@Composable
+private fun koinChatViewModel(friendId: String): ChatViewModel {
+    val koin = remember { KoinPlatform.getKoin() }
+    return viewModel(key = "chat-$friendId") {
+        koin.get<ChatViewModel> { parametersOf(friendId) }
+    }
+}

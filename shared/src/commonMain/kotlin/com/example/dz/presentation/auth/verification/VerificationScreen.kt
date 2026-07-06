@@ -22,9 +22,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -54,30 +52,16 @@ import dz.shared.generated.resources.auth_resend_code
 import dz.shared.generated.resources.auth_verification_copy
 import dz.shared.generated.resources.auth_verification_title
 import dz.shared.generated.resources.auth_verify
-import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
-
-private const val CODE_LENGTH = 4
-private const val RESEND_SECONDS = 45
 
 @Composable
 fun VerificationScreen(
-    onVerified: () -> Unit = {},
-    onBack: () -> Unit = {}
+    uiState: VerificationUiState = VerificationUiState(),
+    onEvent: (VerificationEvent) -> Unit = {}
 ) {
     val colors = inkColors()
     val displayFont = inkDisplayFontFamily()
     val bodyFont = inkBodyFontFamily()
-
-    var code by remember { mutableStateOf("") }
-    var secondsLeft by remember { mutableIntStateOf(RESEND_SECONDS) }
-
-    LaunchedEffect(secondsLeft) {
-        if (secondsLeft > 0) {
-            delay(1000)
-            secondsLeft--
-        }
-    }
 
     Column(
         modifier = Modifier
@@ -88,7 +72,11 @@ fun VerificationScreen(
             .imePadding()
             .padding(start = 26.dp, end = 26.dp, top = 4.dp, bottom = 26.dp)
     ) {
-        InkIconButton(icon = InkIcons.Back, onClick = onBack, colors = colors)
+        InkIconButton(
+            icon = InkIcons.Back,
+            onClick = { onEvent(VerificationEvent.BackClicked) },
+            colors = colors
+        )
 
         Text(
             text = stringResource(Res.string.auth_verification_title),
@@ -112,8 +100,8 @@ fun VerificationScreen(
         Spacer(modifier = Modifier.height(30.dp))
 
         CodeInput(
-            code = code,
-            onCodeChange = { code = it },
+            code = uiState.code,
+            onCodeChange = { onEvent(VerificationEvent.CodeChanged(it)) },
             colors = colors
         )
 
@@ -121,7 +109,7 @@ fun VerificationScreen(
 
         InkButton(
             text = stringResource(Res.string.auth_verify),
-            onClick = onVerified,
+            onClick = { onEvent(VerificationEvent.VerifyClicked) },
             colors = colors
         )
 
@@ -138,13 +126,13 @@ fun VerificationScreen(
                     withStyle(SpanStyle(color = colors.accent, fontWeight = FontWeight.SemiBold)) {
                         append(stringResource(Res.string.auth_resend_code))
                     }
-                    if (secondsLeft > 0) {
+                    if (uiState.secondsLeft > 0) {
                         append(" · 0:")
-                        append(secondsLeft.toString().padStart(2, '0'))
+                        append(uiState.secondsLeft.toString().padStart(2, '0'))
                     }
                 },
                 modifier = Modifier
-                    .clickable(enabled = secondsLeft == 0) { secondsLeft = RESEND_SECONDS }
+                    .clickable(enabled = uiState.canResend) { onEvent(VerificationEvent.ResendClicked) }
                     .padding(4.dp),
                 fontFamily = bodyFont,
                 fontSize = 13.sp,
@@ -167,9 +155,7 @@ private fun CodeInput(
 
     BasicTextField(
         value = code,
-        onValueChange = { new ->
-            if (new.length <= CODE_LENGTH && new.all { it.isDigit() }) onCodeChange(new)
-        },
+        onValueChange = onCodeChange,
         modifier = Modifier
             .fillMaxWidth()
             .onFocusChanged { focused = it.isFocused },
@@ -180,7 +166,7 @@ private fun CodeInput(
             Box {
                 Box(modifier = Modifier.size(0.dp)) { innerTextField() }
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    repeat(CODE_LENGTH) { i ->
+                    repeat(VERIFICATION_CODE_LENGTH) { i ->
                         val active = focused && i == code.length
                         Box(
                             modifier = Modifier

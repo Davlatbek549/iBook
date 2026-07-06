@@ -45,11 +45,14 @@ import com.example.dz.designsystem.components.ink.InkLabel
 import com.example.dz.designsystem.components.ink.InkProgressBar
 import com.example.dz.designsystem.components.ink.InkSectionTitle
 import com.example.dz.designsystem.components.ink.inkCard
+import com.example.dz.designsystem.components.remote.RemoteBookCover
 import com.example.dz.designsystem.theme.InkColors
 import com.example.dz.designsystem.theme.InkShape
 import com.example.dz.designsystem.theme.inkBodyFontFamily
 import com.example.dz.designsystem.theme.inkColors
 import com.example.dz.designsystem.theme.inkDisplayFontFamily
+import com.example.dz.domain.model.Book
+import com.example.dz.domain.model.LibraryBook as DomainLibraryBook
 import dz.shared.generated.resources.Res
 import dz.shared.generated.resources.book_cover
 import dz.shared.generated.resources.book_cover_2
@@ -62,6 +65,7 @@ import dz.shared.generated.resources.home_from_your_circle
 import dz.shared.generated.resources.home_greeting
 import dz.shared.generated.resources.home_see_all
 import dz.shared.generated.resources.home_trending
+import dz.shared.generated.resources.olive_again_book
 import dz.shared.generated.resources.profile_1
 import dz.shared.generated.resources.profile_2
 import dz.shared.generated.resources.profile_3
@@ -74,7 +78,9 @@ data class HomeBook(
     val author: String,
     val coverRes: DrawableResource,
     val rating: String = "4.5",
-    val tags: List<String> = emptyList()
+    val tags: List<String> = emptyList(),
+    val id: String = title,
+    val coverUrl: String? = null
 )
 
 data class HomeAuthor(
@@ -110,8 +116,17 @@ private val trendingBooks = listOf(
 
 private val browseGenres = listOf("Literary", "Fiction", "History", "Romance", "Essays", "Poetry")
 
+private val homeCoverFallbacks = listOf(
+    Res.drawable.book_cover,
+    Res.drawable.book_cover_2,
+    Res.drawable.book_cover_3,
+    Res.drawable.book_cover_4,
+    Res.drawable.olive_again_book
+)
+
 @Composable
 fun HomeScreen(
+    uiState: HomeUiState = HomeUiState(),
     onKeepReadingClick: () -> Unit = {},
     onViewAllCategoriesClick: () -> Unit = {},
     onBookClick: (HomeBook) -> Unit = {},
@@ -123,6 +138,11 @@ fun HomeScreen(
     val colors = inkColors()
     val displayFont = inkDisplayFontFamily()
     val bodyFont = inkBodyFontFamily()
+    val domainBooks = uiState.books.mapIndexed { index, book -> book.toHomeBook(index) }
+    val displayForYouBooks = domainBooks.ifEmpty { forYouBooks }
+    val displayTrendingBooks = domainBooks.drop(1).take(2).ifEmpty { trendingBooks }
+    val displayContinueReadingBook = uiState.continueReading?.toHomeBook() ?: continueReadingBook
+    val continueProgress = uiState.continueReading?.progressPercent ?: 62
 
     Column(
         modifier = Modifier
@@ -183,8 +203,9 @@ fun HomeScreen(
                     .padding(14.dp),
                 horizontalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                Image(
-                    painter = painterResource(continueReadingBook.coverRes),
+                RemoteBookCover(
+                    coverUrl = displayContinueReadingBook.coverUrl,
+                    fallback = displayContinueReadingBook.coverRes,
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
@@ -193,7 +214,7 @@ fun HomeScreen(
                 )
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = continueReadingBook.title,
+                        text = displayContinueReadingBook.title,
                         fontFamily = displayFont,
                         fontWeight = FontWeight.Medium,
                         fontSize = 16.sp,
@@ -202,7 +223,7 @@ fun HomeScreen(
                         color = colors.ink
                     )
                     Text(
-                        text = continueReadingBook.author,
+                        text = displayContinueReadingBook.author,
                         modifier = Modifier.padding(top = 3.dp),
                         fontFamily = bodyFont,
                         fontSize = 12.sp,
@@ -210,14 +231,14 @@ fun HomeScreen(
                     )
                     Spacer(modifier = Modifier.weight(1f))
                     InkProgressBar(
-                        progress = 0.62f,
+                        progress = continueProgress / 100f,
                         modifier = Modifier.fillMaxWidth(),
                         colors = colors
                     )
                     Text(
                         text = buildAnnotatedString {
                             withStyle(SpanStyle(color = colors.accent, fontWeight = FontWeight.SemiBold)) {
-                                append("62%")
+                                append("$continueProgress%")
                             }
                             append(" · 18 min left")
                         },
@@ -246,7 +267,7 @@ fun HomeScreen(
                     .padding(horizontal = 22.dp),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                forYouBooks.forEach { book ->
+                displayForYouBooks.forEach { book ->
                     RailBookCard(book = book, onClick = { onBookClick(book) }, colors = colors)
                 }
             }
@@ -279,7 +300,7 @@ fun HomeScreen(
                 color = colors.ink
             )
             Spacer(modifier = Modifier.height(7.dp))
-            trendingBooks.forEachIndexed { i, book ->
+            displayTrendingBooks.forEachIndexed { i, book ->
                 TrendingRow(
                     book = book,
                     showDivider = i > 0,
@@ -314,6 +335,23 @@ fun HomeScreen(
     }
 }
 
+private fun Book.toHomeBook(index: Int): HomeBook =
+    HomeBook(
+        title = title,
+        author = authors.firstOrNull()?.name.orEmpty().ifBlank { "Unknown author" },
+        coverRes = homeCoverFallbacks[index % homeCoverFallbacks.size],
+        rating = rating?.toRatingText() ?: "4.5",
+        tags = categories.take(2).map { it.name },
+        id = id,
+        coverUrl = coverUrl
+    )
+
+private fun DomainLibraryBook.toHomeBook(): HomeBook =
+    book.toHomeBook(index = 0)
+
+private fun Double.toRatingText(): String =
+    ((this * 10).toInt() / 10.0).toString()
+
 @Composable
 private fun RailBookCard(
     book: HomeBook,
@@ -321,8 +359,9 @@ private fun RailBookCard(
     colors: InkColors,
 ) {
     Column(modifier = Modifier.width(104.dp).clickable(onClick = onClick)) {
-        Image(
-            painter = painterResource(book.coverRes),
+        RemoteBookCover(
+            coverUrl = book.coverUrl,
+            fallback = book.coverRes,
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = Modifier
@@ -371,8 +410,9 @@ private fun TrendingRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Image(
-                painter = painterResource(book.coverRes),
+            RemoteBookCover(
+                coverUrl = book.coverUrl,
+                fallback = book.coverRes,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier

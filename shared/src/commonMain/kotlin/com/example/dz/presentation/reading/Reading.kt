@@ -18,11 +18,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -41,28 +36,15 @@ import com.example.dz.designsystem.theme.inkBodyFontFamily
 import com.example.dz.designsystem.theme.inkColors
 import com.example.dz.designsystem.theme.inkDisplayFontFamily
 
-private const val TOTAL_PAGES = 320
-
-private val paragraphs = listOf(
-    "The house appeared out of the mist like something half-remembered from a dream — tall, severe, and utterly silent. Noemí pressed her face to the carriage window and watched the iron gates draw closer.",
-    "She had not wanted to come. The city, with its parties and its noise, was where she belonged. Yet the letter had been impossible to ignore.",
-    "“We are nearly there,” the driver said, though his voice carried no comfort at all.",
-)
-
 @Composable
 fun ReadingScreen(
-    modifier: Modifier = Modifier,
-    onBackClick: () -> Unit = {},
-    onMenuClick: () -> Unit = {},
-    onCommentsClick: () -> Unit = {},
-    onKeepReadingClick: () -> Unit = {}
+    uiState: ReadingUiState = ReadingUiState(),
+    onEvent: (ReadingEvent) -> Unit = {},
+    modifier: Modifier = Modifier
 ) {
     val colors = inkColors()
     val displayFont = inkDisplayFontFamily()
     val bodyFont = inkBodyFontFamily()
-
-    var page by remember { mutableIntStateOf(198) }
-    var bookmarked by remember { mutableStateOf(false) }
 
     Column(
         modifier = modifier
@@ -84,10 +66,10 @@ fun ReadingScreen(
                 tint = colors.muted,
                 modifier = Modifier
                     .size(20.dp)
-                    .clickable(onClick = onBackClick)
+                    .clickable { onEvent(ReadingEvent.BackClicked) }
             )
             Text(
-                text = "MEXICAN GOTHIC",
+                text = uiState.bookTitle.uppercase(),
                 modifier = Modifier.weight(1f),
                 fontFamily = bodyFont,
                 fontWeight = FontWeight.Medium,
@@ -103,7 +85,7 @@ fun ReadingScreen(
                     tint = colors.muted,
                     modifier = Modifier
                         .size(19.dp)
-                        .clickable(onClick = onMenuClick)
+                        .clickable { onEvent(ReadingEvent.MenuClicked) }
                 )
                 Icon(
                     imageVector = InkIcons.Chat,
@@ -111,15 +93,15 @@ fun ReadingScreen(
                     tint = colors.muted,
                     modifier = Modifier
                         .size(18.dp)
-                        .clickable(onClick = onCommentsClick)
+                        .clickable { onEvent(ReadingEvent.CommentsClicked) }
                 )
                 Icon(
                     imageVector = InkIcons.Bookmark,
                     contentDescription = null,
-                    tint = if (bookmarked) colors.accent else colors.muted,
+                    tint = if (uiState.bookmarked) colors.accent else colors.muted,
                     modifier = Modifier
                         .size(18.dp)
-                        .clickable { bookmarked = !bookmarked }
+                        .clickable { onEvent(ReadingEvent.BookmarkToggled) }
                 )
             }
         }
@@ -132,14 +114,14 @@ fun ReadingScreen(
                 .padding(start = 26.dp, end = 26.dp, top = 14.dp)
         ) {
             Text(
-                text = "Chapter Three",
+                text = uiState.chapterLabel,
                 fontFamily = displayFont,
                 fontStyle = FontStyle.Italic,
                 fontSize = 13.sp,
                 color = colors.accent
             )
             Text(
-                text = "The Arrival",
+                text = uiState.chapterTitle,
                 modifier = Modifier.padding(top = 14.dp),
                 fontFamily = displayFont,
                 fontWeight = FontWeight.Medium,
@@ -150,7 +132,7 @@ fun ReadingScreen(
                 modifier = Modifier.padding(top = 20.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                paragraphs.forEach { paragraph ->
+                uiState.paragraphs.forEach { paragraph ->
                     Text(
                         text = paragraph,
                         modifier = Modifier.alpha(0.92f),
@@ -168,7 +150,7 @@ fun ReadingScreen(
             HorizontalDivider(thickness = 1.dp, color = colors.line)
             Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 16.dp, bottom = 22.dp)) {
                 InkProgressBar(
-                    progress = page.toFloat() / TOTAL_PAGES,
+                    progress = uiState.progress,
                     modifier = Modifier.fillMaxWidth(),
                     colors = colors
                 )
@@ -184,13 +166,13 @@ fun ReadingScreen(
                         tint = colors.muted,
                         modifier = Modifier
                             .size(18.dp)
-                            .clickable { if (page > 1) page-- }
+                            .clickable { onEvent(ReadingEvent.PreviousPageClicked) }
                     )
                     Text(
                         text = buildAnnotatedString {
-                            append("Page $page of $TOTAL_PAGES · ")
+                            append("Page ${uiState.currentPage} of ${uiState.totalPages} · ")
                             withStyle(SpanStyle(color = colors.accent)) {
-                                append("${page * 100 / TOTAL_PAGES}%")
+                                append("${uiState.progressPercent}%")
                             }
                         },
                         modifier = Modifier.weight(1f),
@@ -206,7 +188,7 @@ fun ReadingScreen(
                         modifier = Modifier
                             .size(18.dp)
                             .graphicsLayer { rotationZ = 180f }
-                            .clickable { if (page < TOTAL_PAGES) page++ }
+                            .clickable { onEvent(ReadingEvent.NextPageClicked) }
                     )
                 }
             }

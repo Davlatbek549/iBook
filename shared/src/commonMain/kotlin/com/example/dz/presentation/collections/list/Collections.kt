@@ -1,6 +1,5 @@
 package com.example.dz.presentation.collections.list
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -42,6 +41,7 @@ import com.example.dz.designsystem.components.ink.InkIconButton
 import com.example.dz.designsystem.components.ink.InkLabel
 import com.example.dz.designsystem.components.ink.InkTopBar
 import com.example.dz.designsystem.components.ink.inkCard
+import com.example.dz.designsystem.components.remote.RemoteBookCover
 import com.example.dz.designsystem.theme.InkColors
 import com.example.dz.designsystem.theme.InkShape
 import com.example.dz.designsystem.theme.inkBodyFontFamily
@@ -60,51 +60,23 @@ import dz.shared.generated.resources.coll_subtitle
 import dz.shared.generated.resources.library_collections
 import dz.shared.generated.resources.new_collection
 import dz.shared.generated.resources.olive_again_book
-import org.jetbrains.compose.resources.DrawableResource
-import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
-data class CollectionUiState(
-    val id: String,
-    val name: String,
-    val bookCount: Int,
-    val covers: List<DrawableResource>
-)
-
-private val defaultCollections = listOf(
-    CollectionUiState("quiet-novels", "Quiet novels", 12, listOf(Res.drawable.olive_again_book, Res.drawable.book_cover_3, Res.drawable.book_cover)),
-    CollectionUiState("for-the-train", "For the train", 5, listOf(Res.drawable.book_cover_2, Res.drawable.book_cover_4)),
-    CollectionUiState("lent-to-friends", "Lent to friends", 3, listOf(Res.drawable.book_cover_3))
-)
-
-@Composable
-fun Collections(
-    modifier: Modifier = Modifier,
-    onBackClick: () -> Unit = {},
-    onSettingsClick: () -> Unit = {},
-    onNewCollectionClick: () -> Unit = {},
-    onCollectionClick: (collectionId: String) -> Unit = {}
-) {
-    CollectionsScreen(
-        modifier = modifier,
-        onBackClick = onBackClick,
-        onSettingsClick = onSettingsClick,
-        onNewCollectionClick = onNewCollectionClick,
-        onCollectionClick = onCollectionClick
+private val previewUiState = CollectionsUiState(
+    collections = listOf(
+        CollectionUiState("quiet-novels", "Quiet novels", 12, listOf(CollectionCoverUi(coverRes = Res.drawable.olive_again_book), CollectionCoverUi(coverRes = Res.drawable.book_cover_3), CollectionCoverUi(coverRes = Res.drawable.book_cover))),
+        CollectionUiState("for-the-train", "For the train", 5, listOf(CollectionCoverUi(coverRes = Res.drawable.book_cover_2), CollectionCoverUi(coverRes = Res.drawable.book_cover_4))),
+        CollectionUiState("lent-to-friends", "Lent to friends", 3, listOf(CollectionCoverUi(coverRes = Res.drawable.book_cover_3)))
     )
-}
+)
 
 @Composable
 fun CollectionsScreen(
-    modifier: Modifier = Modifier,
-    collections: List<CollectionUiState> = defaultCollections,
-    onBackClick: () -> Unit = {},
-    onSettingsClick: () -> Unit = {},
-    onNewCollectionClick: () -> Unit = {},
-    onCollectionClick: (collectionId: String) -> Unit = {}
+    uiState: CollectionsUiState = previewUiState,
+    onEvent: (CollectionsEvent) -> Unit = {},
+    modifier: Modifier = Modifier
 ) {
     val colors = inkColors()
-    val bodyFont = inkBodyFontFamily()
 
     Column(
         modifier = modifier
@@ -117,8 +89,8 @@ fun CollectionsScreen(
         InkTopBar(
             title = stringResource(Res.string.library_collections),
             subtitle = stringResource(Res.string.coll_subtitle),
-            onBackClick = onBackClick,
-            right = { InkIconButton(icon = InkIcons.Search, onClick = onSettingsClick, colors = colors) },
+            onBackClick = { onEvent(CollectionsEvent.BackClicked) },
+            right = { InkIconButton(icon = InkIcons.Search, onClick = { onEvent(CollectionsEvent.SearchClicked) }, colors = colors) },
             colors = colors
         )
 
@@ -127,20 +99,20 @@ fun CollectionsScreen(
             modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            val cells: List<CollectionUiState?> = collections + null
+            val cells: List<CollectionUiState?> = uiState.collections + null
             cells.chunked(2).forEach { rowItems ->
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     rowItems.forEach { collection ->
                         if (collection != null) {
                             CollectionCard(
                                 collection = collection,
-                                onClick = { onCollectionClick(collection.id) },
+                                onClick = { onEvent(CollectionsEvent.CollectionClicked(collection.id)) },
                                 modifier = Modifier.weight(1f),
                                 colors = colors
                             )
                         } else {
                             NewCollectionTile(
-                                onClick = onNewCollectionClick,
+                                onClick = { onEvent(CollectionsEvent.NewCollectionClicked) },
                                 modifier = Modifier.weight(1f),
                                 colors = colors
                             )
@@ -181,8 +153,9 @@ private fun CollectionCard(
         Box {
             // draw right-to-left so the leftmost cover sits on top, like the design
             collection.covers.indices.reversed().forEach { j ->
-                Image(
-                    painter = painterResource(collection.covers[j]),
+                RemoteBookCover(
+                    coverUrl = collection.covers[j].coverUrl,
+                    fallback = collection.covers[j].coverRes,
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
@@ -192,7 +165,7 @@ private fun CollectionCard(
                         .border(2.dp, colors.surface, RoundedCornerShape(InkShape.cover - 1.dp))
                 )
             }
-            Spacer(modifier = Modifier.size(width = (44 + 28 * (collection.covers.size - 1)).dp, height = 64.dp))
+            Spacer(modifier = Modifier.size(width = (44 + 28 * (collection.covers.size - 1)).coerceAtLeast(44).dp, height = 64.dp))
         }
         Text(
             text = collection.name,

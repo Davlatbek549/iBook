@@ -18,10 +18,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -56,16 +52,12 @@ import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun LoginScreen(
-    onLoginSuccess: () -> Unit = {},
-    onForgotPasswordClick: () -> Unit = {},
-    onSignUpClick: () -> Unit = {}
+    uiState: LoginUiState = LoginUiState(),
+    onEvent: (LoginEvent) -> Unit = {}
 ) {
     val colors = inkColors()
     val displayFont = inkDisplayFontFamily()
     val bodyFont = inkBodyFontFamily()
-
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
 
     Column(
         modifier = Modifier
@@ -97,8 +89,8 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(28.dp))
 
             InkField(
-                value = email,
-                onValueChange = { email = it },
+                value = uiState.email,
+                onValueChange = { onEvent(LoginEvent.EmailChanged(it)) },
                 placeholder = stringResource(Res.string.auth_email_placeholder),
                 leadingIcon = InkIcons.Email,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
@@ -108,8 +100,8 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(12.dp))
 
             InkField(
-                value = password,
-                onValueChange = { password = it },
+                value = uiState.password,
+                onValueChange = { onEvent(LoginEvent.PasswordChanged(it)) },
                 placeholder = stringResource(Res.string.auth_password_placeholder),
                 leadingIcon = InkIcons.Lock,
                 isPassword = true,
@@ -123,9 +115,19 @@ fun LoginScreen(
             ) {
                 Text(
                     text = stringResource(Res.string.auth_forgot_password),
-                    modifier = Modifier.clickable(onClick = onForgotPasswordClick),
+                    modifier = Modifier.clickable { onEvent(LoginEvent.ForgotPasswordClicked) },
                     fontFamily = bodyFont,
                     fontWeight = FontWeight.SemiBold,
+                    fontSize = 12.5.sp,
+                    color = colors.accent
+                )
+            }
+
+            uiState.errorMessage?.let { message ->
+                Text(
+                    text = message,
+                    modifier = Modifier.padding(top = 12.dp),
+                    fontFamily = bodyFont,
                     fontSize = 12.5.sp,
                     color = colors.accent
                 )
@@ -135,7 +137,7 @@ fun LoginScreen(
 
             InkButton(
                 text = stringResource(Res.string.auth_sign_in),
-                onClick = onLoginSuccess,
+                onClick = { onEvent(LoginEvent.SignInClicked) },
                 colors = colors
             )
 
@@ -147,14 +149,14 @@ fun LoginScreen(
                 InkSocialButton(
                     icon = Res.drawable.ic_google,
                     label = stringResource(Res.string.auth_google),
-                    onClick = {},
+                    onClick = { onEvent(LoginEvent.GoogleClicked) },
                     modifier = Modifier.weight(1f),
                     colors = colors
                 )
                 InkSocialButton(
                     icon = Res.drawable.ic_apple,
                     label = stringResource(Res.string.auth_apple),
-                    onClick = {},
+                    onClick = { onEvent(LoginEvent.AppleClicked) },
                     modifier = Modifier.weight(1f),
                     colors = colors
                 )
@@ -168,7 +170,7 @@ fun LoginScreen(
             InkFooterLink(
                 prefix = stringResource(Res.string.auth_new_here),
                 action = stringResource(Res.string.auth_create_account),
-                onClick = onSignUpClick,
+                onClick = { onEvent(LoginEvent.SignUpClicked) },
                 colors = colors
             )
         }

@@ -42,7 +42,6 @@ import com.example.dz.designsystem.theme.inkBodyFontFamily
 import com.example.dz.designsystem.theme.inkColors
 import com.example.dz.designsystem.theme.inkDisplayFontFamily
 import dz.shared.generated.resources.Res
-import dz.shared.generated.resources.book_cover
 import dz.shared.generated.resources.img_neil_alvin
 import dz.shared.generated.resources.profile_2
 import dz.shared.generated.resources.reviews_critical
@@ -52,70 +51,43 @@ import dz.shared.generated.resources.reviews_recent
 import dz.shared.generated.resources.reviews_reply
 import dz.shared.generated.resources.reviews_title
 import dz.shared.generated.resources.reviews_write
-import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
-private data class Review(
-    val avatarRes: DrawableResource,
-    val name: String,
-    val date: String,
-    val stars: Int,
-    val text: String,
-    val helpfulCount: Int,
-    val markedHelpful: Boolean
-)
-
-private val reviews = listOf(
-    Review(
-        avatarRes = Res.drawable.profile_2,
-        name = "Patricia Lane",
-        date = "2 days ago",
-        stars = 5,
-        text = "Atmospheric and slow in the best way. I read the last hundred pages in one sitting with the lights low.",
-        helpfulCount = 32,
-        markedHelpful = true
-    ),
-    Review(
-        avatarRes = Res.drawable.img_neil_alvin,
-        name = "Neil Alvin",
-        date = "1 week ago",
-        stars = 4,
-        text = "Gorgeous prose. The middle drags slightly, but the house itself is the best character I’ve met all year.",
-        helpfulCount = 11,
-        markedHelpful = false
+private val previewUiState = BookReviewUiState(
+    bookId = "mexican-gothic",
+    bookTitle = "Mexican Gothic",
+    bookAuthor = "Silvia Moreno-Garcia",
+    averageRating = "4.6",
+    reviews = listOf(
+        BookReviewItemUi(
+            id = "patricia-lane",
+            avatarRes = Res.drawable.profile_2,
+            name = "Patricia Lane",
+            date = "2 days ago",
+            stars = 5,
+            text = "Atmospheric and slow in the best way. I read the last hundred pages in one sitting with the lights low.",
+            helpfulCount = 32,
+            markedHelpful = true
+        ),
+        BookReviewItemUi(
+            id = "neil-alvin",
+            avatarRes = Res.drawable.img_neil_alvin,
+            name = "Neil Alvin",
+            date = "1 week ago",
+            stars = 4,
+            text = "Gorgeous prose. The middle drags slightly, but the house itself is the best character I’ve met all year.",
+            helpfulCount = 11,
+            markedHelpful = false
+        )
     )
 )
-
-private val ratingBars = listOf(0.72f, 0.18f, 0.06f, 0.03f, 0.01f)
-
-@Composable
-fun BookReview(
-    modifier: Modifier = Modifier,
-    coverResId: DrawableResource = Res.drawable.book_cover,
-    onBackClick: () -> Unit = {},
-    onShareClick: () -> Unit = {},
-    onReviewsClick: () -> Unit = {},
-    onStartReadingClick: () -> Unit = {}
-) {
-    BookReviewScreen(
-        modifier = modifier,
-        coverResId = coverResId,
-        onBackClick = onBackClick,
-        onShareClick = onShareClick,
-        onReviewsClick = onReviewsClick,
-        onStartReadingClick = onStartReadingClick
-    )
-}
 
 @Composable
 fun BookReviewScreen(
-    modifier: Modifier = Modifier,
-    coverResId: DrawableResource = Res.drawable.book_cover,
-    onBackClick: () -> Unit = {},
-    onShareClick: () -> Unit = {},
-    onReviewsClick: () -> Unit = {},
-    onStartReadingClick: () -> Unit = {}
+    uiState: BookReviewUiState = previewUiState,
+    onEvent: (BookReviewEvent) -> Unit = {},
+    modifier: Modifier = Modifier
 ) {
     val colors = inkColors()
     val displayFont = inkDisplayFontFamily()
@@ -141,7 +113,7 @@ fun BookReviewScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                InkIconButton(icon = InkIcons.Back, onClick = onBackClick, colors = colors)
+                InkIconButton(icon = InkIcons.Back, onClick = { onEvent(BookReviewEvent.BackClicked) }, colors = colors)
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = stringResource(Res.string.reviews_title),
@@ -151,7 +123,7 @@ fun BookReviewScreen(
                         color = colors.ink
                     )
                     Text(
-                        text = "Mexican Gothic · Silvia Moreno-Garcia",
+                        text = "${uiState.bookTitle} · ${uiState.bookAuthor}",
                         modifier = Modifier.padding(top = 3.dp),
                         fontFamily = bodyFont,
                         fontSize = 11.5.sp,
@@ -160,7 +132,7 @@ fun BookReviewScreen(
                         color = colors.muted
                     )
                 }
-                InkIconButton(icon = InkIcons.Share, onClick = onShareClick, colors = colors)
+                InkIconButton(icon = InkIcons.Share, onClick = { onEvent(BookReviewEvent.ShareClicked) }, colors = colors)
             }
 
             // summary card
@@ -175,7 +147,7 @@ fun BookReviewScreen(
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = "4.6",
+                        text = uiState.averageRating,
                         fontFamily = displayFont,
                         fontWeight = FontWeight.Medium,
                         fontSize = 42.sp,
@@ -183,7 +155,7 @@ fun BookReviewScreen(
                     )
                     Stars(filled = 5, size = 11.dp, colors = colors, modifier = Modifier.padding(top = 7.dp))
                     Text(
-                        text = "1,284 ratings",
+                        text = uiState.ratingsCount,
                         modifier = Modifier.padding(top = 7.dp),
                         fontFamily = bodyFont,
                         fontSize = 11.sp,
@@ -194,7 +166,7 @@ fun BookReviewScreen(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    ratingBars.forEachIndexed { i, fraction ->
+                    uiState.ratingBars.forEachIndexed { i, fraction ->
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -229,11 +201,15 @@ fun BookReviewScreen(
 
             // reviews
             Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 8.dp)) {
-                reviews.forEachIndexed { i, review ->
+                uiState.reviews.forEachIndexed { i, review ->
                     if (i > 0) {
                         HorizontalDivider(thickness = 1.dp, color = colors.line)
                     }
-                    ReviewItem(review = review, colors = colors)
+                    ReviewItem(
+                        review = review,
+                        colors = colors,
+                        onHelpfulClick = { onEvent(BookReviewEvent.HelpfulToggled(review.id)) }
+                    )
                 }
             }
         }
@@ -253,7 +229,7 @@ fun BookReviewScreen(
             ) {
                 InkButton(
                     text = stringResource(Res.string.reviews_write),
-                    onClick = onReviewsClick,
+                    onClick = { onEvent(BookReviewEvent.WriteReviewClicked) },
                     leadingIcon = InkIcons.Plus,
                     colors = colors
                 )
@@ -264,8 +240,9 @@ fun BookReviewScreen(
 
 @Composable
 private fun ReviewItem(
-    review: Review,
+    review: BookReviewItemUi,
     colors: InkColors,
+    onHelpfulClick: () -> Unit,
 ) {
     val bodyFont = inkBodyFontFamily()
 
@@ -328,7 +305,8 @@ private fun ReviewItem(
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.clickable(onClick = onHelpfulClick)
             ) {
                 Icon(
                     imageVector = InkIcons.Favorite,
