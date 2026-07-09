@@ -2,6 +2,7 @@ package com.example.dz.presentation.goal
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -51,36 +52,11 @@ import dz.shared.generated.resources.goal_title
 import dz.shared.generated.resources.goal_yearly
 import org.jetbrains.compose.resources.stringResource
 
-private data class GoalDay(val label: String, val completion: Float)
-
-private val weekDays = listOf(
-    GoalDay("M", 1f), GoalDay("T", 1f), GoalDay("W", 1f), GoalDay("T", 1f),
-    GoalDay("F", 0.6f), GoalDay("S", 0f), GoalDay("S", 0f)
-)
-
-private const val TODAY_INDEX = 4
-
-@Composable
-fun Goal(
-    modifier: Modifier = Modifier,
-    onBackClick: () -> Unit = {},
-    onSettingsClick: () -> Unit = {},
-    onShareClick: () -> Unit = {}
-) {
-    GoalScreen(
-        modifier = modifier,
-        onBackClick = onBackClick,
-        onSettingsClick = onSettingsClick,
-        onShareClick = onShareClick
-    )
-}
-
 @Composable
 fun GoalScreen(
-    modifier: Modifier = Modifier,
-    onBackClick: () -> Unit = {},
-    onSettingsClick: () -> Unit = {},
-    onShareClick: () -> Unit = {}
+    uiState: GoalUiState = GoalUiState(),
+    onEvent: (GoalEvent) -> Unit = {},
+    modifier: Modifier = Modifier
 ) {
     val colors = inkColors()
     val displayFont = inkDisplayFontFamily()
@@ -96,8 +72,8 @@ fun GoalScreen(
     ) {
         InkTopBar(
             title = stringResource(Res.string.goal_title),
-            onBackClick = onBackClick,
-            right = { InkIconButton(icon = InkIcons.Settings, onClick = onSettingsClick, colors = colors) },
+            onBackClick = { onEvent(GoalEvent.BackClicked) },
+            right = { InkIconButton(icon = InkIcons.Settings, onClick = { onEvent(GoalEvent.SettingsClicked) }, colors = colors) },
             colors = colors
         )
 
@@ -128,7 +104,7 @@ fun GoalScreen(
                     drawArc(
                         color = colors.accent,
                         startAngle = -90f,
-                        sweepAngle = 360f * 26f / 30f,
+                        sweepAngle = 360f * uiState.dailyProgress,
                         useCenter = false,
                         topLeft = topLeft,
                         size = arcSize,
@@ -137,14 +113,14 @@ fun GoalScreen(
                 }
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = "26",
+                        text = uiState.minutesRead.toString(),
                         fontFamily = displayFont,
                         fontWeight = FontWeight.Medium,
                         fontSize = 30.sp,
                         color = colors.ink
                     )
                     Text(
-                        text = "of 30 min",
+                        text = "of ${uiState.goalMinutes} min",
                         modifier = Modifier.padding(top = 5.dp),
                         fontFamily = bodyFont,
                         fontSize = 11.sp,
@@ -153,7 +129,7 @@ fun GoalScreen(
                 }
             }
             Text(
-                text = "4 minutes to keep the streak alive",
+                text = "${uiState.minutesRemaining} minutes to keep the streak alive",
                 modifier = Modifier.padding(top = 14.dp),
                 fontFamily = displayFont,
                 fontStyle = FontStyle.Italic,
@@ -177,7 +153,7 @@ fun GoalScreen(
                     .padding(top = 14.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                weekDays.forEachIndexed { i, day ->
+                uiState.week.forEachIndexed { i, day ->
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(7.dp)
@@ -215,7 +191,7 @@ fun GoalScreen(
                             fontFamily = bodyFont,
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 10.sp,
-                            color = if (i == TODAY_INDEX) colors.ink else colors.muted
+                            color = if (i == uiState.todayIndex) colors.ink else colors.muted
                         )
                     }
                 }
@@ -229,15 +205,15 @@ fun GoalScreen(
         ) {
             StatCard(
                 label = stringResource(Res.string.goal_streak),
-                value = "21 days",
-                sub = "longest 34",
+                value = "${uiState.streakDays} days",
+                sub = "longest ${uiState.longestStreak}",
                 modifier = Modifier.weight(1f),
                 colors = colors
             )
             StatCard(
                 label = stringResource(Res.string.goal_this_year),
-                value = "18 books",
-                sub = "goal 24",
+                value = "${uiState.booksThisYear} books",
+                sub = "goal ${uiState.yearlyGoalBooks}",
                 modifier = Modifier.weight(1f),
                 colors = colors
             )
@@ -260,6 +236,9 @@ fun GoalScreen(
                 }
                 Text(
                     text = stringResource(Res.string.goal_edit),
+                    modifier = Modifier
+                        .clickable { onEvent(GoalEvent.EditGoalClicked) }
+                        .padding(4.dp),
                     fontFamily = bodyFont,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 11.5.sp,
@@ -267,16 +246,16 @@ fun GoalScreen(
                 )
             }
             InkProgressBar(
-                progress = 0.75f,
+                progress = uiState.yearlyProgress,
                 modifier = Modifier.fillMaxWidth().padding(top = 14.dp),
                 colors = colors
             )
             Text(
                 text = buildAnnotatedString {
                     withStyle(SpanStyle(color = colors.ink, fontWeight = FontWeight.SemiBold)) {
-                        append("18 of 24")
+                        append("${uiState.booksThisYear} of ${uiState.yearlyGoalBooks}")
                     }
-                    append(" books · 3 ahead of schedule")
+                    append(" books · ${uiState.booksAheadOfSchedule} ahead of schedule")
                 },
                 modifier = Modifier.padding(top = 9.dp),
                 fontFamily = bodyFont,

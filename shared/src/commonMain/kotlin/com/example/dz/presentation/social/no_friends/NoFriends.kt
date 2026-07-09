@@ -39,11 +39,8 @@ import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun NoFriendsScreen(
-    modifier: Modifier = Modifier,
-    onBackClick: () -> Unit = {},
-    onMessageClick: () -> Unit = {},
-    onFacebookInviteClick: () -> Unit = {},
-    onInstagramInviteClick: () -> Unit = {}
+    onEvent: (NoFriendsEvent) -> Unit = {},
+    modifier: Modifier = Modifier
 ) {
     val colors = inkColors()
     val displayFont = inkDisplayFontFamily()
@@ -57,7 +54,7 @@ fun NoFriendsScreen(
     ) {
         InkTopBar(
             title = stringResource(Res.string.friends_title),
-            onBackClick = onBackClick,
+            onBackClick = { onEvent(NoFriendsEvent.BackClicked) },
             colors = colors
         )
 
@@ -126,7 +123,7 @@ fun NoFriendsScreen(
             )
             InkButton(
                 text = stringResource(Res.string.nofriends_find),
-                onClick = onMessageClick,
+                onClick = { onEvent(NoFriendsEvent.FindFriendsClicked) },
                 modifier = Modifier.padding(top = 26.dp),
                 colors = colors
             )
@@ -134,7 +131,7 @@ fun NoFriendsScreen(
                 text = stringResource(Res.string.nofriends_invite_contacts),
                 modifier = Modifier
                     .padding(top = 18.dp)
-                    .clickable(onClick = onFacebookInviteClick)
+                    .clickable { onEvent(NoFriendsEvent.InviteContactsClicked) }
                     .padding(6.dp),
                 fontFamily = bodyFont,
                 fontWeight = FontWeight.SemiBold,

@@ -58,9 +58,9 @@ import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun MembershipScreen(
-    modifier: Modifier = Modifier,
-    onBackClick: () -> Unit = {},
-    onStartTrialClick: () -> Unit = {}
+    uiState: MembershipUiState = MembershipUiState(),
+    onEvent: (MembershipEvent) -> Unit = {},
+    modifier: Modifier = Modifier
 ) {
     val colors = inkColors()
     val displayFont = inkDisplayFontFamily()
@@ -79,7 +79,7 @@ fun MembershipScreen(
                 .padding(bottom = 110.dp)
         ) {
             Row(modifier = Modifier.fillMaxWidth().padding(start = 22.dp, end = 22.dp, top = 4.dp)) {
-                InkIconButton(icon = InkIcons.Back, onClick = onBackClick, colors = colors)
+                InkIconButton(icon = InkIcons.Back, onClick = { onEvent(MembershipEvent.BackClicked) }, colors = colors)
             }
 
             Column(modifier = Modifier.padding(start = 26.dp, end = 26.dp, top = 16.dp)) {
@@ -132,7 +132,7 @@ fun MembershipScreen(
                     modifier = Modifier.weight(1f).inkCard(colors).padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 18.dp)
                 ) {
                     InkLabel(text = stringResource(Res.string.mem_monthly), colors = colors)
-                    Text("$7.99", modifier = Modifier.padding(top = 12.dp), fontFamily = displayFont, fontWeight = FontWeight.Medium, fontSize = 24.sp, color = colors.ink)
+                    Text(uiState.monthlyPrice, modifier = Modifier.padding(top = 12.dp), fontFamily = displayFont, fontWeight = FontWeight.Medium, fontSize = 24.sp, color = colors.ink)
                     Text(stringResource(Res.string.mem_per_month), modifier = Modifier.padding(top = 6.dp), fontFamily = bodyFont, fontSize = 11.sp, color = colors.muted)
                 }
                 // yearly (highlighted)
@@ -146,8 +146,8 @@ fun MembershipScreen(
                             .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 18.dp)
                     ) {
                         InkLabel(text = stringResource(Res.string.mem_yearly), colors = colors.copy(muted = colors.accent))
-                        Text("$59.99", modifier = Modifier.padding(top = 12.dp), fontFamily = displayFont, fontWeight = FontWeight.Medium, fontSize = 24.sp, color = colors.ink)
-                        Text("$5.00 / month", modifier = Modifier.padding(top = 6.dp), fontFamily = bodyFont, fontSize = 11.sp, color = colors.muted)
+                        Text(uiState.yearlyPrice, modifier = Modifier.padding(top = 12.dp), fontFamily = displayFont, fontWeight = FontWeight.Medium, fontSize = 24.sp, color = colors.ink)
+                        Text(uiState.yearlyPerMonth, modifier = Modifier.padding(top = 6.dp), fontFamily = bodyFont, fontSize = 11.sp, color = colors.muted)
                     }
                     // save badge
                     Box(
@@ -180,7 +180,7 @@ fun MembershipScreen(
         ) {
             HorizontalDivider(thickness = 1.dp, color = colors.line)
             Box(modifier = Modifier.navigationBarsPadding().padding(start = 22.dp, end = 22.dp, top = 14.dp, bottom = 18.dp)) {
-                InkButton(text = stringResource(Res.string.mem_start_trial), onClick = onStartTrialClick, colors = colors)
+                InkButton(text = stringResource(Res.string.mem_start_trial), onClick = { onEvent(MembershipEvent.StartTrialClicked) }, colors = colors)
             }
         }
     }

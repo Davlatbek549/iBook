@@ -48,6 +48,7 @@ import com.example.dz.designsystem.theme.InkShape
 import com.example.dz.designsystem.theme.inkBodyFontFamily
 import com.example.dz.designsystem.theme.inkColors
 import com.example.dz.designsystem.theme.inkDisplayFontFamily
+import com.example.dz.domain.model.LibraryBook as DomainLibraryBook
 import dz.shared.generated.resources.Res
 import dz.shared.generated.resources.book_cover
 import dz.shared.generated.resources.book_cover_2
@@ -70,7 +71,9 @@ data class LibraryBook(
     val coverRes: DrawableResource,
     val tags: List<String> = emptyList(),
     val progress: String? = null,
-    val timeLeft: String? = null
+    val timeLeft: String? = null,
+    val id: String = title,
+    val coverUrl: String? = null
 )
 
 data class LibraryCollection(
@@ -107,14 +110,24 @@ private val collections = listOf(
 
 private val collectionSizes = listOf(12, 5)
 
+private val libraryCoverFallbacks = listOf(
+    Res.drawable.book_cover,
+    Res.drawable.olive_again_book,
+    Res.drawable.book_cover_2,
+    Res.drawable.book_cover_3,
+    Res.drawable.book_cover_4
+)
+
 @Composable
 fun Library(
+    uiState: LibraryUiState = LibraryUiState(),
     onSettingsClick: () -> Unit = {},
     onSortClick: () -> Unit = {},
     onBookClick: (LibraryBook) -> Unit = {},
     onGoalClick: () -> Unit = {}
 ) {
     LibraryScreen(
+        uiState = uiState,
         onSettingsClick = onSettingsClick,
         onSortClick = onSortClick,
         onBookClick = onBookClick,
@@ -124,6 +137,7 @@ fun Library(
 
 @Composable
 fun LibraryScreen(
+    uiState: LibraryUiState = LibraryUiState(),
     onSettingsClick: () -> Unit = {},
     onSortClick: () -> Unit = {},
     onBookClick: (LibraryBook) -> Unit = {},
@@ -139,10 +153,13 @@ fun LibraryScreen(
         stringResource(Res.string.library_tab_to_read),
         stringResource(Res.string.library_tab_finished)
     )
+    val displayReadingBooks = uiState.books
+        .mapIndexed { index, book -> book.toLibraryBook(index) }
+        .ifEmpty { readingBooks }
     val tabBooks = when (selectedTab) {
         1 -> toReadBooks
         2 -> finishedBooks
-        else -> readingBooks
+        else -> displayReadingBooks
     }
 
     Column(
@@ -214,6 +231,7 @@ fun LibraryScreen(
             tabBooks.forEachIndexed { i, book ->
                 InkBookRow(
                     cover = book.coverRes,
+                    coverUrl = book.coverUrl,
                     title = book.title,
                     author = book.author,
                     modifier = Modifier.clickable { onBookClick(book) },
@@ -314,6 +332,18 @@ fun LibraryScreen(
         }
     }
 }
+
+private fun DomainLibraryBook.toLibraryBook(index: Int): LibraryBook =
+    LibraryBook(
+        title = book.title,
+        author = book.authors.firstOrNull()?.name.orEmpty().ifBlank { "Unknown author" },
+        coverRes = libraryCoverFallbacks[index % libraryCoverFallbacks.size],
+        tags = book.categories.map { it.name },
+        progress = progressPercent.coerceIn(0, 100).toString(),
+        timeLeft = "18 min left",
+        id = book.id,
+        coverUrl = book.coverUrl
+    )
 
 @Composable
 private fun CollectionCard(

@@ -56,23 +56,14 @@ import dz.shared.generated.resources.friend_reading_now
 import dz.shared.generated.resources.friend_see_all
 import dz.shared.generated.resources.olive_again_book
 import dz.shared.generated.resources.profile_2
-import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
-private val shelfCovers = listOf(
-    Res.drawable.book_cover_4,
-    Res.drawable.book_cover,
-    Res.drawable.book_cover_2,
-    Res.drawable.book_cover_3
-)
-
 @Composable
 fun FriendScreen(
-    modifier: Modifier = Modifier,
-    onBackClick: () -> Unit = {},
-    onMessageClick: () -> Unit = {},
-    onSettingsClick: () -> Unit = {}
+    uiState: FriendDetailUiState = FriendDetailUiState(),
+    onEvent: (FriendDetailEvent) -> Unit = {},
+    modifier: Modifier = Modifier
 ) {
     val colors = inkColors()
     val displayFont = inkDisplayFontFamily()
@@ -92,9 +83,9 @@ fun FriendScreen(
                 .fillMaxWidth()
                 .padding(start = 22.dp, end = 22.dp, top = 4.dp)
         ) {
-            InkIconButton(icon = InkIcons.Back, onClick = onBackClick, colors = colors)
+            InkIconButton(icon = InkIcons.Back, onClick = { onEvent(FriendDetailEvent.BackClicked) }, colors = colors)
             Spacer(modifier = Modifier.weight(1f))
-            InkIconButton(icon = InkIcons.MoreVertical, onClick = onSettingsClick, colors = colors)
+            InkIconButton(icon = InkIcons.MoreVertical, onClick = { onEvent(FriendDetailEvent.OptionsClicked) }, colors = colors)
         }
 
         // identity
@@ -113,20 +104,22 @@ fun FriendScreen(
                         .size(92.dp)
                         .shadow(14.dp, RoundedCornerShape(InkShape.radiusSm + 6.dp), clip = true)
                 )
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .offset(x = 2.dp, y = 2.dp)
-                        .size(15.dp)
-                        .clip(CircleShape)
-                        .background(colors.paper)
-                        .padding(2.dp)
-                        .clip(CircleShape)
-                        .background(colors.accent)
-                )
+                if (uiState.online) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .offset(x = 2.dp, y = 2.dp)
+                            .size(15.dp)
+                            .clip(CircleShape)
+                            .background(colors.paper)
+                            .padding(2.dp)
+                            .clip(CircleShape)
+                            .background(colors.accent)
+                    )
+                }
             }
             Text(
-                text = "Patricia Lane",
+                text = uiState.name,
                 modifier = Modifier.padding(top = 16.dp),
                 fontFamily = displayFont,
                 fontWeight = FontWeight.Medium,
@@ -134,7 +127,7 @@ fun FriendScreen(
                 color = colors.ink
             )
             Text(
-                text = "@patricia.reads · friends since March",
+                text = uiState.subtitle,
                 modifier = Modifier.padding(top = 7.dp),
                 fontFamily = bodyFont,
                 fontSize = 12.5.sp,
@@ -153,11 +146,11 @@ fun FriendScreen(
                 .border(1.dp, colors.line, RoundedCornerShape(InkShape.radius))
                 .padding(vertical = 15.dp)
         ) {
-            StatCell("73", "Books", colors, Modifier.weight(1f))
+            StatCell(uiState.booksCount, "Books", colors, Modifier.weight(1f))
             VerticalDivider(modifier = Modifier.fillMaxHeight(), thickness = 1.dp, color = colors.line)
-            StatCell("28", "Friends", colors, Modifier.weight(1f))
+            StatCell(uiState.friendsCount, "Friends", colors, Modifier.weight(1f))
             VerticalDivider(modifier = Modifier.fillMaxHeight(), thickness = 1.dp, color = colors.line)
-            StatCell("9", "In common", colors, Modifier.weight(1f))
+            StatCell(uiState.inCommonCount, "In common", colors, Modifier.weight(1f))
         }
 
         // action buttons
@@ -171,7 +164,7 @@ fun FriendScreen(
                     .height(46.dp)
                     .clip(RoundedCornerShape(InkShape.radiusSm + 2.dp))
                     .background(colors.accentSoft)
-                    .clickable(onClick = onSettingsClick),
+                    .clickable { onEvent(FriendDetailEvent.OptionsClicked) },
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(9.dp, Alignment.CenterHorizontally)
             ) {
@@ -195,7 +188,7 @@ fun FriendScreen(
                     .height(46.dp)
                     .clip(RoundedCornerShape(InkShape.radiusSm + 2.dp))
                     .background(colors.accent)
-                    .clickable(onClick = onMessageClick),
+                    .clickable { onEvent(FriendDetailEvent.MessageClicked) },
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(9.dp, Alignment.CenterHorizontally)
             ) {
@@ -239,21 +232,21 @@ fun FriendScreen(
                 )
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Olive, Again",
+                        text = uiState.currentBookTitle,
                         fontFamily = displayFont,
                         fontWeight = FontWeight.Medium,
                         fontSize = 15.sp,
                         color = colors.ink
                     )
                     Text(
-                        text = "Elizabeth Strout",
+                        text = uiState.currentBookAuthor,
                         modifier = Modifier.padding(top = 4.dp),
                         fontFamily = bodyFont,
                         fontSize = 11.5.sp,
                         color = colors.muted
                     )
                     InkProgressBar(
-                        progress = 0.44f,
+                        progress = uiState.currentBookProgress,
                         modifier = Modifier.fillMaxWidth(0.8f).padding(top = 10.dp),
                         colors = colors
                     )
@@ -270,7 +263,7 @@ fun FriendScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Patricia's shelf",
+                    text = "${uiState.firstName}'s shelf",
                     modifier = Modifier.weight(1f),
                     fontFamily = displayFont,
                     fontWeight = FontWeight.Medium,
@@ -279,6 +272,7 @@ fun FriendScreen(
                 )
                 Text(
                     text = stringResource(Res.string.friend_see_all),
+                    modifier = Modifier.clickable { onEvent(FriendDetailEvent.SeeAllClicked) },
                     fontFamily = bodyFont,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 12.sp,
@@ -292,7 +286,7 @@ fun FriendScreen(
                     .padding(horizontal = 22.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                shelfCovers.forEach { cover ->
+                uiState.shelfCovers.forEach { cover ->
                     Image(
                         painter = painterResource(cover),
                         contentDescription = null,

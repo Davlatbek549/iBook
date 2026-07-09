@@ -2,14 +2,19 @@ package com.example.dz.core.di
 
 import com.example.dz.data.local.LocalDataSource
 import com.example.dz.data.local.LocalDataSourceImpl
+import com.example.dz.data.remote.api.GutendexApi
+import com.example.dz.data.remote.api.KtorGutendexApi
+import com.example.dz.data.remote.api.KtorOpenLibraryApi
+import com.example.dz.data.remote.api.OpenLibraryApi
+import com.example.dz.data.remote.api.createRemoteHttpClient
 import com.example.dz.data.repository.AuthRepositoryImpl
 import com.example.dz.data.repository.ChatRepositoryImpl
-import com.example.dz.data.repository.FakeBookRepository
 import com.example.dz.data.repository.FakeCollectionRepository
 import com.example.dz.data.repository.FakeLibraryRepository
 import com.example.dz.data.repository.MembershipRepositoryImpl
 import com.example.dz.data.repository.NotificationRepositoryImpl
 import com.example.dz.data.repository.PaymentRepositoryImpl
+import com.example.dz.data.repository.RemoteBookRepository
 import com.example.dz.data.repository.SocialRepositoryImpl
 import com.example.dz.data.repository.UserRepositoryImpl
 import com.example.dz.domain.repository.AuthRepository
@@ -22,8 +27,87 @@ import com.example.dz.domain.repository.NotificationRepository
 import com.example.dz.domain.repository.PaymentRepository
 import com.example.dz.domain.repository.SocialRepository
 import com.example.dz.domain.repository.UserRepository
+import com.example.dz.domain.usecase.auth.GetCurrentUserUseCase
+import com.example.dz.domain.usecase.auth.LoginUseCase
+import com.example.dz.domain.usecase.auth.LogoutUseCase
+import com.example.dz.domain.usecase.auth.SignUpUseCase
+import com.example.dz.domain.usecase.book.GetBookDetailsUseCase
+import com.example.dz.domain.usecase.book.GetBooksByCategoryUseCase
+import com.example.dz.domain.usecase.book.GetCategoriesUseCase
+import com.example.dz.domain.usecase.book.GetHomeBooksUseCase
+import com.example.dz.domain.usecase.book.SearchBooksUseCase
+import com.example.dz.domain.usecase.chat.GetChatsUseCase
+import com.example.dz.domain.usecase.chat.GetMessagesUseCase
+import com.example.dz.domain.usecase.chat.SendMessageUseCase
+import com.example.dz.domain.usecase.collection.CreateCollectionUseCase
+import com.example.dz.domain.usecase.collection.DeleteCollectionUseCase
+import com.example.dz.domain.usecase.collection.GetCollectionDetailsUseCase
+import com.example.dz.domain.usecase.collection.GetCollectionsUseCase
+import com.example.dz.domain.usecase.collection.UpdateCollectionUseCase
+import com.example.dz.domain.usecase.library.GetContinueReadingUseCase
+import com.example.dz.domain.usecase.library.GetLibraryBooksUseCase
+import com.example.dz.domain.usecase.library.UpdateReadingProgressUseCase
+import com.example.dz.domain.usecase.membership.GetCurrentMembershipUseCase
+import com.example.dz.domain.usecase.membership.GetMembershipPlansUseCase
+import com.example.dz.domain.usecase.notification.GetNotificationsUseCase
+import com.example.dz.domain.usecase.notification.MarkNotificationAsReadUseCase
+import com.example.dz.domain.usecase.payment.GetPaymentMethodsUseCase
+import com.example.dz.domain.usecase.payment.GetPurchaseDetailsUseCase
+import com.example.dz.domain.usecase.payment.PurchaseBookUseCase
+import com.example.dz.domain.usecase.social.GetFriendDetailsUseCase
+import com.example.dz.domain.usecase.social.GetFriendsUseCase
+import com.example.dz.domain.usecase.social.InviteFriendUseCase
+import com.example.dz.domain.usecase.user.GetProfileUseCase
+import com.example.dz.domain.usecase.user.UpdateProfileUseCase
+import com.example.dz.presentation.auth.forgot_password.ForgotPasswordViewModel
+import com.example.dz.presentation.auth.login.LoginViewModel
+import com.example.dz.presentation.auth.sign_up.SignUpViewModel
+import com.example.dz.presentation.auth.verification.VerificationViewModel
+import com.example.dz.presentation.book.author_detail.AuthorDetailViewModel
+import com.example.dz.presentation.book.category_detail.CategoryDetailViewModel
+import com.example.dz.presentation.book.pre_purchase.PrePurchaseViewModel
+import com.example.dz.presentation.book.review.BookReviewViewModel
+import com.example.dz.presentation.collections.details.CollectionDetailsViewModel
+import com.example.dz.presentation.collections.edit.CollectionsEditViewModel
+import com.example.dz.presentation.collections.list.CollectionsViewModel
+import com.example.dz.presentation.goal.GoalViewModel
+import com.example.dz.presentation.home.HomeViewModel
+import com.example.dz.presentation.membership.MembershipViewModel
+import com.example.dz.presentation.notifications.NotificationsViewModel
+import com.example.dz.presentation.onboarding.onboarding_one.OnboardingOneViewModel
+import com.example.dz.presentation.onboarding.onboarding_three.OnboardingThreeViewModel
+import com.example.dz.presentation.onboarding.onboarding_two.OnboardingTwoViewModel
+import com.example.dz.presentation.payment.payment_failed.PaymentFailedViewModel
+import com.example.dz.presentation.payment.payment_methods.PaymentMethodsViewModel
+import com.example.dz.presentation.payment.payment_success.PaymentSuccessViewModel
+import com.example.dz.presentation.payment.purchase_confirmation.PurchaseConfirmationViewModel
+import com.example.dz.presentation.payment.purchase_details.PurchaseDetailsViewModel
+import com.example.dz.presentation.payment.purchase_receipt.PurchaseReceiptViewModel
+import com.example.dz.presentation.premium_membership.PremiumMembershipViewModel
+import com.example.dz.presentation.profile.ProfileViewModel
+import com.example.dz.presentation.reading.ReadingViewModel
+import com.example.dz.presentation.settings.SettingsViewModel
+import com.example.dz.presentation.social.chat.ChatViewModel
+import com.example.dz.presentation.social.friend_detail.FriendDetailViewModel
+import com.example.dz.presentation.social.friends.FriendListViewModel
+import com.example.dz.presentation.social.invite_friends.InviteFriendsViewModel
+import com.example.dz.presentation.social.no_friends.NoFriendsViewModel
+import com.example.dz.presentation.library.LibraryViewModel
+import com.example.dz.presentation.search.SearchViewModel
+import com.example.dz.presentation.store.StoreViewModel
 import com.russhwolf.settings.Settings
+import io.ktor.client.HttpClient
+import org.koin.core.context.startKoin
 import org.koin.dsl.module
+import org.koin.mp.KoinPlatform
+
+fun startKoinIfNeeded() {
+    if (KoinPlatform.getKoinOrNull() == null) {
+        startKoin {
+            modules(coreModule)
+        }
+    }
+}
 
 val coreModule = module {
 
@@ -40,10 +124,99 @@ val coreModule = module {
     single<MembershipRepository> { MembershipRepositoryImpl(get()) }
     single<PaymentRepository> { PaymentRepositoryImpl(get()) }
 
-    // ── Person A — Book content (fakes until A's real impl lands) ────────────
-    single<BookRepository> { FakeBookRepository() }
+    // ── Person A — Book content (remote Gutendex/OpenLibrary) ───────────────
+    single<HttpClient> { createRemoteHttpClient() }
+    single<GutendexApi> { KtorGutendexApi(get()) }
+    single<OpenLibraryApi> { KtorOpenLibraryApi(get()) }
+    single<BookRepository> { RemoteBookRepository(get(), get()) }
     single<LibraryRepository> { FakeLibraryRepository() }
     single<CollectionRepository> { FakeCollectionRepository() }
 
-    // Person A: replace this comment with HttpClient + GutendexApi + OpenLibraryApi bindings
+    // Domain use cases
+    factory { LoginUseCase(get()) }
+    factory { SignUpUseCase(get()) }
+    factory { LogoutUseCase(get()) }
+    factory { GetCurrentUserUseCase(get()) }
+    factory { GetProfileUseCase(get()) }
+    factory { UpdateProfileUseCase(get()) }
+
+    factory { SearchBooksUseCase(get()) }
+    factory { GetHomeBooksUseCase(get()) }
+    factory { GetBooksByCategoryUseCase(get()) }
+    factory { GetBookDetailsUseCase(get()) }
+    factory { GetCategoriesUseCase(get()) }
+
+    factory { GetLibraryBooksUseCase(get()) }
+    factory { GetContinueReadingUseCase(get()) }
+    factory { UpdateReadingProgressUseCase(get()) }
+
+    factory { GetCollectionsUseCase(get()) }
+    factory { GetCollectionDetailsUseCase(get()) }
+    factory { CreateCollectionUseCase(get()) }
+    factory { UpdateCollectionUseCase(get()) }
+    factory { DeleteCollectionUseCase(get()) }
+
+    factory { GetFriendsUseCase(get()) }
+    factory { GetFriendDetailsUseCase(get()) }
+    factory { InviteFriendUseCase(get()) }
+
+    factory { GetChatsUseCase(get()) }
+    factory { GetMessagesUseCase(get()) }
+    factory { SendMessageUseCase(get()) }
+
+    factory { GetNotificationsUseCase(get()) }
+    factory { MarkNotificationAsReadUseCase(get()) }
+
+    factory { GetMembershipPlansUseCase(get()) }
+    factory { GetCurrentMembershipUseCase(get()) }
+
+    factory { GetPaymentMethodsUseCase(get()) }
+    factory { PurchaseBookUseCase(get()) }
+    factory { GetPurchaseDetailsUseCase(get()) }
+
+    // Presentation MVI stores
+    factory { LoginViewModel(get()) }
+    factory { SignUpViewModel(get()) }
+    factory { ForgotPasswordViewModel() }
+    factory { VerificationViewModel() }
+    factory { HomeViewModel(get(), get()) }
+    factory { LibraryViewModel(get(), get(), get()) }
+    factory { SearchViewModel(get(), get()) }
+    factory { StoreViewModel(get(), get()) }
+    factory { (authorId: String) -> AuthorDetailViewModel(authorId) }
+    factory { (bookId: String) -> PrePurchaseViewModel(bookId, get(), get()) }
+    factory { (bookId: String) -> BookReviewViewModel(bookId, get()) }
+    factory { (categoryId: String) -> CategoryDetailViewModel(categoryId, get(), get()) }
+
+    factory { CollectionsViewModel(get()) }
+    factory { (collectionId: String) -> CollectionDetailsViewModel(collectionId, get()) }
+    factory { (collectionId: String) -> CollectionsEditViewModel(collectionId, get(), get(), get()) }
+
+    factory { GoalViewModel(get()) }
+
+    factory { MembershipViewModel(get()) }
+    factory { PremiumMembershipViewModel(get(), get()) }
+
+    factory { NotificationsViewModel(get(), get()) }
+
+    factory { OnboardingOneViewModel() }
+    factory { OnboardingTwoViewModel() }
+    factory { OnboardingThreeViewModel() }
+
+    factory { (bookId: String) -> PurchaseDetailsViewModel(bookId, get()) }
+    factory { (bookId: String) -> PurchaseReceiptViewModel(bookId, get()) }
+    factory { PaymentMethodsViewModel(get()) }
+    factory { PurchaseConfirmationViewModel() }
+    factory { PaymentSuccessViewModel() }
+    factory { PaymentFailedViewModel() }
+
+    factory { ProfileViewModel(get()) }
+    factory { (bookId: String) -> ReadingViewModel(bookId, get()) }
+    factory { SettingsViewModel() }
+
+    factory { FriendListViewModel(get()) }
+    factory { (friendId: String) -> FriendDetailViewModel(friendId, get()) }
+    factory { (friendId: String) -> ChatViewModel(friendId, get(), get()) }
+    factory { InviteFriendsViewModel(get()) }
+    factory { NoFriendsViewModel() }
 }

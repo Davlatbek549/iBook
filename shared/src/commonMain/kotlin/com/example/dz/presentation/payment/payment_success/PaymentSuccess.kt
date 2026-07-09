@@ -52,12 +52,10 @@ import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
-fun PaymentSuccessScreen(
-    modifier: Modifier = Modifier,
-    onBackClick: () -> Unit = {},
-    onDiscountCodeClick: () -> Unit = {},
-    onChangePaymentClick: () -> Unit = {},
-    onReadNowClick: () -> Unit = {}
+fun PurchaseSuccessScreen(
+    uiState: PaymentSuccessUiState = PaymentSuccessUiState(),
+    onEvent: (PaymentSuccessEvent) -> Unit = {},
+    modifier: Modifier = Modifier
 ) {
     val colors = inkColors()
     val displayFont = inkDisplayFontFamily()
@@ -72,7 +70,7 @@ fun PaymentSuccessScreen(
             .padding(start = 26.dp, end = 26.dp, bottom = 26.dp)
     ) {
         Row(modifier = Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.End) {
-            InkIconButton(icon = InkIcons.Close, onClick = onBackClick, colors = colors)
+            InkIconButton(icon = InkIcons.Close, onClick = { onEvent(PaymentSuccessEvent.BackToStoreClicked) }, colors = colors)
         }
 
         Column(
@@ -104,8 +102,8 @@ fun PaymentSuccessScreen(
             )
             Text(
                 text = buildAnnotatedString {
-                    withStyle(SpanStyle(color = colors.ink, fontWeight = FontWeight.SemiBold)) { append("Mexican Gothic") }
-                    append(" is on your shelf. Receipt sent to amelia@hartwell.co.")
+                    withStyle(SpanStyle(color = colors.ink, fontWeight = FontWeight.SemiBold)) { append(uiState.title) }
+                    append(" is on your shelf. Receipt sent to ${uiState.email}.")
                 },
                 modifier = Modifier.padding(top = 12.dp).widthIn(max = 260.dp),
                 fontFamily = bodyFont, fontSize = 13.5.sp, lineHeight = 22.sp, textAlign = TextAlign.Center, color = colors.muted
@@ -127,10 +125,10 @@ fun PaymentSuccessScreen(
                     modifier = Modifier.size(width = 44.dp, height = 64.dp).shadow(6.dp, RoundedCornerShape(InkShape.cover), clip = true)
                 )
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Mexican Gothic", fontFamily = displayFont, fontWeight = FontWeight.Medium, fontSize = 14.5.sp, color = colors.ink)
-                    Text("Silvia Moreno-Garcia", modifier = Modifier.padding(top = 4.dp), fontFamily = bodyFont, fontSize = 11.5.sp, color = colors.muted)
+                    Text(uiState.title, fontFamily = displayFont, fontWeight = FontWeight.Medium, fontSize = 14.5.sp, color = colors.ink)
+                    Text(uiState.author, modifier = Modifier.padding(top = 4.dp), fontFamily = bodyFont, fontSize = 11.5.sp, color = colors.muted)
                 }
-                Text("$11.43", fontFamily = bodyFont, fontSize = 11.sp, color = colors.muted)
+                Text(uiState.total, fontFamily = bodyFont, fontSize = 11.sp, color = colors.muted)
             }
         }
 
@@ -139,7 +137,7 @@ fun PaymentSuccessScreen(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(InkShape.radiusSm + 2.dp))
                 .background(colors.accent)
-                .clickable(onClick = onReadNowClick)
+                .clickable { onEvent(PaymentSuccessEvent.StartReadingClicked) }
                 .padding(vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(9.dp, Alignment.CenterHorizontally)
@@ -148,23 +146,12 @@ fun PaymentSuccessScreen(
             Text(stringResource(Res.string.ps_start_reading), fontFamily = bodyFont, fontWeight = FontWeight.SemiBold, fontSize = 14.5.sp, color = colors.onAccent)
         }
         Spacer(modifier = Modifier.height(10.dp))
-        InkGhostButton(text = stringResource(Res.string.ps_back_to_store), onClick = onBackClick, colors = colors)
+        InkGhostButton(text = stringResource(Res.string.ps_back_to_store), onClick = { onEvent(PaymentSuccessEvent.BackToStoreClicked) }, colors = colors)
     }
-}
-
-@Composable
-fun PurchaseSuccessScreen(
-    modifier: Modifier = Modifier,
-    onBackClick: () -> Unit = {},
-    onDiscountCodeClick: () -> Unit = {},
-    onChangePaymentClick: () -> Unit = {},
-    onReadNowClick: () -> Unit = {}
-) {
-    PaymentSuccessScreen(modifier, onBackClick, onDiscountCodeClick, onChangePaymentClick, onReadNowClick)
 }
 
 @Preview(showBackground = true, widthDp = 375, heightDp = 820)
 @Composable
-private fun PaymentSuccessScreenPreview() {
-    PaymentSuccessScreen()
+private fun PurchaseSuccessScreenPreview() {
+    PurchaseSuccessScreen()
 }

@@ -44,10 +44,6 @@ import com.example.dz.designsystem.theme.InkShape
 import com.example.dz.designsystem.theme.inkBodyFontFamily
 import com.example.dz.designsystem.theme.inkColors
 import dz.shared.generated.resources.Res
-import dz.shared.generated.resources.img_masaa
-import dz.shared.generated.resources.img_neil_alvin
-import dz.shared.generated.resources.img_raunak_purohit
-import dz.shared.generated.resources.img_yza_barretto
 import dz.shared.generated.resources.invite_add_friend
 import dz.shared.generated.resources.invite_banner_label
 import dz.shared.generated.resources.invite_from_contacts
@@ -56,29 +52,14 @@ import dz.shared.generated.resources.invite_reads_on_dz
 import dz.shared.generated.resources.invite_share
 import dz.shared.generated.resources.invite_suggested
 import dz.shared.generated.resources.invite_title
-import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
-private data class Contact(
-    val name: String,
-    val avatarRes: DrawableResource,
-    val onDz: Boolean
-)
-
-private val contacts = listOf(
-    Contact("Masaa Okafor", Res.drawable.img_masaa, false),
-    Contact("Raunak Purohit", Res.drawable.img_raunak_purohit, false),
-    Contact("Yza Barretto", Res.drawable.img_yza_barretto, true),
-    Contact("Neil Alvin", Res.drawable.img_neil_alvin, false)
-)
-
 @Composable
 fun InviteFriendList2Screen(
-    modifier: Modifier = Modifier,
-    onBackClick: () -> Unit = {},
-    onMessageClick: () -> Unit = {},
-    onDiscoverPeopleClick: () -> Unit = {}
+    uiState: InviteFriendsUiState = InviteFriendsUiState(),
+    onEvent: (InviteFriendsEvent) -> Unit = {},
+    modifier: Modifier = Modifier
 ) {
     val colors = inkColors()
     val bodyFont = inkBodyFontFamily()
@@ -93,7 +74,7 @@ fun InviteFriendList2Screen(
     ) {
         InkTopBar(
             title = stringResource(Res.string.invite_title),
-            onBackClick = onBackClick,
+            onBackClick = { onEvent(InviteFriendsEvent.BackClicked) },
             colors = colors
         )
 
@@ -147,7 +128,7 @@ fun InviteFriendList2Screen(
                         )
                     }
                     Text(
-                        text = "dz.app/r/amelia",
+                        text = uiState.referralLink,
                         modifier = Modifier.padding(horizontal = 14.dp),
                         fontFamily = bodyFont,
                         fontWeight = FontWeight.SemiBold,
@@ -161,7 +142,7 @@ fun InviteFriendList2Screen(
                         .height(44.dp)
                         .clip(RoundedCornerShape(InkShape.radiusSm + 2.dp))
                         .background(colors.accent)
-                        .clickable(onClick = onMessageClick)
+                        .clickable { onEvent(InviteFriendsEvent.ShareClicked) }
                         .padding(horizontal = 16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -187,9 +168,9 @@ fun InviteFriendList2Screen(
         Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 22.dp)) {
             InkLabel(text = stringResource(Res.string.invite_suggested), colors = colors)
             Column(modifier = Modifier.padding(top = 4.dp)) {
-                contacts.forEachIndexed { i, contact ->
-                    ContactRow(contact = contact, onAction = onDiscoverPeopleClick, colors = colors)
-                    if (i < contacts.size - 1) {
+                uiState.contacts.forEachIndexed { i, contact ->
+                    ContactRow(contact = contact, onAction = { onEvent(InviteFriendsEvent.ContactActionClicked(contact.id)) }, colors = colors)
+                    if (i < uiState.contacts.size - 1) {
                         HorizontalDivider(thickness = 1.dp, color = colors.line)
                     }
                 }
@@ -200,7 +181,7 @@ fun InviteFriendList2Screen(
 
 @Composable
 private fun ContactRow(
-    contact: Contact,
+    contact: ContactUi,
     onAction: () -> Unit,
     colors: InkColors,
 ) {

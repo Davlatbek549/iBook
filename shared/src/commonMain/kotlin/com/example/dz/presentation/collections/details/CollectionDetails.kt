@@ -1,6 +1,5 @@
 package com.example.dz.presentation.collections.details
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -34,7 +33,7 @@ import androidx.compose.ui.unit.sp
 import com.example.dz.designsystem.components.icons.InkIcons
 import com.example.dz.designsystem.components.ink.InkBookRow
 import com.example.dz.designsystem.components.ink.InkIconButton
-import com.example.dz.designsystem.theme.InkColors
+import com.example.dz.designsystem.components.remote.RemoteBookCover
 import com.example.dz.designsystem.theme.InkShape
 import com.example.dz.designsystem.theme.inkBodyFontFamily
 import com.example.dz.designsystem.theme.inkColors
@@ -46,37 +45,26 @@ import dz.shared.generated.resources.book_cover_4
 import dz.shared.generated.resources.coll_add_books
 import dz.shared.generated.resources.coll_edit
 import dz.shared.generated.resources.olive_again_book
-import org.jetbrains.compose.resources.DrawableResource
-import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
-data class CollectionDetailsBookUiState(
-    val title: String,
-    val author: String,
-    val coverRes: DrawableResource,
-    val note: String = "",
-    val noteHighlighted: Boolean = false
-)
-
-private val defaultBooks = listOf(
-    CollectionDetailsBookUiState("Olive, Again", "Elizabeth Strout", Res.drawable.olive_again_book, "read · 5★"),
-    CollectionDetailsBookUiState("Red at the Bone", "Jacqueline Woodson", Res.drawable.book_cover_3, "reading · 62%", noteHighlighted = true),
-    CollectionDetailsBookUiState("Mexican Gothic", "Silvia Moreno-Garcia", Res.drawable.book_cover, "to read"),
-    CollectionDetailsBookUiState("Bestiary", "K-Ming Chang", Res.drawable.book_cover_4, "to read")
+private val previewUiState = CollectionDetailsUiState(
+    collectionId = "quiet-novels",
+    title = "Quiet novels",
+    description = "“Small lives, carefully observed — the books I reach for on slow evenings.”",
+    bookCount = 12,
+    books = listOf(
+        CollectionDetailsBookUiState("olive-again", "Olive, Again", "Elizabeth Strout", Res.drawable.olive_again_book, note = "read · 5★"),
+        CollectionDetailsBookUiState("red-at-the-bone", "Red at the Bone", "Jacqueline Woodson", Res.drawable.book_cover_3, note = "reading · 62%", noteHighlighted = true),
+        CollectionDetailsBookUiState("mexican-gothic", "Mexican Gothic", "Silvia Moreno-Garcia", Res.drawable.book_cover, note = "to read"),
+        CollectionDetailsBookUiState("bestiary", "Bestiary", "K-Ming Chang", Res.drawable.book_cover_4, note = "to read")
+    )
 )
 
 @Composable
 fun CollectionDetails(
-    modifier: Modifier = Modifier,
-    title: String = "Quiet novels",
-    description: String = "“Small lives, carefully observed — the books I reach for on slow evenings.”",
-    books: List<CollectionDetailsBookUiState> = defaultBooks,
-    onBackClick: () -> Unit = {},
-    onAddClick: () -> Unit = {},
-    onSettingsClick: () -> Unit = {},
-    onRemoveEverywhereClick: (String) -> Unit = {},
-    onBookOptionsClick: (String) -> Unit = {},
-    onBookClick: (String) -> Unit = {}
+    uiState: CollectionDetailsUiState = previewUiState,
+    onEvent: (CollectionDetailsEvent) -> Unit = {},
+    modifier: Modifier = Modifier
 ) {
     val colors = inkColors()
     val displayFont = inkDisplayFontFamily()
@@ -96,11 +84,11 @@ fun CollectionDetails(
                 .fillMaxWidth()
                 .padding(start = 22.dp, end = 22.dp, top = 4.dp)
         ) {
-            InkIconButton(icon = InkIcons.Back, onClick = onBackClick, colors = colors)
+            InkIconButton(icon = InkIcons.Back, onClick = { onEvent(CollectionDetailsEvent.BackClicked) }, colors = colors)
             Spacer(modifier = Modifier.weight(1f))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                InkIconButton(icon = InkIcons.Share, onClick = {}, colors = colors)
-                InkIconButton(icon = InkIcons.MoreVertical, onClick = onSettingsClick, colors = colors)
+                InkIconButton(icon = InkIcons.Share, onClick = { onEvent(CollectionDetailsEvent.ShareClicked) }, colors = colors)
+                InkIconButton(icon = InkIcons.MoreVertical, onClick = { onEvent(CollectionDetailsEvent.EditClicked) }, colors = colors)
             }
         }
 
@@ -113,11 +101,12 @@ fun CollectionDetails(
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Box {
-                val stack = books.take(3)
+                val stack = uiState.books.take(3)
                 // draw right-to-left so the leftmost cover sits on top, like the design
                 stack.indices.reversed().forEach { j ->
-                    Image(
-                        painter = painterResource(stack[j].coverRes),
+                    RemoteBookCover(
+                        coverUrl = stack[j].coverUrl,
+                        fallback = stack[j].coverRes,
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
@@ -128,11 +117,11 @@ fun CollectionDetails(
                     )
                 }
                 // reserve the stack's visual footprint
-                Spacer(modifier = Modifier.size(width = (56 + 34 * (stack.size - 1)).dp, height = 82.dp))
+                Spacer(modifier = Modifier.size(width = (56 + 34 * (stack.size - 1)).coerceAtLeast(56).dp, height = 82.dp))
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = title,
+                    text = uiState.title,
                     fontFamily = displayFont,
                     fontWeight = FontWeight.Medium,
                     fontSize = 24.sp,
@@ -140,7 +129,7 @@ fun CollectionDetails(
                     color = colors.ink
                 )
                 Text(
-                    text = "12 books · updated 2 days ago",
+                    text = "${uiState.bookCount} books · updated recently",
                     modifier = Modifier.padding(top = 6.dp),
                     fontFamily = bodyFont,
                     fontSize = 12.sp,
@@ -150,15 +139,17 @@ fun CollectionDetails(
         }
 
         // description
-        Text(
-            text = description,
-            modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 14.dp),
-            fontFamily = displayFont,
-            fontStyle = FontStyle.Italic,
-            fontSize = 13.sp,
-            lineHeight = 21.5.sp,
-            color = colors.inkSoft
-        )
+        if (uiState.description.isNotBlank()) {
+            Text(
+                text = uiState.description,
+                modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 14.dp),
+                fontFamily = displayFont,
+                fontStyle = FontStyle.Italic,
+                fontSize = 13.sp,
+                lineHeight = 21.5.sp,
+                color = colors.inkSoft
+            )
+        }
 
         // actions
         Row(
@@ -171,7 +162,7 @@ fun CollectionDetails(
                     .height(44.dp)
                     .clip(RoundedCornerShape(InkShape.radiusSm + 2.dp))
                     .background(colors.accentSoft)
-                    .clickable(onClick = onAddClick),
+                    .clickable { onEvent(CollectionDetailsEvent.AddBooksClicked) },
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(9.dp, Alignment.CenterHorizontally)
             ) {
@@ -195,7 +186,7 @@ fun CollectionDetails(
                     .height(44.dp)
                     .clip(RoundedCornerShape(InkShape.radiusSm + 2.dp))
                     .border(1.dp, colors.line, RoundedCornerShape(InkShape.radiusSm + 2.dp))
-                    .clickable(onClick = onSettingsClick),
+                    .clickable { onEvent(CollectionDetailsEvent.EditClicked) },
                 contentAlignment = Alignment.Center
             ) {
                 Text(
@@ -210,12 +201,13 @@ fun CollectionDetails(
 
         // book list
         Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 18.dp)) {
-            books.forEachIndexed { i, book ->
+            uiState.books.forEachIndexed { i, book ->
                 InkBookRow(
                     cover = book.coverRes,
+                    coverUrl = book.coverUrl,
                     title = book.title,
                     author = book.author,
-                    modifier = Modifier.clickable { onBookClick(book.title) },
+                    modifier = Modifier.clickable { onEvent(CollectionDetailsEvent.BookClicked(book.id)) },
                     showDivider = i > 0,
                     meta = {
                         Text(
@@ -232,7 +224,7 @@ fun CollectionDetails(
                             tint = colors.muted,
                             modifier = Modifier
                                 .size(16.dp)
-                                .clickable { onBookOptionsClick(book.title) }
+                                .clickable { onEvent(CollectionDetailsEvent.BookOptionsClicked(book.id)) }
                         )
                     },
                     colors = colors

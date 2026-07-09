@@ -1,6 +1,5 @@
 package com.example.dz.presentation.book.pre_purchase
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -43,18 +42,14 @@ import com.example.dz.designsystem.components.ink.InkChip
 import com.example.dz.designsystem.components.ink.InkIconButton
 import com.example.dz.designsystem.components.ink.InkLabel
 import com.example.dz.designsystem.components.ink.inkCard
+import com.example.dz.designsystem.components.remote.RemoteBookCover
 import com.example.dz.designsystem.theme.InkColors
 import com.example.dz.designsystem.theme.InkShape
 import com.example.dz.designsystem.theme.inkBodyFontFamily
 import com.example.dz.designsystem.theme.inkColors
 import com.example.dz.designsystem.theme.inkDisplayFontFamily
 import dz.shared.generated.resources.Res
-import dz.shared.generated.resources.book_cover
-import dz.shared.generated.resources.book_cover_2
-import dz.shared.generated.resources.book_cover_3
-import dz.shared.generated.resources.book_cover_4
 import dz.shared.generated.resources.detail_about
-import dz.shared.generated.resources.detail_about_body
 import dz.shared.generated.resources.detail_buy_now
 import dz.shared.generated.resources.detail_meta_lang
 import dz.shared.generated.resources.detail_meta_pages
@@ -62,78 +57,22 @@ import dz.shared.generated.resources.detail_meta_rating
 import dz.shared.generated.resources.detail_meta_time
 import dz.shared.generated.resources.detail_more_like_this
 import dz.shared.generated.resources.detail_price
-import dz.shared.generated.resources.olive_again_book
-import org.jetbrains.compose.resources.DrawableResource
-import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
-data class PrePurchaseBookUiState(
-    val title: String,
-    val author: String,
-    val reads: String = "",
-    val rating: String = "4.6",
-    val reviews: String = "",
-    val overview: String = "",
-    val price: String = "$12.99",
-    val pages: String = "320",
-    val readTime: String = "6h 20m",
-    val language: String = "EN",
-    val tags: List<String> = listOf("Literary", "Gothic"),
-    val coverRes: DrawableResource = Res.drawable.book_cover
-)
-
-private val moreLikeThisCovers = listOf(
-    Res.drawable.book_cover_2,
-    Res.drawable.book_cover_3,
-    Res.drawable.book_cover_4,
-    Res.drawable.olive_again_book
+private val previewUiState = PrePurchaseUiState(
+    bookId = "mexican-gothic",
+    title = "Mexican Gothic",
+    author = "Silvia Moreno-Garcia",
+    overview = "Placeholder overview for preview only.",
 )
 
 @Composable
 fun PrePurchaseScreen(
-    modifier: Modifier = Modifier,
-    showTagsBookAction: Boolean = false,
-    onBackClick: () -> Unit = {},
-    onShareClick: () -> Unit = {},
-    onFavoriteClick: () -> Unit = {},
-    onViewSampleClick: () -> Unit = {},
-    onPurchaseClick: () -> Unit = {},
-    onTagsBookClick: () -> Unit = {},
-    onAuthorClick: () -> Unit = {}
+    uiState: PrePurchaseUiState = previewUiState,
+    onEvent: (PrePurchaseEvent) -> Unit = {},
+    modifier: Modifier = Modifier
 ) {
-    val book = PrePurchaseBookUiState(
-        title = "Mexican Gothic",
-        author = "Silvia Moreno-Garcia",
-        overview = stringResource(Res.string.detail_about_body)
-    )
-
-    PrePurchaseScreen(
-        book = book,
-        modifier = modifier,
-        showTagsBookAction = showTagsBookAction,
-        onBackClick = onBackClick,
-        onShareClick = onShareClick,
-        onFavoriteClick = onFavoriteClick,
-        onViewSampleClick = onViewSampleClick,
-        onPurchaseClick = onPurchaseClick,
-        onTagsBookClick = onTagsBookClick,
-        onAuthorClick = onAuthorClick
-    )
-}
-
-@Composable
-fun PrePurchaseScreen(
-    book: PrePurchaseBookUiState,
-    modifier: Modifier = Modifier,
-    showTagsBookAction: Boolean = false,
-    onBackClick: () -> Unit = {},
-    onShareClick: () -> Unit = {},
-    onFavoriteClick: () -> Unit = {},
-    onViewSampleClick: () -> Unit = {},
-    onPurchaseClick: () -> Unit = {},
-    onTagsBookClick: () -> Unit = {},
-    onAuthorClick: () -> Unit = {}
-) {
+    val book = uiState
     val colors = inkColors()
     val displayFont = inkDisplayFontFamily()
     val bodyFont = inkBodyFontFamily()
@@ -156,11 +95,15 @@ fun PrePurchaseScreen(
                     .fillMaxWidth()
                     .padding(start = 22.dp, end = 22.dp, top = 4.dp, bottom = 8.dp)
             ) {
-                InkIconButton(icon = InkIcons.Back, onClick = onBackClick, colors = colors)
+                InkIconButton(icon = InkIcons.Back, onClick = { onEvent(PrePurchaseEvent.BackClicked) }, colors = colors)
                 Spacer(modifier = Modifier.weight(1f))
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    InkIconButton(icon = InkIcons.Share, onClick = onShareClick, colors = colors)
-                    InkIconButton(icon = InkIcons.Bookmark, onClick = onFavoriteClick, colors = colors)
+                    InkIconButton(icon = InkIcons.Share, onClick = { onEvent(PrePurchaseEvent.ShareClicked) }, colors = colors)
+                    InkIconButton(
+                        icon = InkIcons.Bookmark,
+                        onClick = { onEvent(PrePurchaseEvent.FavoriteClicked) },
+                        colors = colors
+                    )
                 }
             }
 
@@ -171,8 +114,9 @@ fun PrePurchaseScreen(
                     .padding(start = 22.dp, end = 22.dp, top = 18.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Image(
-                    painter = painterResource(book.coverRes),
+                RemoteBookCover(
+                    coverUrl = book.coverUrl,
+                    fallback = book.coverRes,
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
@@ -193,7 +137,7 @@ fun PrePurchaseScreen(
                     text = book.author,
                     modifier = Modifier
                         .padding(top = 7.dp)
-                        .clickable(onClick = onAuthorClick),
+                        .clickable { onEvent(PrePurchaseEvent.AuthorClicked) },
                     fontFamily = bodyFont,
                     fontSize = 13.sp,
                     color = colors.muted
@@ -203,7 +147,7 @@ fun PrePurchaseScreen(
                     horizontalArrangement = Arrangement.spacedBy(7.dp)
                 ) {
                     book.tags.forEach { tag ->
-                        Box(modifier = Modifier.clickable(onClick = onTagsBookClick)) {
+                        Box(modifier = Modifier.clickable { onEvent(PrePurchaseEvent.TagClicked) }) {
                             InkChip(text = tag, solid = true, colors = colors)
                         }
                     }
@@ -258,15 +202,16 @@ fun PrePurchaseScreen(
                         .padding(horizontal = 22.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    moreLikeThisCovers.forEach { cover ->
-                        Image(
-                            painter = painterResource(cover),
+                    book.relatedBooks.forEach { related ->
+                        RemoteBookCover(
+                            coverUrl = related.coverUrl,
+                            fallback = related.coverRes,
                             contentDescription = null,
                             contentScale = ContentScale.Crop,
                             modifier = Modifier
                                 .size(width = 64.dp, height = 94.dp)
                                 .shadow(6.dp, RoundedCornerShape(InkShape.cover), clip = true)
-                                .clickable(onClick = onTagsBookClick)
+                                .clickable { onEvent(PrePurchaseEvent.RelatedBookClicked(related.id)) }
                         )
                     }
                 }
@@ -313,7 +258,7 @@ fun PrePurchaseScreen(
                         .height(52.dp)
                         .clip(RoundedCornerShape(InkShape.radiusSm + 2.dp))
                         .background(colors.accent)
-                        .clickable(onClick = onPurchaseClick),
+                        .clickable { onEvent(PrePurchaseEvent.PurchaseClicked) },
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -329,7 +274,7 @@ fun PrePurchaseScreen(
                         .size(52.dp)
                         .clip(RoundedCornerShape(InkShape.radiusSm + 2.dp))
                         .border(1.dp, colors.line, RoundedCornerShape(InkShape.radiusSm + 2.dp))
-                        .clickable(onClick = onViewSampleClick),
+                        .clickable { onEvent(PrePurchaseEvent.ViewSampleClicked) },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(

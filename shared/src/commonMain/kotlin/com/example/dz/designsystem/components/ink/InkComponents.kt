@@ -47,6 +47,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dz.designsystem.components.icons.InkIcons
+import com.example.dz.designsystem.components.remote.RemoteBookCover
 import com.example.dz.designsystem.theme.InkColors
 import com.example.dz.designsystem.theme.InkShape
 import com.example.dz.designsystem.theme.inkBodyFontFamily
@@ -449,6 +450,7 @@ fun InkBookRow(
     title: String,
     author: String,
     modifier: Modifier = Modifier,
+    coverUrl: String? = null,
     showDivider: Boolean = false,
     meta: (@Composable () -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
@@ -465,8 +467,9 @@ fun InkBookRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Image(
-                painter = painterResource(cover),
+            RemoteBookCover(
+                coverUrl = coverUrl,
+                fallback = cover,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier

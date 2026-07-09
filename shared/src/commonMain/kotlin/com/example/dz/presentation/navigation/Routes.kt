@@ -20,7 +20,6 @@ object Routes {
 
     // Book flows
     const val PRE_PURCHASE = "pre_purchase/{bookId}"
-    const val BOOK_DETAIL = "book_detail/{bookId}"
     const val READING = "reading/{bookId}"
     const val BOOK_REVIEW = "book_review/{bookId}"
 
@@ -48,7 +47,6 @@ object Routes {
     const val GOAL = "goal"
     const val MEMBERSHIP = "membership"
     const val PREMIUM_MEMBERSHIP = "premium_membership"
-    const val NO_MEMBERSHIP = "no_membership"
 
     // Social
     const val FRIEND_LIST = "friend_list"
@@ -59,7 +57,6 @@ object Routes {
 
     // Helpers to build routes with arguments
     fun prePurchase(bookId: String) = "pre_purchase/$bookId"
-    fun bookDetail(bookId: String) = "book_detail/$bookId"
     fun reading(bookId: String) = "reading/$bookId"
     fun bookReview(bookId: String) = "book_review/$bookId"
     fun purchaseDetails(bookId: String) = "purchase_details/$bookId"

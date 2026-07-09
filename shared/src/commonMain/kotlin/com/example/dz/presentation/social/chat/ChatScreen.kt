@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -29,7 +30,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -53,10 +56,9 @@ import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun ChatScreen(
-    modifier: Modifier = Modifier,
-    onBackClick: () -> Unit = {},
-    onAttachClick: () -> Unit = {},
-    onSendClick: () -> Unit = {}
+    uiState: ChatUiState = ChatUiState(),
+    onEvent: (ChatEvent) -> Unit = {},
+    modifier: Modifier = Modifier
 ) {
     val colors = inkColors()
     val displayFont = inkDisplayFontFamily()
@@ -76,7 +78,7 @@ fun ChatScreen(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(13.dp)
         ) {
-            InkIconButton(icon = InkIcons.Back, onClick = onBackClick, colors = colors)
+            InkIconButton(icon = InkIcons.Back, onClick = { onEvent(ChatEvent.BackClicked) }, colors = colors)
             Box {
                 Image(
                     painter = painterResource(Res.drawable.profile_2),
@@ -86,35 +88,39 @@ fun ChatScreen(
                         .size(42.dp)
                         .clip(RoundedCornerShape(InkShape.radiusSm))
                 )
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .offset(x = 2.dp, y = 2.dp)
-                        .size(11.dp)
-                        .clip(CircleShape)
-                        .background(colors.paper)
-                        .padding(2.dp)
-                        .clip(CircleShape)
-                        .background(colors.accent)
-                )
+                if (uiState.online) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .offset(x = 2.dp, y = 2.dp)
+                            .size(11.dp)
+                            .clip(CircleShape)
+                            .background(colors.paper)
+                            .padding(2.dp)
+                            .clip(CircleShape)
+                            .background(colors.accent)
+                    )
+                }
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Patricia Lane",
+                    text = uiState.friendName,
                     fontFamily = bodyFont,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 14.sp,
                     color = colors.ink
                 )
-                Text(
-                    text = stringResource(Res.string.chat_online),
-                    modifier = Modifier.padding(top = 4.dp),
-                    fontFamily = bodyFont,
-                    fontSize = 11.sp,
-                    color = colors.accent
-                )
+                if (uiState.online) {
+                    Text(
+                        text = stringResource(Res.string.chat_online),
+                        modifier = Modifier.padding(top = 4.dp),
+                        fontFamily = bodyFont,
+                        fontSize = 11.sp,
+                        color = colors.accent
+                    )
+                }
             }
-            InkIconButton(icon = InkIcons.MoreVertical, onClick = onAttachClick, colors = colors)
+            InkIconButton(icon = InkIcons.MoreVertical, onClick = { onEvent(ChatEvent.OptionsClicked) }, colors = colors)
         }
         HorizontalDivider(thickness = 1.dp, color = colors.line)
 
@@ -136,24 +142,14 @@ fun ChatScreen(
                 letterSpacing = 1.sp,
                 color = colors.muted
             )
-            Bubble(
-                text = "Finished Olive, Again last night — the last chapter undid me completely.",
-                time = "14:02",
-                fromMe = false,
-                colors = colors
-            )
-            Bubble(
-                text = "I told you! Strout never raises her voice and it still lands harder than anything.",
-                time = "14:05",
-                fromMe = true,
-                colors = colors
-            )
-            Bubble(
-                text = "Okay, what's next then. You always know.",
-                time = "14:06",
-                fromMe = false,
-                colors = colors
-            )
+            uiState.messages.forEach { message ->
+                Bubble(
+                    text = message.text,
+                    time = message.time,
+                    fromMe = message.fromMe,
+                    colors = colors
+                )
+            }
             // shared book card
             Column(
                 modifier = Modifier
@@ -235,11 +231,24 @@ fun ChatScreen(
                     .padding(horizontal = 16.dp),
                 contentAlignment = Alignment.CenterStart
             ) {
-                Text(
-                    text = stringResource(Res.string.chat_write),
-                    fontFamily = bodyFont,
-                    fontSize = 13.sp,
-                    color = colors.muted
+                BasicTextField(
+                    value = uiState.composerText,
+                    onValueChange = { onEvent(ChatEvent.ComposerChanged(it)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    textStyle = TextStyle(fontFamily = bodyFont, fontSize = 13.sp, color = colors.ink),
+                    cursorBrush = SolidColor(colors.accent),
+                    decorationBox = { inner ->
+                        if (uiState.composerText.isEmpty()) {
+                            Text(
+                                text = stringResource(Res.string.chat_write),
+                                fontFamily = bodyFont,
+                                fontSize = 13.sp,
+                                color = colors.muted
+                            )
+                        }
+                        inner()
+                    }
                 )
             }
             Box(
@@ -247,7 +256,7 @@ fun ChatScreen(
                     .size(46.dp)
                     .clip(CircleShape)
                     .background(colors.accent)
-                    .clickable(onClick = onSendClick),
+                    .clickable { onEvent(ChatEvent.SendClicked) },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(

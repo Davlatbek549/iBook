@@ -43,18 +43,11 @@ import dz.shared.generated.resources.po_yes_buy
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
-data class PurchaseConfirmationUiState(
-    val title: String = "Mexican Gothic",
-    val author: String = "Silvia Moreno-Garcia",
-    val total: String = "$11.43"
-)
-
 @Composable
 fun PurchaseConfirmationScreen(
-    modifier: Modifier = Modifier,
     uiState: PurchaseConfirmationUiState = PurchaseConfirmationUiState(),
-    onConfirm: () -> Unit = {},
-    onBackClick: () -> Unit = {}
+    onEvent: (PurchaseConfirmationEvent) -> Unit = {},
+    modifier: Modifier = Modifier
 ) {
     val colors = inkColors()
     val displayFont = inkDisplayFontFamily()
@@ -64,7 +57,7 @@ fun PurchaseConfirmationScreen(
         modifier = modifier
             .fillMaxSize()
             .background(Color(0x59211C16))
-            .clickable(onClick = onBackClick),
+            .clickable { onEvent(PurchaseConfirmationEvent.DismissClicked) },
         contentAlignment = Alignment.BottomCenter
     ) {
         // sheet — disabled clickable swallows taps so they don't dismiss
@@ -133,21 +126,11 @@ fun PurchaseConfirmationScreen(
             }
 
             Spacer(modifier = Modifier.height(18.dp))
-            InkButton(text = stringResource(Res.string.po_yes_buy), onClick = onConfirm, colors = colors)
+            InkButton(text = stringResource(Res.string.po_yes_buy), onClick = { onEvent(PurchaseConfirmationEvent.ConfirmClicked) }, colors = colors)
             Spacer(modifier = Modifier.height(10.dp))
-            InkSecondaryButton(text = stringResource(Res.string.po_not_yet), onClick = onBackClick, colors = colors)
+            InkSecondaryButton(text = stringResource(Res.string.po_not_yet), onClick = { onEvent(PurchaseConfirmationEvent.DismissClicked) }, colors = colors)
         }
     }
-}
-
-@Composable
-fun PurchaseConfirmation(
-    modifier: Modifier = Modifier,
-    uiState: PurchaseConfirmationUiState = PurchaseConfirmationUiState(),
-    onConfirm: () -> Unit = {},
-    onBackClick: () -> Unit = {}
-) {
-    PurchaseConfirmationScreen(modifier = modifier, uiState = uiState, onConfirm = onConfirm, onBackClick = onBackClick)
 }
 
 @Preview(showBackground = true, widthDp = 375, heightDp = 820)

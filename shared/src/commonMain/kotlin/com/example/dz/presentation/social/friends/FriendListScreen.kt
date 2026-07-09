@@ -22,10 +22,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,49 +44,19 @@ import dz.shared.generated.resources.friends_everyone
 import dz.shared.generated.resources.friends_online_now
 import dz.shared.generated.resources.friends_search
 import dz.shared.generated.resources.friends_title
-import dz.shared.generated.resources.img_neil_alvin
-import dz.shared.generated.resources.img_raunak_purohit
-import dz.shared.generated.resources.img_yza_barretto
-import dz.shared.generated.resources.profile_2
-import dz.shared.generated.resources.profile_3
-import dz.shared.generated.resources.img_maria_renzy
-import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
-private data class Friend(
-    val id: String,
-    val name: String,
-    val handle: String,
-    val avatarRes: DrawableResource,
-    val online: Boolean
-)
-
-private val allFriends = listOf(
-    Friend("patricia-lane", "Patricia Lane", "@patricia.reads", Res.drawable.profile_2, true),
-    Friend("maria-renzy", "Maria Renzy", "@maria.renzy", Res.drawable.img_maria_renzy, true),
-    Friend("yza-barretto", "Yza Barretto", "@yza.b", Res.drawable.img_yza_barretto, true),
-    Friend("daniel-moreau", "Daniel Moreau", "@dmoreau", Res.drawable.profile_3, false),
-    Friend("neil-alvin", "Neil Alvin", "@neilalvin", Res.drawable.img_neil_alvin, false),
-    Friend("raunak-purohit", "Raunak Purohit", "@raunakp", Res.drawable.img_raunak_purohit, false)
-)
-
 @Composable
 fun FriendListScreen(
-    modifier: Modifier = Modifier,
-    onBackClick: () -> Unit = {},
-    onEditClick: () -> Unit = {},
-    onAddFriendClick: () -> Unit = {},
-    onFriendClick: (friendId: String) -> Unit = {}
+    uiState: FriendListUiState = FriendListUiState(),
+    onEvent: (FriendListEvent) -> Unit = {},
+    modifier: Modifier = Modifier
 ) {
     val colors = inkColors()
 
-    var query by remember { mutableStateOf("") }
-    val filtered = allFriends.filter {
-        query.isBlank() || it.name.contains(query, ignoreCase = true) || it.handle.contains(query, ignoreCase = true)
-    }
-    val online = filtered.filter { it.online }
-    val everyone = filtered.filter { !it.online }
+    val online = uiState.onlineFriends
+    val everyone = uiState.everyoneFriends
 
     Column(
         modifier = modifier
@@ -103,15 +69,15 @@ fun FriendListScreen(
         InkTopBar(
             title = stringResource(Res.string.friends_title),
             subtitle = "12 friends · 3 online",
-            onBackClick = onBackClick,
-            right = { InkIconButton(icon = InkIcons.Plus, onClick = onAddFriendClick, colors = colors) },
+            onBackClick = { onEvent(FriendListEvent.BackClicked) },
+            right = { InkIconButton(icon = InkIcons.Plus, onClick = { onEvent(FriendListEvent.AddFriendClicked) }, colors = colors) },
             colors = colors
         )
 
         Box(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 4.dp)) {
             InkField(
-                value = query,
-                onValueChange = { query = it },
+                value = uiState.query,
+                onValueChange = { onEvent(FriendListEvent.QueryChanged(it)) },
                 placeholder = stringResource(Res.string.friends_search),
                 leadingIcon = InkIcons.Search,
                 colors = colors
@@ -125,7 +91,7 @@ fun FriendListScreen(
                     online.forEach { friend ->
                         FriendRow(
                             friend = friend,
-                            onClick = { onFriendClick(friend.id) },
+                            onClick = { onEvent(FriendListEvent.FriendClicked(friend.id)) },
                             colors = colors
                         )
                         HorizontalDivider(thickness = 1.dp, color = colors.line)
@@ -141,7 +107,7 @@ fun FriendListScreen(
                     everyone.forEachIndexed { i, friend ->
                         FriendRow(
                             friend = friend,
-                            onClick = { onFriendClick(friend.id) },
+                            onClick = { onEvent(FriendListEvent.FriendClicked(friend.id)) },
                             colors = colors
                         )
                         if (i < everyone.size - 1) {
@@ -156,7 +122,7 @@ fun FriendListScreen(
 
 @Composable
 private fun FriendRow(
-    friend: Friend,
+    friend: FriendUi,
     onClick: () -> Unit,
     colors: InkColors,
 ) {

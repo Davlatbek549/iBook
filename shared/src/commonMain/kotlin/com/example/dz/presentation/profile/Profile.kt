@@ -75,56 +75,29 @@ private val friendPreviewAvatars = listOf(
     Res.drawable.img_neil_alvin
 )
 
-@Composable
-fun Profile(
-    modifier: Modifier = Modifier,
-    onBackClick: () -> Unit = {},
-    onEditClick: () -> Unit = {},
-    onNotificationsClick: () -> Unit = {},
-    onFriendsClick: () -> Unit = {},
-    onGoalsClick: () -> Unit = {},
-    onCollectionsClick: () -> Unit = {},
-    onPurchasesClick: () -> Unit = {},
-    onMembershipClick: () -> Unit = {},
-    onSettingsClick: () -> Unit = {}
-) {
-    ProfileScreen(
-        modifier = modifier,
-        onBackClick = onBackClick,
-        onEditClick = onEditClick,
-        onNotificationsClick = onNotificationsClick,
-        onFriendsClick = onFriendsClick,
-        onGoalsClick = onGoalsClick,
-        onCollectionsClick = onCollectionsClick,
-        onPurchasesClick = onPurchasesClick,
-        onMembershipClick = onMembershipClick,
-        onSettingsClick = onSettingsClick
-    )
-}
+private data class ProfileMenuEntry(
+    val icon: ImageVector,
+    val title: String,
+    val value: String,
+    val event: ProfileEvent
+)
 
 @Composable
 fun ProfileScreen(
-    modifier: Modifier = Modifier,
-    onBackClick: () -> Unit = {},
-    onEditClick: () -> Unit = {},
-    onNotificationsClick: () -> Unit = {},
-    onFriendsClick: () -> Unit = {},
-    onGoalsClick: () -> Unit = {},
-    onCollectionsClick: () -> Unit = {},
-    onPurchasesClick: () -> Unit = {},
-    onMembershipClick: () -> Unit = {},
-    onSettingsClick: () -> Unit = {}
+    uiState: ProfileUiState = ProfileUiState(),
+    onEvent: (ProfileEvent) -> Unit = {},
+    modifier: Modifier = Modifier
 ) {
     val colors = inkColors()
     val displayFont = inkDisplayFontFamily()
     val bodyFont = inkBodyFontFamily()
 
     val menu = listOf(
-        Triple(InkIcons.Stats, stringResource(Res.string.profile_menu_goals), "21-day streak") to onGoalsClick,
-        Triple(InkIcons.Book, stringResource(Res.string.profile_menu_collections), "3 shelves") to onCollectionsClick,
-        Triple(InkIcons.Purchased, stringResource(Res.string.profile_menu_purchases), "14 books") to onPurchasesClick,
-        Triple(InkIcons.Premium, stringResource(Res.string.profile_menu_membership), "Free plan") to onMembershipClick,
-        Triple(InkIcons.Settings, stringResource(Res.string.profile_menu_settings), "") to onSettingsClick
+        ProfileMenuEntry(InkIcons.Stats, stringResource(Res.string.profile_menu_goals), uiState.goalsSubtitle, ProfileEvent.GoalsClicked),
+        ProfileMenuEntry(InkIcons.Book, stringResource(Res.string.profile_menu_collections), uiState.collectionsSubtitle, ProfileEvent.CollectionsClicked),
+        ProfileMenuEntry(InkIcons.Purchased, stringResource(Res.string.profile_menu_purchases), uiState.purchasesSubtitle, ProfileEvent.PurchasesClicked),
+        ProfileMenuEntry(InkIcons.Premium, stringResource(Res.string.profile_menu_membership), uiState.membershipLabel, ProfileEvent.MembershipClicked),
+        ProfileMenuEntry(InkIcons.Settings, stringResource(Res.string.profile_menu_settings), "", ProfileEvent.SettingsClicked)
     )
 
     Column(
@@ -143,7 +116,7 @@ fun ProfileScreen(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            InkIconButton(icon = InkIcons.Back, onClick = onBackClick, colors = colors)
+            InkIconButton(icon = InkIcons.Back, onClick = { onEvent(ProfileEvent.BackClicked) }, colors = colors)
             Text(
                 text = stringResource(Res.string.profile_you),
                 modifier = Modifier.weight(1f),
@@ -152,7 +125,7 @@ fun ProfileScreen(
                 fontSize = 24.sp,
                 color = colors.ink
             )
-            InkIconButton(icon = InkIcons.Bell, onClick = onNotificationsClick, colors = colors)
+            InkIconButton(icon = InkIcons.Bell, onClick = { onEvent(ProfileEvent.NotificationsClicked) }, colors = colors)
         }
 
         // identity row
@@ -173,14 +146,14 @@ fun ProfileScreen(
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Amelia Hartwell",
+                    text = uiState.name,
                     fontFamily = displayFont,
                     fontWeight = FontWeight.Medium,
                     fontSize = 21.sp,
                     color = colors.ink
                 )
                 Text(
-                    text = "@amelia.reads · since 2024",
+                    text = uiState.handle,
                     modifier = Modifier.padding(top = 6.dp),
                     fontFamily = bodyFont,
                     fontSize = 12.5.sp,
@@ -190,7 +163,7 @@ fun ProfileScreen(
             Text(
                 text = stringResource(Res.string.profile_edit),
                 modifier = Modifier
-                    .clickable(onClick = onEditClick)
+                    .clickable { onEvent(ProfileEvent.EditClicked) }
                     .padding(6.dp),
                 fontFamily = bodyFont,
                 fontWeight = FontWeight.SemiBold,
@@ -208,11 +181,11 @@ fun ProfileScreen(
                 .inkCard(colors)
                 .padding(vertical = 15.dp)
         ) {
-            StatCell("48", stringResource(Res.string.profile_stat_books), colors, Modifier.weight(1f))
+            StatCell(uiState.booksRead, stringResource(Res.string.profile_stat_books), colors, Modifier.weight(1f))
             VerticalDivider(modifier = Modifier.fillMaxHeight(), thickness = 1.dp, color = colors.line)
-            StatCell("12", stringResource(Res.string.profile_stat_friends), colors, Modifier.weight(1f))
+            StatCell(uiState.friendsCount.toString(), stringResource(Res.string.profile_stat_friends), colors, Modifier.weight(1f))
             VerticalDivider(modifier = Modifier.fillMaxHeight(), thickness = 1.dp, color = colors.line)
-            StatCell("21d", stringResource(Res.string.profile_stat_streak), colors, Modifier.weight(1f))
+            StatCell(uiState.streak, stringResource(Res.string.profile_stat_streak), colors, Modifier.weight(1f))
         }
 
         // friends preview
@@ -220,7 +193,7 @@ fun ProfileScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(start = 22.dp, end = 22.dp, top = 20.dp)
-                .clickable(onClick = onFriendsClick),
+                .clickable { onEvent(ProfileEvent.FriendsClicked) },
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
@@ -242,7 +215,7 @@ fun ProfileScreen(
             Text(
                 text = buildAnnotatedString {
                     withStyle(SpanStyle(color = colors.ink, fontWeight = FontWeight.SemiBold)) {
-                        append("12 friends")
+                        append(uiState.friendsSummary)
                     }
                     append(" · 3 reading now")
                 },
@@ -268,13 +241,13 @@ fun ProfileScreen(
                 .fillMaxWidth()
                 .inkCard(colors)
         ) {
-            menu.forEachIndexed { i, (entry, onClick) ->
+            menu.forEachIndexed { i, entry ->
                 if (i > 0) HorizontalDivider(thickness = 1.dp, color = colors.line)
                 MenuRow(
-                    icon = entry.first,
-                    title = entry.second,
-                    value = entry.third,
-                    onClick = onClick,
+                    icon = entry.icon,
+                    title = entry.title,
+                    value = entry.value,
+                    onClick = { onEvent(entry.event) },
                     colors = colors
                 )
             }
