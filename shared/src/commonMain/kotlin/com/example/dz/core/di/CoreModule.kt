@@ -2,18 +2,22 @@ package com.example.dz.core.di
 
 import com.example.dz.data.local.LocalDataSource
 import com.example.dz.data.local.LocalDataSourceImpl
+import com.example.dz.data.remote.api.ApiConfig
+import com.example.dz.data.remote.api.AuthApi
 import com.example.dz.data.remote.api.GutendexApi
+import com.example.dz.data.remote.api.KtorAuthApi
 import com.example.dz.data.remote.api.KtorGutendexApi
 import com.example.dz.data.remote.api.KtorOpenLibraryApi
 import com.example.dz.data.remote.api.OpenLibraryApi
+import com.example.dz.data.remote.api.createAuthHttpClient
 import com.example.dz.data.remote.api.createRemoteHttpClient
-import com.example.dz.data.repository.AuthRepositoryImpl
 import com.example.dz.data.repository.ChatRepositoryImpl
 import com.example.dz.data.repository.FakeCollectionRepository
 import com.example.dz.data.repository.FakeLibraryRepository
 import com.example.dz.data.repository.MembershipRepositoryImpl
 import com.example.dz.data.repository.NotificationRepositoryImpl
 import com.example.dz.data.repository.PaymentRepositoryImpl
+import com.example.dz.data.repository.RemoteAuthRepository
 import com.example.dz.data.repository.RemoteBookRepository
 import com.example.dz.data.repository.SocialRepositoryImpl
 import com.example.dz.data.repository.UserRepositoryImpl
@@ -31,6 +35,8 @@ import com.example.dz.domain.usecase.auth.GetCurrentUserUseCase
 import com.example.dz.domain.usecase.auth.LoginUseCase
 import com.example.dz.domain.usecase.auth.LogoutUseCase
 import com.example.dz.domain.usecase.auth.SignUpUseCase
+import com.example.dz.domain.usecase.book.BookPaginator
+import com.example.dz.domain.usecase.book.GetBookContentUseCase
 import com.example.dz.domain.usecase.book.GetBookDetailsUseCase
 import com.example.dz.domain.usecase.book.GetBooksByCategoryUseCase
 import com.example.dz.domain.usecase.book.GetCategoriesUseCase
@@ -98,6 +104,7 @@ import com.example.dz.presentation.store.StoreViewModel
 import com.russhwolf.settings.Settings
 import io.ktor.client.HttpClient
 import org.koin.core.context.startKoin
+import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import org.koin.mp.KoinPlatform
 
@@ -109,14 +116,22 @@ fun startKoinIfNeeded() {
     }
 }
 
+/** Qualifier for the authenticated app-API client, distinct from the public book client. */
+private const val AUTH_HTTP_CLIENT = "authHttpClient"
+
 val coreModule = module {
 
     // ── Local storage ────────────────────────────────────────────────────────
     single { Settings() }
     single<LocalDataSource> { LocalDataSourceImpl(get()) }
 
+    // ── App backend API (mock engine until a real server exists) ────────────
+    single { ApiConfig() }
+    single(named(AUTH_HTTP_CLIENT)) { createAuthHttpClient(local = get(), config = get()) }
+    single<AuthApi> { KtorAuthApi(client = get(named(AUTH_HTTP_CLIENT)), baseUrl = get<ApiConfig>().baseUrl) }
+
     // ── Person B — User & Commerce (local / session-backed) ─────────────────
-    single<AuthRepository> { AuthRepositoryImpl(get()) }
+    single<AuthRepository> { RemoteAuthRepository(get(), get()) }
     single<UserRepository> { UserRepositoryImpl(get()) }
     single<SocialRepository> { SocialRepositoryImpl(get()) }
     single<ChatRepository> { ChatRepositoryImpl(get()) }
@@ -128,7 +143,7 @@ val coreModule = module {
     single<HttpClient> { createRemoteHttpClient() }
     single<GutendexApi> { KtorGutendexApi(get()) }
     single<OpenLibraryApi> { KtorOpenLibraryApi(get()) }
-    single<BookRepository> { RemoteBookRepository(get(), get()) }
+    single<BookRepository> { RemoteBookRepository(get(), get(), get()) }
     single<LibraryRepository> { FakeLibraryRepository() }
     single<CollectionRepository> { FakeCollectionRepository() }
 
@@ -145,6 +160,8 @@ val coreModule = module {
     factory { GetBooksByCategoryUseCase(get()) }
     factory { GetBookDetailsUseCase(get()) }
     factory { GetCategoriesUseCase(get()) }
+    factory { BookPaginator() }
+    factory { GetBookContentUseCase(get(), get()) }
 
     factory { GetLibraryBooksUseCase(get()) }
     factory { GetContinueReadingUseCase(get()) }

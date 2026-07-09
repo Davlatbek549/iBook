@@ -10,4 +10,7 @@ interface BookRepository {
     suspend fun getBooksByCategory(categoryId: String): AppResult<List<Book>>
     suspend fun getBookDetails(bookId: String): AppResult<Book>
     suspend fun getCategories(): AppResult<List<Category>>
+
+    /** Fetches the raw plain-text body of a book from its remote [textUrl]. */
+    suspend fun getBookText(textUrl: String): AppResult<String>
 }

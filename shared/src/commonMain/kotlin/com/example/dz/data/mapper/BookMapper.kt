@@ -66,8 +66,19 @@ object BookMapper {
             description = dto.summaries.firstOrNull(),
             categories = dto.subjects.take(MAX_CATEGORIES).map(::categoryFromName),
             language = dto.languages.firstOrNull(),
-            isFree = true
+            isFree = true,
+            textUrl = dto.plainTextUrl()
         )
+
+    /**
+     * Picks a readable plain-text download from the Gutendex `formats` map, preferring UTF-8 and
+     * ignoring archived (`.zip`) entries. Returns null when no plain-text format is available.
+     */
+    private fun GutendexBookDto.plainTextUrl(): String? =
+        formats.entries
+            .filter { (type, url) -> type.startsWith("text/plain") && !url.endsWith(".zip") }
+            .minByOrNull { (type, _) -> if (type.contains("utf-8", ignoreCase = true)) 0 else 1 }
+            ?.value
 
     fun openLibraryWorkIdFromDomainId(bookId: String): String =
         bookId.removePrefix(OPEN_LIBRARY_PREFIX)

@@ -17,6 +17,19 @@ import com.example.dz.domain.model.User
 import com.example.dz.domain.model.UserProfile
 
 object FakeData {
+    /** Placeholder book body so fake/offline builds can still exercise the reading flow. */
+    val sampleBookText: String = buildString {
+        repeat(6) { chapter ->
+            append("Chapter ${chapter + 1}\n\n")
+            repeat(4) {
+                append(
+                    "This is placeholder reading content used while real book text is unavailable. " +
+                        "It provides enough paragraphs for the paginator to produce multiple pages.\n\n"
+                )
+            }
+        }
+    }.trim()
+
     val authors = listOf(
         Author(id = "patricia", name = "Patricia Smith", booksCount = 8),
         Author(id = "neil", name = "Neil Alvin", booksCount = 5)
