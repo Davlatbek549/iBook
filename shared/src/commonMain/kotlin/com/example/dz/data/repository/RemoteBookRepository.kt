@@ -13,10 +13,13 @@ import com.example.dz.domain.model.Category
 import com.example.dz.domain.repository.BookRepository
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.ResponseException
+import io.ktor.client.request.get
+import io.ktor.client.statement.bodyAsText
 
 class RemoteBookRepository(
     private val openLibraryApi: OpenLibraryApi,
-    private val gutendexApi: GutendexApi
+    private val gutendexApi: GutendexApi,
+    private val httpClient: HttpClient
 ) : BookRepository {
     override suspend fun searchBooks(query: String): AppResult<List<Book>> =
         runRemote {
@@ -61,6 +64,9 @@ class RemoteBookRepository(
     override suspend fun getCategories(): AppResult<List<Category>> =
         AppResult.Success(defaultCategories)
 
+    override suspend fun getBookText(textUrl: String): AppResult<String> =
+        runRemote { httpClient.get(textUrl).bodyAsText() }
+
     private suspend fun <T> runRemote(block: suspend () -> T): AppResult<T> =
         try {
             AppResult.Success(block())
@@ -92,7 +98,8 @@ class RemoteBookRepository(
         fun create(httpClient: HttpClient = createRemoteHttpClient()): RemoteBookRepository =
             RemoteBookRepository(
                 openLibraryApi = KtorOpenLibraryApi(httpClient),
-                gutendexApi = KtorGutendexApi(httpClient)
+                gutendexApi = KtorGutendexApi(httpClient),
+                httpClient = httpClient
             )
     }
 }

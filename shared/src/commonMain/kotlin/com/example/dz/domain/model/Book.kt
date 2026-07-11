@@ -13,5 +13,7 @@ data class Book(
     val pageCount: Int? = null,
     val language: String? = null,
     val price: String? = null,
-    val isFree: Boolean = false
+    val isFree: Boolean = false,
+    /** Remote URL to the full plain-text body, when the source exposes one (e.g. Gutendex). */
+    val textUrl: String? = null
 )

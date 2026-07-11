@@ -1,0 +1,24 @@
+-- Join table linking books to a collection. Book display fields are denormalized so a
+-- collection can be rendered without depending on the library_book table.
+CREATE TABLE collection_book (
+    collection_id TEXT NOT NULL,
+    book_id TEXT NOT NULL,
+    title TEXT NOT NULL,
+    author TEXT,
+    cover_url TEXT,
+    PRIMARY KEY (collection_id, book_id),
+    FOREIGN KEY (collection_id) REFERENCES collection(id) ON DELETE CASCADE
+);
+
+selectByCollection:
+SELECT * FROM collection_book WHERE collection_id = ?;
+
+insert:
+INSERT OR REPLACE INTO collection_book(collection_id, book_id, title, author, cover_url)
+VALUES (?, ?, ?, ?, ?);
+
+deleteByCollection:
+DELETE FROM collection_book WHERE collection_id = ?;
+
+deleteBook:
+DELETE FROM collection_book WHERE collection_id = ? AND book_id = ?;

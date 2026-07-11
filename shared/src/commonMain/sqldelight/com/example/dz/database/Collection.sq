@@ -1,0 +1,22 @@
+-- User-created collections (shelves) that group books together.
+CREATE TABLE collection (
+    id TEXT NOT NULL PRIMARY KEY,
+    title TEXT NOT NULL,
+    description TEXT,
+    created_at INTEGER NOT NULL
+);
+
+selectAll:
+SELECT * FROM collection ORDER BY created_at DESC;
+
+selectById:
+SELECT * FROM collection WHERE id = ?;
+
+insert:
+INSERT INTO collection(id, title, description, created_at) VALUES (?, ?, ?, ?);
+
+updateMeta:
+UPDATE collection SET title = ?, description = ? WHERE id = ?;
+
+deleteById:
+DELETE FROM collection WHERE id = ?;

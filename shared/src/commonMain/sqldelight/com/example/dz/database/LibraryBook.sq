@@ -1,0 +1,44 @@
+-- Books the user has added to their personal library, with reading/download state.
+CREATE TABLE library_book (
+    id TEXT NOT NULL PRIMARY KEY,
+    title TEXT NOT NULL,
+    author TEXT,
+    cover_url TEXT,
+    description TEXT,
+    text_url TEXT,
+    is_free INTEGER NOT NULL DEFAULT 1,
+    progress_percent INTEGER NOT NULL DEFAULT 0,
+    is_downloaded INTEGER NOT NULL DEFAULT 0,
+    is_favorite INTEGER NOT NULL DEFAULT 0,
+    added_at INTEGER NOT NULL
+);
+
+selectAll:
+SELECT * FROM library_book ORDER BY added_at DESC;
+
+selectById:
+SELECT * FROM library_book WHERE id = ?;
+
+selectContinueReading:
+SELECT * FROM library_book
+WHERE progress_percent > 0 AND progress_percent < 100
+ORDER BY added_at DESC
+LIMIT 1;
+
+upsert:
+INSERT OR REPLACE INTO library_book(
+    id, title, author, cover_url, description, text_url,
+    is_free, progress_percent, is_downloaded, is_favorite, added_at
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateProgress:
+UPDATE library_book SET progress_percent = ? WHERE id = ?;
+
+setDownloaded:
+UPDATE library_book SET is_downloaded = ? WHERE id = ?;
+
+setFavorite:
+UPDATE library_book SET is_favorite = ? WHERE id = ?;
+
+deleteById:
+DELETE FROM library_book WHERE id = ?;

@@ -33,4 +33,7 @@ class FakeBookRepository : BookRepository {
             ?: AppResult.Error(AppError.NotFound)
 
     override suspend fun getCategories(): AppResult<List<Category>> = AppResult.Success(FakeData.categories)
+
+    override suspend fun getBookText(textUrl: String): AppResult<String> =
+        AppResult.Success(FakeData.sampleBookText)
 }
