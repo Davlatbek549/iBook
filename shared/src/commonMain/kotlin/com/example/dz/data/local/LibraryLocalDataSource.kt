@@ -48,6 +48,20 @@ class LibraryLocalDataSource(database: DzDatabase) {
         queries.setDownloaded(downloaded.toLong(), bookId)
     }
 
+    /** Marks a book downloaded and records the on-device file [path]. */
+    fun setDownload(bookId: String, downloaded: Boolean, path: String?) {
+        queries.setDownload(downloaded.toLong(), path, bookId)
+    }
+
+    /** Clears the downloaded flag and file path (used after deleting the local file). */
+    fun clearDownload(bookId: String) {
+        queries.clearDownload(bookId)
+    }
+
+    /** The stored local file path for a downloaded book, or null if not downloaded. */
+    fun getDownloadPath(bookId: String): String? =
+        queries.selectById(bookId).executeAsOneOrNull()?.download_path
+
     fun setFavorite(bookId: String, favorite: Boolean) {
         queries.setFavorite(favorite.toLong(), bookId)
     }
