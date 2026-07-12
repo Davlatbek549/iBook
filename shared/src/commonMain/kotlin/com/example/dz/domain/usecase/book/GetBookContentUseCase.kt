@@ -4,20 +4,34 @@ import com.example.dz.core.error.AppError
 import com.example.dz.core.result.AppResult
 import com.example.dz.domain.model.BookContent
 import com.example.dz.domain.repository.BookRepository
+import com.example.dz.domain.repository.DownloadRepository
 
 /**
- * Loads a readable, paginated book body for [bookId].
+ * Loads a readable, paginated book body for [bookId], local-first.
  *
- * Resolves the book's [textUrl][com.example.dz.domain.model.Book.textUrl] via book details, fetches
+ * If the book is downloaded, its text is read from local storage (works offline). Otherwise it
+ * resolves the book's [textUrl][com.example.dz.domain.model.Book.textUrl] via book details, fetches
  * the raw remote text, strips license boilerplate, and paginates it. Returns [AppError.NotFound]
- * when the book has no readable text (e.g. sources without a full-text format), and propagates any
- * network error from the underlying calls.
+ * when the book has no readable text, and propagates any network error from the underlying calls.
+ *
+ * [downloadRepository] is optional: when absent, content is always loaded from the network.
  */
 class GetBookContentUseCase(
     private val repository: BookRepository,
+    private val downloadRepository: DownloadRepository? = null,
     private val paginator: BookPaginator = BookPaginator()
 ) {
     suspend operator fun invoke(bookId: String): AppResult<BookContent> {
+        // Local-first: serve downloaded content without touching the network.
+        downloadRepository?.getDownloadedContent(bookId)?.let { downloaded ->
+            val localPages = paginator.paginate(cleanBookText(downloaded.text))
+            if (localPages.isNotEmpty()) {
+                return AppResult.Success(
+                    BookContent(bookId = bookId, title = downloaded.title, pages = localPages)
+                )
+            }
+        }
+
         val book = when (val details = repository.getBookDetails(bookId)) {
             is AppResult.Success -> details.data
             is AppResult.Error -> return details
