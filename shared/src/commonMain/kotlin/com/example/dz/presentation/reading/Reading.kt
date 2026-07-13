@@ -1,7 +1,13 @@
 package com.example.dz.presentation.reading
 
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,6 +25,8 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -31,9 +39,12 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.dz.designsystem.components.downloading.DownloadingPopup
 import com.example.dz.designsystem.components.icons.InkIcons
 import com.example.dz.designsystem.components.ink.InkButton
 import com.example.dz.designsystem.components.ink.InkProgressBar
+import com.example.dz.designsystem.components.popups.DeleteBooksPopup
+import com.example.dz.designsystem.components.results.SuccessfulDownloadDone
 import com.example.dz.designsystem.theme.inkBodyFontFamily
 import com.example.dz.designsystem.theme.inkColors
 import com.example.dz.designsystem.theme.inkDisplayFontFamily
@@ -48,8 +59,9 @@ fun ReadingScreen(
     val displayFont = inkDisplayFontFamily()
     val bodyFont = inkBodyFontFamily()
 
+    Box(modifier = modifier.fillMaxSize()) {
     Column(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxSize()
             .background(colors.paper)
             .statusBarsPadding()
@@ -81,6 +93,21 @@ fun ReadingScreen(
                 textAlign = TextAlign.Center
             )
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                Icon(
+                    imageVector = if (uiState.isDownloaded) InkIcons.Done else InkIcons.Download,
+                    contentDescription = null,
+                    tint = if (uiState.isDownloaded) colors.accent else colors.muted,
+                    modifier = Modifier
+                        .size(19.dp)
+                        .alpha(if (uiState.isDownloading) 0.4f else 1f)
+                        .clickable(enabled = !uiState.isDownloading) {
+                            if (uiState.isDownloaded) {
+                                onEvent(ReadingEvent.DeleteDownloadClicked)
+                            } else {
+                                onEvent(ReadingEvent.DownloadClicked)
+                            }
+                        }
+                )
                 Icon(
                     imageVector = InkIcons.Settings,
                     contentDescription = null,
@@ -214,6 +241,69 @@ fun ReadingScreen(
                     }
                 }
             }
+        }
+    }
+
+        ReadingDownloadOverlays(uiState = uiState, onEvent = onEvent)
+    }
+}
+
+/**
+ * Full-screen overlays for the offline-download flow: the in-progress [DownloadingPopup], the
+ * [SuccessfulDownloadDone] confirmation, and the [DeleteBooksPopup] delete confirmation. Rendered
+ * above the reader and driven entirely by [ReadingUiState].
+ */
+@Composable
+private fun ReadingDownloadOverlays(
+    uiState: ReadingUiState,
+    onEvent: (ReadingEvent) -> Unit
+) {
+    // No byte-level progress from the download use case yet, so animate an indeterminate bar.
+    val transition = rememberInfiniteTransition(label = "download-progress")
+    val animatedProgress by transition.animateFloat(
+        initialValue = 0.08f,
+        targetValue = 0.92f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1100),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "download-progress-value"
+    )
+
+    when {
+        uiState.isDownloading -> DownloadingPopup(
+            title = uiState.bookTitle,
+            author = "",
+            progress = animatedProgress
+        )
+
+        uiState.showDownloadSuccess -> Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) { onEvent(ReadingEvent.DownloadSuccessDismissed) }
+        ) {
+            SuccessfulDownloadDone()
+        }
+    }
+
+    if (uiState.showDeleteDownloadDialog) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            // Tapping outside the action buttons keeps the download (cancel).
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) { onEvent(ReadingEvent.DismissDeleteDownloadDialog) }
+            )
+            DeleteBooksPopup(
+                onRemoveFromCollectionClick = { onEvent(ReadingEvent.DismissDeleteDownloadDialog) },
+                onRemoveEverywhereClick = { onEvent(ReadingEvent.ConfirmDeleteDownload) }
+            )
         }
     }
 }

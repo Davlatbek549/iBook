@@ -4,6 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.dz.core.result.AppResult
 import com.example.dz.domain.model.BookContent
+import com.example.dz.domain.repository.DownloadRepository
+import com.example.dz.domain.usecase.book.DeleteDownloadUseCase
+import com.example.dz.domain.usecase.book.DownloadBookUseCase
 import com.example.dz.domain.usecase.book.GetBookContentUseCase
 import com.example.dz.domain.usecase.library.UpdateReadingProgressUseCase
 import com.example.dz.presentation.mvi.toPresentationMessage
@@ -17,7 +20,10 @@ import kotlinx.coroutines.launch
 class ReadingViewModel(
     private val bookId: String,
     private val getBookContent: GetBookContentUseCase,
-    private val updateReadingProgress: UpdateReadingProgressUseCase
+    private val updateReadingProgress: UpdateReadingProgressUseCase,
+    private val downloadBook: DownloadBookUseCase,
+    private val deleteDownload: DeleteDownloadUseCase,
+    private val downloadRepository: DownloadRepository
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(ReadingUiState(bookId = bookId, isLoading = true))
     val uiState = _uiState.asStateFlow()
@@ -27,6 +33,7 @@ class ReadingViewModel(
 
     init {
         load()
+        refreshDownloadState()
     }
 
     fun onEvent(event: ReadingEvent) {
@@ -38,6 +45,53 @@ class ReadingViewModel(
             ReadingEvent.NextPageClicked -> movePage(1)
             ReadingEvent.PreviousPageClicked -> movePage(-1)
             ReadingEvent.RetryClicked -> load()
+            ReadingEvent.DownloadClicked -> download()
+            ReadingEvent.DownloadSuccessDismissed ->
+                _uiState.update { it.copy(showDownloadSuccess = false) }
+            ReadingEvent.DeleteDownloadClicked ->
+                _uiState.update { it.copy(showDeleteDownloadDialog = true) }
+            ReadingEvent.DismissDeleteDownloadDialog ->
+                _uiState.update { it.copy(showDeleteDownloadDialog = false) }
+            ReadingEvent.ConfirmDeleteDownload -> confirmDeleteDownload()
+        }
+    }
+
+    private fun refreshDownloadState() {
+        viewModelScope.launch {
+            if (downloadRepository.isDownloaded(bookId)) {
+                _uiState.update { it.copy(downloadPhase = DownloadPhase.Downloaded) }
+            }
+        }
+    }
+
+    private fun download() {
+        if (_uiState.value.downloadPhase != DownloadPhase.NotDownloaded) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(downloadPhase = DownloadPhase.Downloading, downloadErrorMessage = null) }
+            when (val result = downloadBook(bookId)) {
+                is AppResult.Success -> _uiState.update {
+                    it.copy(downloadPhase = DownloadPhase.Downloaded, showDownloadSuccess = true)
+                }
+                is AppResult.Error -> _uiState.update {
+                    it.copy(
+                        downloadPhase = DownloadPhase.NotDownloaded,
+                        downloadErrorMessage = result.error.toPresentationMessage()
+                    )
+                }
+            }
+        }
+    }
+
+    private fun confirmDeleteDownload() {
+        viewModelScope.launch {
+            deleteDownload(bookId)
+            _uiState.update {
+                it.copy(
+                    downloadPhase = DownloadPhase.NotDownloaded,
+                    showDeleteDownloadDialog = false,
+                    showDownloadSuccess = false
+                )
+            }
         }
     }
 
