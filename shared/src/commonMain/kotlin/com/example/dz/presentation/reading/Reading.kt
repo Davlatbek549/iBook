@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -24,13 +25,14 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dz.designsystem.components.icons.InkIcons
+import com.example.dz.designsystem.components.ink.InkButton
 import com.example.dz.designsystem.components.ink.InkProgressBar
 import com.example.dz.designsystem.theme.inkBodyFontFamily
 import com.example.dz.designsystem.theme.inkColors
@@ -76,7 +78,7 @@ fun ReadingScreen(
                 fontSize = 11.sp,
                 letterSpacing = 0.5.sp,
                 color = colors.muted,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                textAlign = TextAlign.Center
             )
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Icon(
@@ -107,89 +109,109 @@ fun ReadingScreen(
         }
 
         // page body
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .verticalScroll(rememberScrollState())
-                .padding(start = 26.dp, end = 26.dp, top = 14.dp)
-        ) {
-            Text(
-                text = uiState.chapterLabel,
-                fontFamily = displayFont,
-                fontStyle = FontStyle.Italic,
-                fontSize = 13.sp,
-                color = colors.accent
-            )
-            Text(
-                text = uiState.chapterTitle,
-                modifier = Modifier.padding(top = 14.dp),
-                fontFamily = displayFont,
-                fontWeight = FontWeight.Medium,
-                fontSize = 22.sp,
-                color = colors.ink
-            )
-            Column(
-                modifier = Modifier.padding(top = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+        when {
+            uiState.isLoading -> Box(
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+                contentAlignment = Alignment.Center
             ) {
-                uiState.paragraphs.forEach { paragraph ->
+                CircularProgressIndicator(color = colors.accent)
+            }
+
+            uiState.errorMessage != null -> Box(
+                modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 32.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = paragraph,
-                        modifier = Modifier.alpha(0.92f),
-                        fontFamily = displayFont,
-                        fontSize = 16.5.sp,
-                        lineHeight = 30.5.sp,
-                        color = colors.ink
+                        text = uiState.errorMessage,
+                        fontFamily = bodyFont,
+                        fontSize = 14.sp,
+                        color = colors.muted,
+                        textAlign = TextAlign.Center
                     )
+                    InkButton(
+                        text = "Try Again",
+                        onClick = { onEvent(ReadingEvent.RetryClicked) },
+                        modifier = Modifier.padding(top = 20.dp),
+                        colors = colors
+                    )
+                }
+            }
+
+            else -> Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(start = 26.dp, end = 26.dp, top = 14.dp)
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    uiState.currentPageParagraphs.forEach { paragraph ->
+                        Text(
+                            text = paragraph,
+                            modifier = Modifier.alpha(0.92f),
+                            fontFamily = displayFont,
+                            fontSize = 16.5.sp,
+                            lineHeight = 30.5.sp,
+                            color = colors.ink
+                        )
+                    }
                 }
             }
         }
 
         // bottom progress bar
-        Column {
-            HorizontalDivider(thickness = 1.dp, color = colors.line)
-            Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 16.dp, bottom = 22.dp)) {
-                InkProgressBar(
-                    progress = uiState.progress,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = colors
-                )
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = InkIcons.Back,
-                        contentDescription = null,
-                        tint = colors.muted,
+        if (uiState.pages.isNotEmpty()) {
+            Column {
+                HorizontalDivider(thickness = 1.dp, color = colors.line)
+                Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 16.dp, bottom = 22.dp)) {
+                    InkProgressBar(
+                        progress = uiState.progress,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = colors
+                    )
+                    Row(
                         modifier = Modifier
-                            .size(18.dp)
-                            .clickable { onEvent(ReadingEvent.PreviousPageClicked) }
-                    )
-                    Text(
-                        text = buildAnnotatedString {
-                            append("Page ${uiState.currentPage} of ${uiState.totalPages} · ")
-                            withStyle(SpanStyle(color = colors.accent)) {
-                                append("${uiState.progressPercent}%")
-                            }
-                        },
-                        modifier = Modifier.weight(1f),
-                        fontFamily = bodyFont,
-                        fontSize = 11.sp,
-                        color = colors.muted,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                    )
-                    Icon(
-                        imageVector = InkIcons.Back,
-                        contentDescription = null,
-                        tint = colors.muted,
-                        modifier = Modifier
-                            .size(18.dp)
-                            .graphicsLayer { rotationZ = 180f }
-                            .clickable { onEvent(ReadingEvent.NextPageClicked) }
-                    )
+                            .fillMaxWidth()
+                            .padding(top = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = InkIcons.Back,
+                            contentDescription = null,
+                            tint = colors.muted,
+                            modifier = Modifier
+                                .size(18.dp)
+                                .alpha(if (uiState.canGoToPreviousPage) 1f else 0.3f)
+                                .clickable(enabled = uiState.canGoToPreviousPage) {
+                                    onEvent(ReadingEvent.PreviousPageClicked)
+                                }
+                        )
+                        Text(
+                            text = buildAnnotatedString {
+                                append("Page ${uiState.currentPage} of ${uiState.totalPages} · ")
+                                withStyle(SpanStyle(color = colors.accent)) {
+                                    append("${uiState.progressPercent}%")
+                                }
+                            },
+                            modifier = Modifier.weight(1f),
+                            fontFamily = bodyFont,
+                            fontSize = 11.sp,
+                            color = colors.muted,
+                            textAlign = TextAlign.Center
+                        )
+                        Icon(
+                            imageVector = InkIcons.Back,
+                            contentDescription = null,
+                            tint = colors.muted,
+                            modifier = Modifier
+                                .size(18.dp)
+                                .graphicsLayer { rotationZ = 180f }
+                                .alpha(if (uiState.canGoToNextPage) 1f else 0.3f)
+                                .clickable(enabled = uiState.canGoToNextPage) {
+                                    onEvent(ReadingEvent.NextPageClicked)
+                                }
+                        )
+                    }
                 }
             }
         }
@@ -199,5 +221,34 @@ fun ReadingScreen(
 @Preview(showBackground = true, widthDp = 375, heightDp = 820)
 @Composable
 private fun ReadingScreenPreview() {
-    ReadingScreen()
+    ReadingScreen(
+        uiState = ReadingUiState(
+            bookTitle = "Mexican Gothic",
+            pages = listOf(
+                "The house appeared out of the mist like something half-remembered from a dream — tall, severe, and utterly silent. Noemí pressed her face to the carriage window and watched the iron gates draw closer.\n\n" +
+                    "She had not wanted to come. The city, with its parties and its noise, was where she belonged. Yet the letter had been impossible to ignore.\n\n" +
+                    "“We are nearly there,” the driver said, though his voice carried no comfort at all."
+            ),
+            currentPage = 198,
+            totalPages = 320,
+            isLoading = false
+        )
+    )
+}
+
+@Preview(showBackground = true, widthDp = 375, heightDp = 820)
+@Composable
+private fun ReadingScreenLoadingPreview() {
+    ReadingScreen(uiState = ReadingUiState(isLoading = true))
+}
+
+@Preview(showBackground = true, widthDp = 375, heightDp = 820)
+@Composable
+private fun ReadingScreenErrorPreview() {
+    ReadingScreen(
+        uiState = ReadingUiState(
+            isLoading = false,
+            errorMessage = "Could not load data. Check your connection and try again."
+        )
+    )
 }

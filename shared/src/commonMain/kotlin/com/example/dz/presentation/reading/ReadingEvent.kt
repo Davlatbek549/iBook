@@ -7,4 +7,5 @@ sealed interface ReadingEvent {
     data object BookmarkToggled : ReadingEvent
     data object NextPageClicked : ReadingEvent
     data object PreviousPageClicked : ReadingEvent
+    data object RetryClicked : ReadingEvent
 }

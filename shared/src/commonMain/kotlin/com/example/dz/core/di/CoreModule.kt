@@ -228,7 +228,7 @@ val coreModule = module {
     factory { PaymentFailedViewModel() }
 
     factory { ProfileViewModel(get()) }
-    factory { (bookId: String) -> ReadingViewModel(bookId, get()) }
+    factory { (bookId: String) -> ReadingViewModel(bookId, get(), get()) }
     factory { SettingsViewModel() }
 
     factory { FriendListViewModel(get()) }
