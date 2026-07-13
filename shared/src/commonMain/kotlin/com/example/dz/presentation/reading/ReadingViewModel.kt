@@ -2,6 +2,7 @@ package com.example.dz.presentation.reading
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.dz.core.error.AppError
 import com.example.dz.core.result.AppResult
 import com.example.dz.domain.model.BookContent
 import com.example.dz.domain.repository.DownloadRepository
@@ -48,6 +49,8 @@ class ReadingViewModel(
             ReadingEvent.DownloadClicked -> download()
             ReadingEvent.DownloadSuccessDismissed ->
                 _uiState.update { it.copy(showDownloadSuccess = false) }
+            ReadingEvent.DownloadErrorDismissed ->
+                _uiState.update { it.copy(downloadErrorMessage = null) }
             ReadingEvent.DeleteDownloadClicked ->
                 _uiState.update { it.copy(showDeleteDownloadDialog = true) }
             ReadingEvent.DismissDeleteDownloadDialog ->
@@ -75,7 +78,12 @@ class ReadingViewModel(
                 is AppResult.Error -> _uiState.update {
                     it.copy(
                         downloadPhase = DownloadPhase.NotDownloaded,
-                        downloadErrorMessage = result.error.toPresentationMessage()
+                        // A missing text source means this book has no downloadable full text
+                        // (e.g. OpenLibrary titles), which is clearer than a generic "not found".
+                        downloadErrorMessage = when (result.error) {
+                            AppError.NotFound -> "This book isn't available for offline download."
+                            else -> result.error.toPresentationMessage()
+                        }
                     )
                 }
             }

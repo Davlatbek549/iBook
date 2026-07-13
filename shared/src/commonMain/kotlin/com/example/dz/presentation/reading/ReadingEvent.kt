@@ -15,6 +15,9 @@ sealed interface ReadingEvent {
     /** Dismiss the "download complete" confirmation. */
     data object DownloadSuccessDismissed : ReadingEvent
 
+    /** Dismiss the download-failure message. */
+    data object DownloadErrorDismissed : ReadingEvent
+
     /** Open the delete-download confirmation popup. */
     data object DeleteDownloadClicked : ReadingEvent
 
