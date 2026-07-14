@@ -51,7 +51,12 @@ import com.example.dz.designsystem.components.results.SuccessfulDownloadDone
 import com.example.dz.designsystem.theme.inkBodyFontFamily
 import com.example.dz.designsystem.theme.inkColors
 import com.example.dz.designsystem.theme.inkDisplayFontFamily
+import dz.shared.generated.resources.Res
+import dz.shared.generated.resources.popup_delete_download
+import dz.shared.generated.resources.popup_delete_download_message
+import dz.shared.generated.resources.popup_keep_download
 import kotlinx.coroutines.delay
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun ReadingScreen(
@@ -275,11 +280,31 @@ private fun ReadingDownloadOverlays(
     )
 
     when {
-        uiState.isDownloading -> DownloadingPopup(
-            title = uiState.bookTitle,
-            author = "",
-            progress = animatedProgress
-        )
+        uiState.isDownloading -> {
+            // No cover image is available in the reader, so show a neutral monogram tile
+            // instead of an unrelated placeholder book.
+            val colors = inkColors()
+            val displayFont = inkDisplayFontFamily()
+            DownloadingPopup(
+                title = uiState.bookTitle,
+                author = "",
+                progress = animatedProgress,
+                cover = { coverModifier ->
+                    Box(
+                        modifier = coverModifier.background(colors.alt),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = uiState.bookTitle.trim().take(1).uppercase(),
+                            fontFamily = displayFont,
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 96.sp,
+                            color = colors.muted
+                        )
+                    }
+                }
+            )
+        }
 
         uiState.showDownloadSuccess -> Box(
             modifier = Modifier
@@ -306,7 +331,10 @@ private fun ReadingDownloadOverlays(
             )
             DeleteBooksPopup(
                 onRemoveFromCollectionClick = { onEvent(ReadingEvent.DismissDeleteDownloadDialog) },
-                onRemoveEverywhereClick = { onEvent(ReadingEvent.ConfirmDeleteDownload) }
+                onRemoveEverywhereClick = { onEvent(ReadingEvent.ConfirmDeleteDownload) },
+                message = stringResource(Res.string.popup_delete_download_message),
+                keepButtonText = stringResource(Res.string.popup_keep_download),
+                deleteButtonText = stringResource(Res.string.popup_delete_download)
             )
         }
     }

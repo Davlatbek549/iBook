@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.dz.core.result.AppResult
 import com.example.dz.domain.model.Book
+import com.example.dz.domain.repository.DownloadRepository
 import com.example.dz.domain.usecase.book.GetBookDetailsUseCase
 import com.example.dz.domain.usecase.book.GetBooksByCategoryUseCase
 import com.example.dz.presentation.mvi.toPresentationMessage
@@ -17,7 +18,8 @@ import kotlinx.coroutines.launch
 class PrePurchaseViewModel(
     private val bookId: String,
     private val getBookDetails: GetBookDetailsUseCase,
-    private val getBooksByCategory: GetBooksByCategoryUseCase
+    private val getBooksByCategory: GetBooksByCategoryUseCase,
+    private val downloadRepository: DownloadRepository
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(PrePurchaseUiState(bookId = bookId, isLoading = true))
     val uiState = _uiState.asStateFlow()
@@ -27,6 +29,15 @@ class PrePurchaseViewModel(
 
     init {
         load(bookId)
+        refreshDownloadState()
+    }
+
+    /** Re-checks the offline state, e.g. when returning from the reader after a download. */
+    fun refreshDownloadState() {
+        viewModelScope.launch {
+            val downloaded = downloadRepository.isDownloaded(bookId)
+            _uiState.update { it.copy(isDownloaded = downloaded) }
+        }
     }
 
     fun onEvent(event: PrePurchaseEvent) {
@@ -66,7 +77,12 @@ class PrePurchaseViewModel(
             emptyList()
         }
 
-        _uiState.update { book.toPrePurchaseUiState(relatedBooks).copy(isFavorite = it.isFavorite) }
+        _uiState.update {
+            book.toPrePurchaseUiState(relatedBooks).copy(
+                isFavorite = it.isFavorite,
+                isDownloaded = it.isDownloaded
+            )
+        }
     }
 
     private fun emitEffect(effect: PrePurchaseEffect) {

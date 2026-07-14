@@ -22,6 +22,7 @@ data class PrePurchaseUiState(
     val coverUrl: String? = null,
     val relatedBooks: List<PrePurchaseRelatedBookUi> = emptyList(),
     val isFavorite: Boolean = false,
+    val isDownloaded: Boolean = false,
     val isLoading: Boolean = false,
     val errorMessage: String? = null
 )

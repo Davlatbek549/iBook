@@ -25,7 +25,9 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavBackStackEntry
@@ -567,6 +569,11 @@ fun DZNavGraph() {
                 val prePurchaseViewModel = koinPrePurchaseViewModel(bookId)
                 val uiState by prePurchaseViewModel.uiState.collectAsStateWithLifecycle()
 
+                // Refresh the offline badge when returning from the reader after a download/delete.
+                LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+                    prePurchaseViewModel.refreshDownloadState()
+                }
+
                 LaunchedEffect(prePurchaseViewModel) {
                     prePurchaseViewModel.effects.collect { effect ->
                         when (effect) {
@@ -799,6 +806,11 @@ fun DZNavGraph() {
             composable(Routes.COLLECTIONS) {
                 val collectionsViewModel = koinViewModel<CollectionsViewModel>()
                 val uiState by collectionsViewModel.uiState.collectAsStateWithLifecycle()
+
+                // Refresh when this entry comes back to the foreground (e.g. after "New collection").
+                LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+                    collectionsViewModel.refresh()
+                }
 
                 LaunchedEffect(collectionsViewModel) {
                     collectionsViewModel.effects.collect { effect ->

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.dz.core.result.AppResult
 import com.example.dz.domain.model.Collection
+import com.example.dz.domain.usecase.collection.CreateCollectionUseCase
 import com.example.dz.domain.usecase.collection.DeleteCollectionUseCase
 import com.example.dz.domain.usecase.collection.GetCollectionDetailsUseCase
 import com.example.dz.domain.usecase.collection.UpdateCollectionUseCase
@@ -17,6 +18,7 @@ import kotlinx.coroutines.launch
 class CollectionsEditViewModel(
     private val collectionId: String,
     private val getCollectionDetails: GetCollectionDetailsUseCase,
+    private val createCollection: CreateCollectionUseCase,
     private val updateCollection: UpdateCollectionUseCase,
     private val deleteCollection: DeleteCollectionUseCase
 ) : ViewModel() {
@@ -86,12 +88,21 @@ class CollectionsEditViewModel(
         viewModelScope.launch {
             val state = _uiState.value
             val keptBookIds = state.books.map { it.id }.toSet()
-            val collection = (loadedCollection ?: Collection(id = collectionId, title = state.name)).copy(
-                title = state.name,
-                description = state.description.ifBlank { null },
-                books = loadedCollection?.books.orEmpty().filter { it.id in keptBookIds }
-            )
-            updateCollection(collection)
+            // A collection loaded for editing is updated in place. Otherwise this is a brand-new
+            // collection: it must be created first — update on a nonexistent id is a silent no-op.
+            val base = loadedCollection
+                ?: state.name.takeIf { it.isNotBlank() }?.let { name ->
+                    (createCollection(name) as? AppResult.Success)?.data
+                }
+            if (base != null) {
+                updateCollection(
+                    base.copy(
+                        title = state.name,
+                        description = state.description.ifBlank { null },
+                        books = base.books.filter { it.id in keptBookIds }
+                    )
+                )
+            }
             emitEffect(CollectionsEditEffect.NavigateBack)
         }
     }

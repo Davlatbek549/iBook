@@ -70,7 +70,10 @@ fun DeleteBooksPopup(
     onRemoveFromCollectionClick: () -> Unit,
     onRemoveEverywhereClick: () -> Unit,
     modifier: Modifier = Modifier,
-    trashBinRes: DrawableResource = Res.drawable.trash_bin
+    trashBinRes: DrawableResource = Res.drawable.trash_bin,
+    message: String = stringResource(Res.string.popup_delete_purchased_message),
+    keepButtonText: String = stringResource(Res.string.popup_remove_from_collection),
+    deleteButtonText: String = stringResource(Res.string.popup_remove_everywhere)
 ) {
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val metrics = rememberDeleteBooksPopupMetrics(maxWidth = maxWidth, maxHeight = maxHeight)
@@ -89,6 +92,7 @@ fun DeleteBooksPopup(
             DeleteBooksCard(
                 metrics = metrics,
                 trashBinRes = trashBinRes,
+                message = message,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = metrics.cardHorizontalPadding)
@@ -97,7 +101,7 @@ fun DeleteBooksPopup(
             Spacer(modifier = Modifier.weight(1f))
 
             DeleteBooksButton(
-                text = stringResource(Res.string.popup_remove_from_collection),
+                text = keepButtonText,
                 backgroundColor = colorScheme.surface,
                 contentColor = ColorPrimary,
                 metrics = metrics,
@@ -110,7 +114,7 @@ fun DeleteBooksPopup(
             Spacer(modifier = Modifier.height(metrics.buttonSpacing))
 
             DeleteBooksButton(
-                text = stringResource(Res.string.popup_remove_everywhere),
+                text = deleteButtonText,
                 backgroundColor = ColorPrimary,
                 contentColor = colorScheme.onPrimary,
                 metrics = metrics,
@@ -145,6 +149,7 @@ private fun DeleteBooksPopupBackground() {
 private fun DeleteBooksCard(
     metrics: DeleteBooksPopupMetrics,
     trashBinRes: DrawableResource,
+    message: String,
     modifier: Modifier = Modifier
 ) {
     val colorScheme = MaterialTheme.colorScheme
@@ -177,7 +182,7 @@ private fun DeleteBooksCard(
         Spacer(modifier = Modifier.height(metrics.titleTopSpacing))
 
         Text(
-            text = stringResource(Res.string.popup_delete_purchased_message),
+            text = message,
             color = colorScheme.onSurface.copy(alpha = 0.76f),
             textAlign = TextAlign.Center,
             style = MaterialTheme.typography.headlineMedium.copy(
