@@ -55,6 +55,7 @@ import dz.shared.generated.resources.book_cover_2
 import dz.shared.generated.resources.book_cover_3
 import dz.shared.generated.resources.book_cover_4
 import dz.shared.generated.resources.library_collections
+import dz.shared.generated.resources.library_downloaded
 import dz.shared.generated.resources.library_tab_finished
 import dz.shared.generated.resources.library_tab_reading
 import dz.shared.generated.resources.library_tab_to_read
@@ -73,7 +74,8 @@ data class LibraryBook(
     val progress: String? = null,
     val timeLeft: String? = null,
     val id: String = title,
-    val coverUrl: String? = null
+    val coverUrl: String? = null,
+    val isDownloaded: Boolean = false
 )
 
 data class LibraryCollection(
@@ -238,6 +240,7 @@ fun LibraryScreen(
                     showDivider = i > 0,
                     meta = if (book.progress != null) {
                         {
+                            val downloadedLabel = stringResource(Res.string.library_downloaded)
                             Column {
                                 InkProgressBar(
                                     progress = book.progress.toFloat() / 100f,
@@ -250,6 +253,17 @@ fun LibraryScreen(
                                             append("${book.progress}%")
                                         }
                                         append(" · ${book.timeLeft.orEmpty()}")
+                                        if (book.isDownloaded) {
+                                            append(" · ")
+                                            withStyle(
+                                                SpanStyle(
+                                                    color = colors.accent,
+                                                    fontWeight = FontWeight.SemiBold
+                                                )
+                                            ) {
+                                                append(downloadedLabel)
+                                            }
+                                        }
                                     },
                                     modifier = Modifier.padding(top = 6.dp),
                                     fontFamily = bodyFont,
@@ -342,7 +356,8 @@ private fun DomainLibraryBook.toLibraryBook(index: Int): LibraryBook =
         progress = progressPercent.coerceIn(0, 100).toString(),
         timeLeft = "18 min left",
         id = book.id,
-        coverUrl = book.coverUrl
+        coverUrl = book.coverUrl,
+        isDownloaded = isDownloaded
     )
 
 @Composable

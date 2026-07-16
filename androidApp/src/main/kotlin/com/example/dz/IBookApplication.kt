@@ -2,6 +2,7 @@ package com.example.dz
 
 import android.app.Application
 import com.example.dz.core.di.coreModule
+import com.example.dz.core.di.platformModule
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
 
@@ -10,7 +11,7 @@ class IBookApplication : Application() {
         super.onCreate()
         startKoin {
             androidContext(this@IBookApplication)
-            modules(coreModule)
+            modules(coreModule, platformModule)
         }
     }
 }

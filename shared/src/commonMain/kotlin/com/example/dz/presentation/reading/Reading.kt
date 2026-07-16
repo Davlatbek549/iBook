@@ -1,7 +1,14 @@
 package com.example.dz.presentation.reading
 
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,9 +26,13 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -31,12 +42,21 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.dz.designsystem.components.downloading.DownloadingPopup
 import com.example.dz.designsystem.components.icons.InkIcons
 import com.example.dz.designsystem.components.ink.InkButton
 import com.example.dz.designsystem.components.ink.InkProgressBar
+import com.example.dz.designsystem.components.popups.DeleteBooksPopup
+import com.example.dz.designsystem.components.results.SuccessfulDownloadDone
 import com.example.dz.designsystem.theme.inkBodyFontFamily
 import com.example.dz.designsystem.theme.inkColors
 import com.example.dz.designsystem.theme.inkDisplayFontFamily
+import dz.shared.generated.resources.Res
+import dz.shared.generated.resources.popup_delete_download
+import dz.shared.generated.resources.popup_delete_download_message
+import dz.shared.generated.resources.popup_keep_download
+import kotlinx.coroutines.delay
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun ReadingScreen(
@@ -48,8 +68,9 @@ fun ReadingScreen(
     val displayFont = inkDisplayFontFamily()
     val bodyFont = inkBodyFontFamily()
 
+    Box(modifier = modifier.fillMaxSize()) {
     Column(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxSize()
             .background(colors.paper)
             .statusBarsPadding()
@@ -81,6 +102,21 @@ fun ReadingScreen(
                 textAlign = TextAlign.Center
             )
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                Icon(
+                    imageVector = if (uiState.isDownloaded) InkIcons.Done else InkIcons.Download,
+                    contentDescription = null,
+                    tint = if (uiState.isDownloaded) colors.accent else colors.muted,
+                    modifier = Modifier
+                        .size(19.dp)
+                        .alpha(if (uiState.isDownloading) 0.4f else 1f)
+                        .clickable(enabled = !uiState.isDownloading) {
+                            if (uiState.isDownloaded) {
+                                onEvent(ReadingEvent.DeleteDownloadClicked)
+                            } else {
+                                onEvent(ReadingEvent.DownloadClicked)
+                            }
+                        }
+                )
                 Icon(
                     imageVector = InkIcons.Settings,
                     contentDescription = null,
@@ -214,6 +250,124 @@ fun ReadingScreen(
                     }
                 }
             }
+        }
+    }
+
+        ReadingDownloadOverlays(uiState = uiState, onEvent = onEvent)
+    }
+}
+
+/**
+ * Full-screen overlays for the offline-download flow: the in-progress [DownloadingPopup], the
+ * [SuccessfulDownloadDone] confirmation, and the [DeleteBooksPopup] delete confirmation. Rendered
+ * above the reader and driven entirely by [ReadingUiState].
+ */
+@Composable
+private fun ReadingDownloadOverlays(
+    uiState: ReadingUiState,
+    onEvent: (ReadingEvent) -> Unit
+) {
+    // No byte-level progress from the download use case yet, so animate an indeterminate bar.
+    val transition = rememberInfiniteTransition(label = "download-progress")
+    val animatedProgress by transition.animateFloat(
+        initialValue = 0.08f,
+        targetValue = 0.92f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1100),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "download-progress-value"
+    )
+
+    when {
+        uiState.isDownloading -> {
+            // No cover image is available in the reader, so show a neutral monogram tile
+            // instead of an unrelated placeholder book.
+            val colors = inkColors()
+            val displayFont = inkDisplayFontFamily()
+            DownloadingPopup(
+                title = uiState.bookTitle,
+                author = "",
+                progress = animatedProgress,
+                cover = { coverModifier ->
+                    Box(
+                        modifier = coverModifier.background(colors.alt),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = uiState.bookTitle.trim().take(1).uppercase(),
+                            fontFamily = displayFont,
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 96.sp,
+                            color = colors.muted
+                        )
+                    }
+                }
+            )
+        }
+
+        uiState.showDownloadSuccess -> Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) { onEvent(ReadingEvent.DownloadSuccessDismissed) }
+        ) {
+            SuccessfulDownloadDone()
+        }
+    }
+
+    if (uiState.showDeleteDownloadDialog) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            // Tapping outside the action buttons keeps the download (cancel).
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) { onEvent(ReadingEvent.DismissDeleteDownloadDialog) }
+            )
+            DeleteBooksPopup(
+                onRemoveFromCollectionClick = { onEvent(ReadingEvent.DismissDeleteDownloadDialog) },
+                onRemoveEverywhereClick = { onEvent(ReadingEvent.ConfirmDeleteDownload) },
+                message = stringResource(Res.string.popup_delete_download_message),
+                keepButtonText = stringResource(Res.string.popup_keep_download),
+                deleteButtonText = stringResource(Res.string.popup_delete_download)
+            )
+        }
+    }
+
+    uiState.downloadErrorMessage?.let { message ->
+        LaunchedEffect(message) {
+            delay(3500)
+            onEvent(ReadingEvent.DownloadErrorDismissed)
+        }
+        val colors = inkColors()
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .navigationBarsPadding()
+                .padding(24.dp),
+            contentAlignment = Alignment.BottomCenter
+        ) {
+            Text(
+                text = message,
+                fontFamily = inkBodyFontFamily(),
+                fontWeight = FontWeight.Medium,
+                fontSize = 13.sp,
+                color = colors.paper,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(colors.ink)
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) { onEvent(ReadingEvent.DownloadErrorDismissed) }
+                    .padding(horizontal = 20.dp, vertical = 14.dp)
+            )
         }
     }
 }

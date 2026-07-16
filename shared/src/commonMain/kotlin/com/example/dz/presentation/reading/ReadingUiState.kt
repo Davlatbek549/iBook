@@ -8,8 +8,15 @@ data class ReadingUiState(
     val totalPages: Int = 0,
     val bookmarked: Boolean = false,
     val isLoading: Boolean = true,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val downloadPhase: DownloadPhase = DownloadPhase.NotDownloaded,
+    val showDownloadSuccess: Boolean = false,
+    val showDeleteDownloadDialog: Boolean = false,
+    val downloadErrorMessage: String? = null
 ) {
+    val isDownloaded: Boolean get() = downloadPhase == DownloadPhase.Downloaded
+    val isDownloading: Boolean get() = downloadPhase == DownloadPhase.Downloading
+
     val currentPageParagraphs: List<String>
         get() = pages.getOrNull(currentPage - 1)
             ?.split(PARAGRAPH_BREAK)
@@ -29,3 +36,6 @@ data class ReadingUiState(
         val PARAGRAPH_BREAK = Regex("\\n\\s*\\n")
     }
 }
+
+/** Offline-download state for the book currently open in the reader. */
+enum class DownloadPhase { NotDownloaded, Downloading, Downloaded }

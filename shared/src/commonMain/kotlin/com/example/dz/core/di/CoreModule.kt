@@ -1,7 +1,11 @@
 package com.example.dz.core.di
 
+import com.example.dz.data.local.CollectionLocalDataSource
+import com.example.dz.data.local.LibraryLocalDataSource
 import com.example.dz.data.local.LocalDataSource
 import com.example.dz.data.local.LocalDataSourceImpl
+import com.example.dz.data.local.db.createDatabase
+import com.example.dz.data.local.file.FileStorage
 import com.example.dz.data.remote.api.ApiConfig
 import com.example.dz.data.remote.api.AuthApi
 import com.example.dz.data.remote.api.GutendexApi
@@ -12,8 +16,9 @@ import com.example.dz.data.remote.api.OpenLibraryApi
 import com.example.dz.data.remote.api.createAuthHttpClient
 import com.example.dz.data.remote.api.createRemoteHttpClient
 import com.example.dz.data.repository.ChatRepositoryImpl
-import com.example.dz.data.repository.FakeCollectionRepository
-import com.example.dz.data.repository.FakeLibraryRepository
+import com.example.dz.data.repository.DownloadRepositoryImpl
+import com.example.dz.data.repository.LocalCollectionRepository
+import com.example.dz.data.repository.LocalLibraryRepository
 import com.example.dz.data.repository.MembershipRepositoryImpl
 import com.example.dz.data.repository.NotificationRepositoryImpl
 import com.example.dz.data.repository.PaymentRepositoryImpl
@@ -25,6 +30,7 @@ import com.example.dz.domain.repository.AuthRepository
 import com.example.dz.domain.repository.BookRepository
 import com.example.dz.domain.repository.ChatRepository
 import com.example.dz.domain.repository.CollectionRepository
+import com.example.dz.domain.repository.DownloadRepository
 import com.example.dz.domain.repository.LibraryRepository
 import com.example.dz.domain.repository.MembershipRepository
 import com.example.dz.domain.repository.NotificationRepository
@@ -42,6 +48,8 @@ import com.example.dz.domain.usecase.book.GetBooksByCategoryUseCase
 import com.example.dz.domain.usecase.book.GetCategoriesUseCase
 import com.example.dz.domain.usecase.book.GetHomeBooksUseCase
 import com.example.dz.domain.usecase.book.SearchBooksUseCase
+import com.example.dz.domain.usecase.book.DeleteDownloadUseCase
+import com.example.dz.domain.usecase.book.DownloadBookUseCase
 import com.example.dz.domain.usecase.chat.GetChatsUseCase
 import com.example.dz.domain.usecase.chat.GetMessagesUseCase
 import com.example.dz.domain.usecase.chat.SendMessageUseCase
@@ -111,7 +119,7 @@ import org.koin.mp.KoinPlatform
 fun startKoinIfNeeded() {
     if (KoinPlatform.getKoinOrNull() == null) {
         startKoin {
-            modules(coreModule)
+            modules(coreModule, platformModule)
         }
     }
 }
@@ -124,6 +132,11 @@ val coreModule = module {
     // ── Local storage ────────────────────────────────────────────────────────
     single { Settings() }
     single<LocalDataSource> { LocalDataSourceImpl(get()) }
+
+    // ── SQLDelight database (DatabaseDriverFactory + FileStorage come from platformModule) ──
+    single { createDatabase(get()) }
+    single { LibraryLocalDataSource(get()) }
+    single { CollectionLocalDataSource(get()) }
 
     // ── App backend API (mock engine until a real server exists) ────────────
     single { ApiConfig() }
@@ -144,8 +157,11 @@ val coreModule = module {
     single<GutendexApi> { KtorGutendexApi(get()) }
     single<OpenLibraryApi> { KtorOpenLibraryApi(get()) }
     single<BookRepository> { RemoteBookRepository(get(), get(), get()) }
-    single<LibraryRepository> { FakeLibraryRepository() }
-    single<CollectionRepository> { FakeCollectionRepository() }
+    single<LibraryRepository> { LocalLibraryRepository(get()) }
+    single<CollectionRepository> { LocalCollectionRepository(get()) }
+
+    // ── Offline downloads (Phase 3) ──────────────────────────────────────────
+    single<DownloadRepository> { DownloadRepositoryImpl(get(), get(), get()) }
 
     // Domain use cases
     factory { LoginUseCase(get()) }
@@ -161,7 +177,9 @@ val coreModule = module {
     factory { GetBookDetailsUseCase(get()) }
     factory { GetCategoriesUseCase(get()) }
     factory { BookPaginator() }
-    factory { GetBookContentUseCase(get(), get()) }
+    factory { GetBookContentUseCase(repository = get(), downloadRepository = get()) }
+    factory { DownloadBookUseCase(get()) }
+    factory { DeleteDownloadUseCase(get()) }
 
     factory { GetLibraryBooksUseCase(get()) }
     factory { GetContinueReadingUseCase(get()) }
@@ -201,13 +219,13 @@ val coreModule = module {
     factory { SearchViewModel(get(), get()) }
     factory { StoreViewModel(get(), get()) }
     factory { (authorId: String) -> AuthorDetailViewModel(authorId) }
-    factory { (bookId: String) -> PrePurchaseViewModel(bookId, get(), get()) }
+    factory { (bookId: String) -> PrePurchaseViewModel(bookId, get(), get(), get()) }
     factory { (bookId: String) -> BookReviewViewModel(bookId, get()) }
     factory { (categoryId: String) -> CategoryDetailViewModel(categoryId, get(), get()) }
 
     factory { CollectionsViewModel(get()) }
     factory { (collectionId: String) -> CollectionDetailsViewModel(collectionId, get()) }
-    factory { (collectionId: String) -> CollectionsEditViewModel(collectionId, get(), get(), get()) }
+    factory { (collectionId: String) -> CollectionsEditViewModel(collectionId, get(), get(), get(), get()) }
 
     factory { GoalViewModel(get()) }
 
@@ -228,7 +246,7 @@ val coreModule = module {
     factory { PaymentFailedViewModel() }
 
     factory { ProfileViewModel(get()) }
-    factory { (bookId: String) -> ReadingViewModel(bookId, get(), get()) }
+    factory { (bookId: String) -> ReadingViewModel(bookId, get(), get(), get(), get(), get()) }
     factory { SettingsViewModel() }
 
     factory { FriendListViewModel(get()) }
