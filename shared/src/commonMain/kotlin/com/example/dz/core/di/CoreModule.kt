@@ -8,6 +8,8 @@ import com.example.dz.data.local.db.createDatabase
 import com.example.dz.data.local.file.FileStorage
 import com.example.dz.data.remote.api.ApiConfig
 import com.example.dz.data.remote.api.AuthApi
+import com.example.dz.data.remote.api.FirebaseAuthApi
+import com.example.dz.data.remote.api.FirebaseConfig
 import com.example.dz.data.remote.api.GutendexApi
 import com.example.dz.data.remote.api.KtorAuthApi
 import com.example.dz.data.remote.api.KtorGutendexApi
@@ -138,10 +140,23 @@ val coreModule = module {
     single { LibraryLocalDataSource(get()) }
     single { CollectionLocalDataSource(get()) }
 
-    // ── App backend API (mock engine until a real server exists) ────────────
+    // ── App backend API (mock engine, or Firebase Auth when useMockBackend = false) ──
     single { ApiConfig() }
+    single { FirebaseConfig() }
     single(named(AUTH_HTTP_CLIENT)) { createAuthHttpClient(local = get(), config = get()) }
-    single<AuthApi> { KtorAuthApi(client = get(named(AUTH_HTTP_CLIENT)), baseUrl = get<ApiConfig>().baseUrl) }
+    single<AuthApi> {
+        val config = get<ApiConfig>()
+        if (config.useMockBackend) {
+            KtorAuthApi(client = get(named(AUTH_HTTP_CLIENT)), baseUrl = config.baseUrl)
+        } else {
+            val firebase = get<FirebaseConfig>()
+            require(firebase.isConfigured) {
+                "ApiConfig.useMockBackend is false but FirebaseConfig.apiKey is not set. " +
+                    "Paste the Web API key from Firebase Console → Project settings → General."
+            }
+            FirebaseAuthApi(client = get(), config = firebase)
+        }
+    }
 
     // ── Person B — User & Commerce (local / session-backed) ─────────────────
     single<AuthRepository> { RemoteAuthRepository(get(), get()) }

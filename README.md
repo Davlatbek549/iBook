@@ -217,6 +217,14 @@ Current bottom navigation routes:
 
 The active app entry point currently launches the Home screen directly from `App.kt`. If full navigation is wired in later, keep the routing layer in shared code so Android and iOS stay aligned.
 
+## Backend & Auth
+
+Auth is backed by **Firebase Authentication** via its REST API, called from the shared Ktor
+client — there is no server of our own. While `ApiConfig.useMockBackend` is `true` the app uses an
+in-memory mock backend; to go live, paste the Firebase **Web API key** into `FirebaseConfig` and
+flip the flag. Setup steps, the decision record, and token-lifetime notes are in
+[docs/backend-auth.md](docs/backend-auth.md).
+
 ## Prerequisites
 
 Recommended tools:
