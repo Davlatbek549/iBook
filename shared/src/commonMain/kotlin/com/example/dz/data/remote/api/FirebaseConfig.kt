@@ -8,7 +8,7 @@ package com.example.dz.data.remote.api
  * and paste it into [apiKey]. Auth goes live once [ApiConfig.useMockBackend] is set to `false`.
  */
 data class FirebaseConfig(
-    val apiKey: String = "PASTE_FIREBASE_WEB_API_KEY",
+    val apiKey: String = "AIzaSyDMyfDbGrV6o8PQ03-scaX9FwRvkVpz_eI",
     val baseUrl: String = "https://identitytoolkit.googleapis.com/v1"
 ) {
     val isConfigured: Boolean
