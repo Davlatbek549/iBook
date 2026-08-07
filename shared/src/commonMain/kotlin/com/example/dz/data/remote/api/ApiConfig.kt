@@ -1,14 +1,18 @@
 package com.example.dz.data.remote.api
 
 /**
- * Runtime configuration for the app's own backend API.
+ * Runtime configuration for the app's own backend API (see `dz-server`).
  *
- * While [useMockBackend] is `true`, auth requests are served by an in-memory Ktor `MockEngine`.
- * Setting it to `false` routes auth to Firebase Authentication instead (see [FirebaseConfig] —
- * the Web API key must be set first). [baseUrl] is kept for future non-auth endpoints
- * (Phase 5 sync APIs).
+ * [baseUrl] already includes the `/api/v1` prefix, so [KtorAuthApi] appends
+ * paths like `/auth/login` directly. The default points at a server running on
+ * the developer's machine via [devServerHost]; set it to the deployed URL for
+ * anything else.
+ *
+ * Setting [useMockBackend] back to `true` swaps in an in-memory `MockEngine`,
+ * which is useful for UI work with no server running. Nothing else changes:
+ * the same [KtorAuthApi] handles both.
  */
 data class ApiConfig(
-    val baseUrl: String = "https://api.dz.example.com",
-    val useMockBackend: Boolean = true
+    val baseUrl: String = "http://$devServerHost:8080/api/v1",
+    val useMockBackend: Boolean = false
 )

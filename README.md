@@ -219,11 +219,43 @@ The active app entry point currently launches the Home screen directly from `App
 
 ## Backend & Auth
 
-Auth is backed by **Firebase Authentication** via its REST API, called from the shared Ktor
-client — there is no server of our own. While `ApiConfig.useMockBackend` is `true` the app uses an
-in-memory mock backend; to go live, paste the Firebase **Web API key** into `FirebaseConfig` and
-flip the flag. Setup steps, the decision record, and token-lifetime notes are in
-[docs/backend-auth.md](docs/backend-auth.md).
+The app talks to **our own server**, `dz-server` — a Kotlin/Spring Boot service backed by
+PostgreSQL, kept in a separate repository alongside this one. It owns accounts, profiles, each
+user's library and their collections, so there is no third-party backend in between. The Firebase
+Authentication path it replaced is no longer wired up.
+
+`KtorAuthApi` calls it through the shared Ktor client using `ApiConfig.baseUrl`, which already
+includes the `/api/v1` prefix.
+
+### Running against a local server
+
+Start the server first — from the `dz-server` repository:
+
+```bash
+docker compose up -d && ./gradlew bootRun
+```
+
+The app then works with no further changes. `ApiConfig.baseUrl` defaults to
+`http://$devServerHost:8080/api/v1`, and `devServerHost` is per-platform because the two simulators
+reach the host machine differently: `10.0.2.2` on the Android emulator, `127.0.0.1` on the iOS
+simulator. A **physical device** needs your machine's LAN address instead.
+
+Both platforms block plain HTTP by default, so each carries a narrow exception for loopback only —
+`androidApp/src/main/res/xml/network_security_config.xml` and `NSAppTransportSecurity` in
+`iosApp/iosApp/Info.plist`. Every other host still requires HTTPS, so these are safe to ship.
+
+### Working without a server
+
+Set `ApiConfig.useMockBackend = true` and the same `KtorAuthApi` runs against an in-memory
+`MockEngine` instead — useful for UI work when no server is running.
+
+### Errors
+
+The server returns `{"code": "...", "message": "..."}`, where auth codes match `AppError.AuthReason`
+exactly, so the UI can tell a duplicate email from a wrong password. Unrecognised codes fall back to
+status-code mapping. `DzServerAuthApiTest` pins this contract against real captured responses.
+
+The superseded Firebase decision record is kept in [docs/backend-auth.md](docs/backend-auth.md).
 
 ## Prerequisites
 
