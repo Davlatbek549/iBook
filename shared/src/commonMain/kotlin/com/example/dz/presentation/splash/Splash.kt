@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,18 +34,13 @@ import dz.shared.generated.resources.Res
 import dz.shared.generated.resources.app_name
 import dz.shared.generated.resources.splash_tagline
 import dz.shared.generated.resources.splash_version
-import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
 
 private const val RING_TEXT = "EST. ON GOOD BOOKS · DZ · EST. ON GOOD BOOKS · DZ · "
 
+/** Purely the emblem; [SplashViewModel] owns how long it shows and what follows it. */
 @Composable
-fun SplashScreen(onSplashFinished: () -> Unit = {}) {
-    LaunchedEffect(Unit) {
-        delay(1500)
-        onSplashFinished()
-    }
-
+fun SplashScreen() {
     val colors = inkColors()
     val displayFont = inkDisplayFontFamily()
     val bodyFont = inkBodyFontFamily()

@@ -195,7 +195,7 @@ shared/src/commonMain/kotlin/com/example/dz/theme
 Main theme entry point:
 
 ```kotlin
-DZTheme { ... }
+DZTheme {  }
 ```
 
 Brand and category colors are defined in `Color.kt`, typography helpers are in `Type.kt` and related theme files.
@@ -226,6 +226,21 @@ Authentication path it replaced is no longer wired up.
 
 `KtorAuthApi` calls it through the shared Ktor client using `ApiConfig.baseUrl`, which already
 includes the `/api/v1` prefix.
+
+### Sessions
+
+Login and sign-up return a short-lived access token (15 minutes) alongside a refresh token that
+lasts 30 days, and both are stored through `LocalDataSource`.
+
+Renewal is **reactive**: the client retries a 401 once against `/auth/refresh` and replays the
+original request, so callers never see the expired token — see `createAuthHttpClient`. The server
+rotates the refresh token on every use, so concurrent 401s are funnelled through a single refresh
+rather than each spending the stored one. A refusal from `/auth/refresh` clears the session; a
+timeout or 5xx leaves it alone, because neither says the token is invalid.
+
+The splash screen restores a stored session through `GetCurrentUserUseCase` and opens straight on
+Home, so signing in persists across launches. Settings → Sign out revokes that session server-side
+and clears the back stack.
 
 ### The deployed server (default)
 

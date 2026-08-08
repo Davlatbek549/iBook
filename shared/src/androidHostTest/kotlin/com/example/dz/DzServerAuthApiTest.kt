@@ -32,7 +32,7 @@ class DzServerAuthApiTest {
     private val jsonHeaders =
         headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString())
 
-    /** Note the extra `refreshToken` and `expiresIn` the app does not read yet. */
+    /** `expiresIn` is on the wire but unread: the client renews reactively, on a 401. */
     private val sessionBody = """
         {
           "token":"eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJkei1zZXJ2ZXIifQ.signature",
@@ -69,7 +69,7 @@ class DzServerAuthApiTest {
         baseUrl = baseUrl
     )
 
-    private fun repository(engine: MockEngine, local: LocalDataSource = InMemoryLocalDataSource()) =
+    private fun repository(engine: MockEngine, local: LocalDataSource = FakeLocalDataSource()) =
         RemoteAuthRepository(api(engine), local)
 
     @Test
@@ -84,17 +84,22 @@ class DzServerAuthApiTest {
 
     @Test
     fun `signup accepts 201 and stores the session`() = runBlocking {
-        val local = InMemoryLocalDataSource()
+        val local = FakeLocalDataSource()
         val result = repository(server(), local).signUp("Ada Lovelace", "ada@example.com", "correct-horse")
 
         assertTrue(result is AppResult.Success, "expected success but was $result")
         assertTrue(local.isLoggedIn(), "session should have been persisted")
         assertEquals("eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJkei1zZXJ2ZXIifQ.signature", local.getToken())
+        assertEquals(
+            "O6Ao-y_Aty1z6VTo2tBrlOieNdlsTPB1JHhPON4BGNc",
+            local.getRefreshToken(),
+            "without the refresh token the session dies with the 15-minute access token"
+        )
     }
 
     @Test
     fun `logout accepts an empty 204 and clears the session`() = runBlocking {
-        val local = InMemoryLocalDataSource()
+        val local = FakeLocalDataSource()
         val repository = repository(server(), local)
         repository.login("ada@example.com", "correct-horse")
 
@@ -171,37 +176,3 @@ class DzServerAuthApiTest {
     }
 }
 
-/** Minimal in-memory [LocalDataSource] so the tests do not touch platform storage. */
-private class InMemoryLocalDataSource : LocalDataSource {
-    private var token: String? = null
-    private var userId: String? = null
-    private var userName: String? = null
-    private var userEmail: String? = null
-    private val settings = mutableMapOf<String, String>()
-
-    override fun getToken(): String? = token
-    override fun saveToken(token: String) { this.token = token }
-    override fun getUserId(): String? = userId
-    override fun getUserEmail(): String? = userEmail
-    override fun getUserName(): String? = userName
-
-    override fun saveUserSession(userId: String, name: String, email: String, token: String) {
-        this.userId = userId
-        this.userName = name
-        this.userEmail = email
-        this.token = token
-    }
-
-    override fun isLoggedIn(): Boolean = !token.isNullOrEmpty()
-
-    override fun clearSession() {
-        token = null
-        userId = null
-        userName = null
-        userEmail = null
-    }
-
-    override fun getSetting(key: String, default: String): String = settings[key] ?: default
-    override fun saveSetting(key: String, value: String) { settings[key] = value }
-    override fun removeSetting(key: String) { settings.remove(key) }
-}

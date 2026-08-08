@@ -25,11 +25,13 @@ class UserRepositoryImpl(private val local: LocalDataSource) : UserRepository {
     }
 
     override suspend fun updateProfile(profile: UserProfile): AppResult<UserProfile> {
+        // Only the user fields change here, so both tokens are carried over as they are.
         local.saveUserSession(
             userId = profile.user.id,
             name = profile.user.name,
             email = profile.user.email ?: "",
-            token = local.getToken() ?: ""
+            token = local.getToken() ?: "",
+            refreshToken = local.getRefreshToken()
         )
         local.saveSetting(KEY_BOOKS_READ, profile.booksRead.toString())
         local.saveSetting(KEY_FRIENDS_COUNT, profile.friendsCount.toString())

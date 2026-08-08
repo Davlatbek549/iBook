@@ -101,6 +101,7 @@ import com.example.dz.presentation.premium_membership.PremiumMembershipViewModel
 import com.example.dz.presentation.profile.ProfileViewModel
 import com.example.dz.presentation.reading.ReadingViewModel
 import com.example.dz.presentation.settings.SettingsViewModel
+import com.example.dz.presentation.splash.SplashViewModel
 import com.example.dz.presentation.social.chat.ChatViewModel
 import com.example.dz.presentation.social.friend_detail.FriendDetailViewModel
 import com.example.dz.presentation.social.friends.FriendListViewModel
@@ -252,7 +253,8 @@ val coreModule = module {
 
     factory { ProfileViewModel(get()) }
     factory { (bookId: String) -> ReadingViewModel(bookId, get(), get(), get(), get(), get()) }
-    factory { SettingsViewModel() }
+    factory { SettingsViewModel(get()) }
+    factory { SplashViewModel(get()) }
 
     factory { FriendListViewModel(get()) }
     factory { (friendId: String) -> FriendDetailViewModel(friendId, get()) }

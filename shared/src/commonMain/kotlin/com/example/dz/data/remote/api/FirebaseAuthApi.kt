@@ -8,6 +8,7 @@ import com.example.dz.data.remote.dto.auth.FirebaseErrorResponseDto
 import com.example.dz.data.remote.dto.auth.FirebaseSessionDto
 import com.example.dz.data.remote.dto.auth.FirebaseUpdateProfileRequestDto
 import com.example.dz.data.remote.dto.auth.LoginRequestDto
+import com.example.dz.data.remote.dto.auth.LogoutRequestDto
 import com.example.dz.data.remote.dto.auth.SignUpRequestDto
 import com.example.dz.data.remote.dto.auth.UserDto
 import io.ktor.client.HttpClient
@@ -62,9 +63,9 @@ class FirebaseAuthApi(
         return session.copy(displayName = request.name).toAuthResponse()
     }
 
-    override suspend fun logout() {
-        // Stateless ID tokens: nothing to revoke server-side for this flow. RemoteAuthRepository
-        // clears the locally stored session.
+    override suspend fun logout(request: LogoutRequestDto) {
+        // Stateless ID tokens: nothing to revoke server-side for this flow, so the refresh token
+        // in [request] has no use here. RemoteAuthRepository clears the locally stored session.
     }
 
     private suspend inline fun <reified B> call(endpoint: String, body: B): FirebaseSessionDto {
