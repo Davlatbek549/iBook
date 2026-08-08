@@ -46,6 +46,10 @@ fun createMockAuthEngine(json: Json): MockEngine = MockEngine { request ->
 
         path.endsWith("/auth/logout") -> respond("", HttpStatusCode.OK)
 
+        // Mock tokens never expire, so nothing here should ever reach this. It answers anyway
+        // so a refresh attempt fails as a clean 401 rather than a confusing 404.
+        path.endsWith("/auth/refresh") -> respond("Not supported", HttpStatusCode.Unauthorized)
+
         else -> respond("Not found", HttpStatusCode.NotFound)
     }
 }
@@ -53,6 +57,9 @@ fun createMockAuthEngine(json: Json): MockEngine = MockEngine { request ->
 private fun MockRequestHandleScope.respondAuth(json: Json, email: String, name: String): HttpResponseData {
     val payload = AuthResponseDto(
         token = "mock_${email.hashCode()}_token",
+        // No refresh token on purpose: the mock's access token never expires, so offering one
+        // would only invite code that depends on a rotation this backend does not perform.
+        refreshToken = null,
         user = UserDto(
             id = email.hashCode().toString(),
             name = name.ifBlank { email.substringBefore("@") },

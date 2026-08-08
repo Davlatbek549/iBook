@@ -8,8 +8,6 @@ import com.example.dz.data.local.db.createDatabase
 import com.example.dz.data.local.file.FileStorage
 import com.example.dz.data.remote.api.ApiConfig
 import com.example.dz.data.remote.api.AuthApi
-import com.example.dz.data.remote.api.FirebaseAuthApi
-import com.example.dz.data.remote.api.FirebaseConfig
 import com.example.dz.data.remote.api.GutendexApi
 import com.example.dz.data.remote.api.KtorAuthApi
 import com.example.dz.data.remote.api.KtorGutendexApi
@@ -103,6 +101,7 @@ import com.example.dz.presentation.premium_membership.PremiumMembershipViewModel
 import com.example.dz.presentation.profile.ProfileViewModel
 import com.example.dz.presentation.reading.ReadingViewModel
 import com.example.dz.presentation.settings.SettingsViewModel
+import com.example.dz.presentation.splash.SplashViewModel
 import com.example.dz.presentation.social.chat.ChatViewModel
 import com.example.dz.presentation.social.friend_detail.FriendDetailViewModel
 import com.example.dz.presentation.social.friends.FriendListViewModel
@@ -140,22 +139,14 @@ val coreModule = module {
     single { LibraryLocalDataSource(get()) }
     single { CollectionLocalDataSource(get()) }
 
-    // ── App backend API (mock engine, or Firebase Auth when useMockBackend = false) ──
+    // ── App backend API (our own dz-server, or an in-memory mock engine) ──
+    // One implementation for both: createAuthHttpClient picks the mock or a real
+    // engine from the same flag, so KtorAuthApi does not care which it got.
     single { ApiConfig() }
-    single { FirebaseConfig() }
     single(named(AUTH_HTTP_CLIENT)) { createAuthHttpClient(local = get(), config = get()) }
     single<AuthApi> {
         val config = get<ApiConfig>()
-        if (config.useMockBackend) {
-            KtorAuthApi(client = get(named(AUTH_HTTP_CLIENT)), baseUrl = config.baseUrl)
-        } else {
-            val firebase = get<FirebaseConfig>()
-            require(firebase.isConfigured) {
-                "ApiConfig.useMockBackend is false but FirebaseConfig.apiKey is not set. " +
-                    "Paste the Web API key from Firebase Console → Project settings → General."
-            }
-            FirebaseAuthApi(client = get(), config = firebase)
-        }
+        KtorAuthApi(client = get(named(AUTH_HTTP_CLIENT)), baseUrl = config.baseUrl)
     }
 
     // ── Person B — User & Commerce (local / session-backed) ─────────────────
@@ -262,7 +253,8 @@ val coreModule = module {
 
     factory { ProfileViewModel(get()) }
     factory { (bookId: String) -> ReadingViewModel(bookId, get(), get(), get(), get(), get()) }
-    factory { SettingsViewModel() }
+    factory { SettingsViewModel(get()) }
+    factory { SplashViewModel(get()) }
 
     factory { FriendListViewModel(get()) }
     factory { (friendId: String) -> FriendDetailViewModel(friendId, get()) }

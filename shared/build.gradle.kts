@@ -71,6 +71,9 @@ kotlin {
         }
         getByName("androidHostTest").dependencies {
             implementation(libs.sqldelight.sqlite.driver)
+            // ViewModels run on Dispatchers.Main, which has no implementation on a JVM test JVM;
+            // Dispatchers.setMain from here gives them one.
+            implementation(libs.kotlinx.coroutines.test)
         }
     }
 }

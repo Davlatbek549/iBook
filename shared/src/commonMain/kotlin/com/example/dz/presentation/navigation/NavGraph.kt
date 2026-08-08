@@ -141,7 +141,9 @@ import com.example.dz.presentation.settings.SettingsViewModel
 import com.example.dz.presentation.auth.sign_up.SignUpEffect
 import com.example.dz.presentation.auth.sign_up.SignUpScreen
 import com.example.dz.presentation.auth.sign_up.SignUpViewModel
+import com.example.dz.presentation.splash.SplashEffect
 import com.example.dz.presentation.splash.SplashScreen
+import com.example.dz.presentation.splash.SplashViewModel
 import com.example.dz.presentation.store.StoreEffect
 import com.example.dz.presentation.store.StoreEvent
 import com.example.dz.presentation.store.StoreScreen
@@ -270,13 +272,21 @@ fun DZNavGraph() {
             modifier = Modifier.fillMaxSize()
         ) {
             composable(Routes.SPLASH) {
-                SplashScreen(
-                    onSplashFinished = {
-                        navController.navigate(Routes.ONBOARDING_1) {
+                val splashViewModel = koinViewModel<SplashViewModel>()
+
+                LaunchedEffect(splashViewModel) {
+                    splashViewModel.effects.collect { effect ->
+                        val destination = when (effect) {
+                            SplashEffect.NavigateToHome -> Routes.HOME
+                            SplashEffect.NavigateToOnboarding -> Routes.ONBOARDING_1
+                        }
+                        navController.navigate(destination) {
                             popUpTo(Routes.SPLASH) { inclusive = true }
                         }
                     }
-                )
+                }
+
+                SplashScreen()
             }
 
             composable(Routes.ONBOARDING_1) {
@@ -882,6 +892,11 @@ fun DZNavGraph() {
                             SettingsEffect.NavigateBack -> navController.popBackStack()
                             // "Edit profile" reuses the purchase-history destination (existing behavior)
                             SettingsEffect.NavigateToEditProfile -> navController.navigate(Routes.purchaseDetails("history"))
+                            // Clear the whole stack: every screen behind this one belongs to
+                            // the session that was just signed out.
+                            SettingsEffect.NavigateToLogin -> navController.navigate(Routes.LOGIN) {
+                                popUpTo(0) { inclusive = true }
+                            }
                         }
                     }
                 }

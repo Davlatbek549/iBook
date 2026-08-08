@@ -6,6 +6,11 @@ import com.example.dz.data.local.LocalDataSource
 import com.example.dz.domain.model.User
 import com.example.dz.domain.repository.AuthRepository
 
+/**
+ * Offline stand-in that mints a local token for any credentials. Superseded by
+ * [RemoteAuthRepository], which is what the DI graph binds; nothing it hands out
+ * is a real session, so there is no refresh token to keep.
+ */
 class AuthRepositoryImpl(private val local: LocalDataSource) : AuthRepository {
 
     override suspend fun login(email: String, password: String): AppResult<User> {
@@ -18,7 +23,8 @@ class AuthRepositoryImpl(private val local: LocalDataSource) : AuthRepository {
             userId = user.id,
             name = user.name,
             email = email,
-            token = buildToken(email)
+            token = buildToken(email),
+            refreshToken = null
         )
         return AppResult.Success(user)
     }
@@ -33,7 +39,8 @@ class AuthRepositoryImpl(private val local: LocalDataSource) : AuthRepository {
             userId = user.id,
             name = user.name,
             email = email,
-            token = buildToken(email)
+            token = buildToken(email),
+            refreshToken = null
         )
         return AppResult.Success(user)
     }

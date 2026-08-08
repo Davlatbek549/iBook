@@ -6,6 +6,7 @@ import com.example.dz.data.local.LocalDataSource
 import com.example.dz.data.remote.api.AuthApi
 import com.example.dz.data.remote.dto.auth.AuthResponseDto
 import com.example.dz.data.remote.dto.auth.LoginRequestDto
+import com.example.dz.data.remote.dto.auth.LogoutRequestDto
 import com.example.dz.data.remote.dto.auth.SignUpRequestDto
 import com.example.dz.data.remote.dto.auth.UserDto
 import com.example.dz.data.remote.runRemote
@@ -31,8 +32,10 @@ class RemoteAuthRepository(
             .persistSession()
 
     override suspend fun logout(): AppResult<Unit> {
-        // Best effort on the server; the local session is always cleared.
-        runRemote { api.logout() }
+        // Best effort on the server; the local session is always cleared. The refresh token
+        // names the session to revoke — without it the server would end every session this
+        // user has, signing out their other devices too.
+        runRemote { api.logout(LogoutRequestDto(refreshToken = local.getRefreshToken())) }
         local.clearSession()
         return AppResult.Success(Unit)
     }
@@ -50,7 +53,8 @@ class RemoteAuthRepository(
                 userId = data.user.id,
                 name = data.user.name,
                 email = data.user.email.orEmpty(),
-                token = data.token
+                token = data.token,
+                refreshToken = data.refreshToken
             )
             AppResult.Success(data.user.toDomain())
         }

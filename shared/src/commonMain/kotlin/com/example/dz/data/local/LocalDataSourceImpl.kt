@@ -4,6 +4,7 @@ import com.russhwolf.settings.Settings
 
 private object Keys {
     const val TOKEN = "auth_token"
+    const val REFRESH_TOKEN = "auth_refresh_token"
     const val USER_ID = "user_id"
     const val USER_EMAIL = "user_email"
     const val USER_NAME = "user_name"
@@ -14,8 +15,15 @@ class LocalDataSourceImpl(private val settings: Settings) : LocalDataSource {
 
     override fun getToken(): String? = settings.getStringOrNull(Keys.TOKEN)
 
-    override fun saveToken(token: String) {
+    override fun getRefreshToken(): String? = settings.getStringOrNull(Keys.REFRESH_TOKEN)
+
+    override fun saveTokens(token: String, refreshToken: String?) {
         settings.putString(Keys.TOKEN, token)
+        if (refreshToken == null) {
+            settings.remove(Keys.REFRESH_TOKEN)
+        } else {
+            settings.putString(Keys.REFRESH_TOKEN, refreshToken)
+        }
     }
 
     override fun getUserId(): String? = settings.getStringOrNull(Keys.USER_ID)
@@ -24,8 +32,14 @@ class LocalDataSourceImpl(private val settings: Settings) : LocalDataSource {
 
     override fun getUserName(): String? = settings.getStringOrNull(Keys.USER_NAME)
 
-    override fun saveUserSession(userId: String, name: String, email: String, token: String) {
-        settings.putString(Keys.TOKEN, token)
+    override fun saveUserSession(
+        userId: String,
+        name: String,
+        email: String,
+        token: String,
+        refreshToken: String?
+    ) {
+        saveTokens(token, refreshToken)
         settings.putString(Keys.USER_ID, userId)
         settings.putString(Keys.USER_EMAIL, email)
         settings.putString(Keys.USER_NAME, name)
@@ -36,6 +50,7 @@ class LocalDataSourceImpl(private val settings: Settings) : LocalDataSource {
 
     override fun clearSession() {
         settings.remove(Keys.TOKEN)
+        settings.remove(Keys.REFRESH_TOKEN)
         settings.remove(Keys.USER_ID)
         settings.remove(Keys.USER_EMAIL)
         settings.remove(Keys.USER_NAME)

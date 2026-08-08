@@ -76,7 +76,7 @@ class FirebaseAuthApiTest {
 
     @Test
     fun login_success_returnsUserAndPersistsFirebaseToken() = runBlocking {
-        val local = FakeAuthLocalDataSource()
+        val local = FakeLocalDataSource()
         val result = newRepo(firebaseBackend(), local).login("amelia@hartwell.co", "secret")
 
         assertTrue(result is AppResult.Success, "expected success, got $result")
@@ -90,7 +90,7 @@ class FirebaseAuthApiTest {
 
     @Test
     fun signUp_success_setsDisplayNameFromRequest() = runBlocking {
-        val local = FakeAuthLocalDataSource()
+        val local = FakeLocalDataSource()
         val result = newRepo(firebaseBackend(), local).signUp("New User", "new@user.co", "secret123")
 
         assertTrue(result is AppResult.Success, "expected success, got $result")
@@ -102,7 +102,7 @@ class FirebaseAuthApiTest {
 
     @Test
     fun login_wrongPassword_mapsToInvalidCredentials() = runBlocking {
-        val local = FakeAuthLocalDataSource()
+        val local = FakeLocalDataSource()
         val result = newRepo(errorBackend(HttpStatusCode.BadRequest, "INVALID_LOGIN_CREDENTIALS"), local)
             .login("amelia@hartwell.co", "wrong")
 
@@ -114,7 +114,7 @@ class FirebaseAuthApiTest {
 
     @Test
     fun signUp_duplicateEmail_mapsToEmailAlreadyInUse() = runBlocking {
-        val local = FakeAuthLocalDataSource()
+        val local = FakeLocalDataSource()
         val result = newRepo(errorBackend(HttpStatusCode.BadRequest, "EMAIL_EXISTS"), local)
             .signUp("Amelia", "amelia@hartwell.co", "secret")
 
@@ -125,7 +125,7 @@ class FirebaseAuthApiTest {
 
     @Test
     fun signUp_weakPassword_mapsToWeakPassword() = runBlocking {
-        val local = FakeAuthLocalDataSource()
+        val local = FakeLocalDataSource()
         val result = newRepo(
             errorBackend(HttpStatusCode.BadRequest, "WEAK_PASSWORD : Password should be at least 6 characters"),
             local
@@ -138,7 +138,7 @@ class FirebaseAuthApiTest {
 
     @Test
     fun login_tooManyAttempts_mapsToTooManyAttempts() = runBlocking {
-        val local = FakeAuthLocalDataSource()
+        val local = FakeLocalDataSource()
         val result = newRepo(errorBackend(HttpStatusCode.BadRequest, "TOO_MANY_ATTEMPTS_TRY_LATER"), local)
             .login("amelia@hartwell.co", "secret")
 
@@ -149,7 +149,7 @@ class FirebaseAuthApiTest {
 
     @Test
     fun logout_clearsLocalSessionWithoutNetworkCall() = runBlocking {
-        val local = FakeAuthLocalDataSource()
+        val local = FakeLocalDataSource()
         val repo = newRepo(firebaseBackend(), local)
         repo.login("amelia@hartwell.co", "secret")
         assertTrue(local.isLoggedIn())
@@ -161,26 +161,3 @@ class FirebaseAuthApiTest {
     }
 }
 
-/** In-memory [LocalDataSource] for tests. */
-private class FakeAuthLocalDataSource : LocalDataSource {
-    private val values = mutableMapOf<String, String>()
-
-    override fun getToken(): String? = values["token"]
-    override fun saveToken(token: String) { values["token"] = token }
-    override fun getUserId(): String? = values["userId"]
-    override fun getUserEmail(): String? = values["email"]
-    override fun getUserName(): String? = values["name"]
-
-    override fun saveUserSession(userId: String, name: String, email: String, token: String) {
-        values["userId"] = userId
-        values["name"] = name
-        values["email"] = email
-        values["token"] = token
-    }
-
-    override fun isLoggedIn(): Boolean = values["token"] != null
-    override fun clearSession() { values.clear() }
-    override fun getSetting(key: String, default: String): String = values[key] ?: default
-    override fun saveSetting(key: String, value: String) { values[key] = value }
-    override fun removeSetting(key: String) { values.remove(key) }
-}
