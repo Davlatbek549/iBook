@@ -227,22 +227,31 @@ Authentication path it replaced is no longer wired up.
 `KtorAuthApi` calls it through the shared Ktor client using `ApiConfig.baseUrl`, which already
 includes the `/api/v1` prefix.
 
-### Running against a local server
+### The deployed server (default)
 
-Start the server first — from the `dz-server` repository:
+`ApiConfig.baseUrl` points at <https://dz-server.onrender.com/api/v1>, so **the app runs with
+nothing started locally** — no Docker, no Gradle, no database. That is what a fresh clone gets.
+
+It sleeps after inactivity, so the first request after a pause can take up to a minute while the
+server wakes. Screens that call the network on load should show a loading state rather than appear
+frozen.
+
+### Running against a local server instead
+
+Set `baseUrl = ApiConfig.localBaseUrl`, then from the `dz-server` repository:
 
 ```bash
 docker compose up -d && ./gradlew bootRun
 ```
 
-The app then works with no further changes. `ApiConfig.baseUrl` defaults to
-`http://$devServerHost:8080/api/v1`, and `devServerHost` is per-platform because the two simulators
-reach the host machine differently: `10.0.2.2` on the Android emulator, `127.0.0.1` on the iOS
-simulator. A **physical device** needs your machine's LAN address instead.
+`localBaseUrl` builds on `devServerHost`, which is per-platform because the simulators reach the
+host machine differently: `10.0.2.2` on the Android emulator, `127.0.0.1` on the iOS simulator. A
+**physical device** needs your machine's LAN address instead.
 
 Both platforms block plain HTTP by default, so each carries a narrow exception for loopback only —
 `androidApp/src/main/res/xml/network_security_config.xml` and `NSAppTransportSecurity` in
-`iosApp/iosApp/Info.plist`. Every other host still requires HTTPS, so these are safe to ship.
+`iosApp/iosApp/Info.plist`. Those matter only for local work; the deployed server is HTTPS. Every
+other host still requires HTTPS, so both exceptions are safe to ship.
 
 ### Working without a server
 
