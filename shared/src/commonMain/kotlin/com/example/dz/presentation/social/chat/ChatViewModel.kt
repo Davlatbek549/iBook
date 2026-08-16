@@ -18,7 +18,9 @@ class ChatViewModel(
     private val getMessages: GetMessagesUseCase,
     private val sendMessage: SendMessageUseCase
 ) : ViewModel() {
-    private val _uiState = MutableStateFlow(ChatUiState(friendId = friendId, isLoading = true))
+    private val _uiState = MutableStateFlow(
+        ChatUiState(friendId = friendId, friendName = friendId, isLoading = true)
+    )
     val uiState = _uiState.asStateFlow()
 
     private val _effects = MutableSharedFlow<ChatEffect>()
@@ -42,8 +44,7 @@ class ChatViewModel(
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             when (val result = getMessages(friendId)) {
                 is AppResult.Success -> _uiState.update { state ->
-                    // Fall back to the curated thread when the backend has no history yet.
-                    val messages = result.data.map { it.toChatMessageUi() }.ifEmpty { state.messages }
+                    val messages = result.data.map { it.toChatMessageUi() }
                     state.copy(messages = messages, isLoading = false, errorMessage = null)
                 }
                 is AppResult.Error -> _uiState.update {
