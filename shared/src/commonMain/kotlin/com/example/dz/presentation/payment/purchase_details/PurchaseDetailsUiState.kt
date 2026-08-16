@@ -4,12 +4,12 @@ import com.example.dz.domain.model.Purchase
 
 data class PurchaseDetailsUiState(
     val bookId: String = "",
-    val title: String = "Mexican Gothic",
-    val author: String = "Silvia Moreno-Garcia",
-    val bookPrice: String = "$12.99",
-    val coinsDiscount: String = "−$2.40",
-    val tax: String = "$0.84",
-    val total: String = "$11.43",
+    val title: String = "",
+    val author: String = "",
+    val bookPrice: String = "$0.00",
+    val coinsDiscount: String = "$0.00",
+    val tax: String = "$0.00",
+    val total: String = "$0.00",
     val isLoading: Boolean = false,
     val errorMessage: String? = null
 )

@@ -139,9 +139,7 @@ val coreModule = module {
     single { LibraryLocalDataSource(get()) }
     single { CollectionLocalDataSource(get()) }
 
-    // ── App backend API (our own dz-server, or an in-memory mock engine) ──
-    // One implementation for both: createAuthHttpClient picks the mock or a real
-    // engine from the same flag, so KtorAuthApi does not care which it got.
+    // ── App backend API (our own dz-server) ─────────────────────────────────
     single { ApiConfig() }
     single(named(AUTH_HTTP_CLIENT)) { createAuthHttpClient(local = get(), config = get()) }
     single<AuthApi> {
@@ -155,8 +153,8 @@ val coreModule = module {
     single<SocialRepository> { SocialRepositoryImpl(get()) }
     single<ChatRepository> { ChatRepositoryImpl(get()) }
     single<NotificationRepository> { NotificationRepositoryImpl(get()) }
-    single<MembershipRepository> { MembershipRepositoryImpl(get()) }
-    single<PaymentRepository> { PaymentRepositoryImpl(get()) }
+    single<MembershipRepository> { MembershipRepositoryImpl() }
+    single<PaymentRepository> { PaymentRepositoryImpl(get(), get()) }
 
     // ── Person A — Book content (remote Gutendex/OpenLibrary) ───────────────
     single<HttpClient> { createRemoteHttpClient() }

@@ -39,10 +39,14 @@ class NotificationsViewModel(
     private fun load() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
-            // The curated rows above carry the visuals the domain model can't yet express;
-            // the use case still drives the loading/error state so this stays backend-ready.
             when (val result = getNotifications()) {
-                is AppResult.Success -> _uiState.update { it.copy(isLoading = false, errorMessage = null) }
+                is AppResult.Success -> _uiState.update {
+                    it.copy(
+                        items = result.data.map { notification -> notification.toNotificationUi() },
+                        isLoading = false,
+                        errorMessage = null
+                    )
+                }
                 is AppResult.Error -> _uiState.update {
                     it.copy(isLoading = false, errorMessage = result.error.toPresentationMessage())
                 }

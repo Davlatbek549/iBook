@@ -221,8 +221,7 @@ The active app entry point currently launches the Home screen directly from `App
 
 The app talks to **our own server**, `dz-server` — a Kotlin/Spring Boot service backed by
 PostgreSQL, kept in a separate repository alongside this one. It owns accounts, profiles, each
-user's library and their collections, so there is no third-party backend in between. The Firebase
-Authentication path it replaced is no longer wired up.
+user's library and their collections, so there is no third-party backend in between.
 
 `KtorAuthApi` calls it through the shared Ktor client using `ApiConfig.baseUrl`, which already
 includes the `/api/v1` prefix.
@@ -268,18 +267,11 @@ Both platforms block plain HTTP by default, so each carries a narrow exception f
 `iosApp/iosApp/Info.plist`. Those matter only for local work; the deployed server is HTTPS. Every
 other host still requires HTTPS, so both exceptions are safe to ship.
 
-### Working without a server
-
-Set `ApiConfig.useMockBackend = true` and the same `KtorAuthApi` runs against an in-memory
-`MockEngine` instead — useful for UI work when no server is running.
-
 ### Errors
 
 The server returns `{"code": "...", "message": "..."}`, where auth codes match `AppError.AuthReason`
 exactly, so the UI can tell a duplicate email from a wrong password. Unrecognised codes fall back to
 status-code mapping. `DzServerAuthApiTest` pins this contract against real captured responses.
-
-The superseded Firebase decision record is kept in [docs/backend-auth.md](docs/backend-auth.md).
 
 ## Prerequisites
 

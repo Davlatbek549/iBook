@@ -11,13 +11,11 @@ package com.example.dz.data.remote.api
  * [localBaseUrl] — [devServerHost] resolves to whatever address this platform's
  * simulator reaches the host on.
  *
- * Setting [useMockBackend] to `true` swaps in an in-memory `MockEngine` and
- * ignores [baseUrl] entirely, which is useful for UI work offline. The same
- * [KtorAuthApi] serves all three cases.
+ * Auth always goes through the configured server. Tests can still pass their own HTTP engine into
+ * the client factory, but production code no longer ships an in-memory auth backend.
  */
 data class ApiConfig(
-    val baseUrl: String = DEPLOYED_BASE_URL,
-    val useMockBackend: Boolean = false
+    val baseUrl: String = DEPLOYED_BASE_URL
 ) {
     companion object {
         const val DEPLOYED_BASE_URL = "https://dz-server.onrender.com/api/v1"

@@ -3,7 +3,6 @@ package com.example.dz.data.remote.api
 import com.example.dz.data.local.LocalDataSource
 import com.example.dz.data.remote.dto.auth.AuthResponseDto
 import com.example.dz.data.remote.dto.auth.RefreshRequestDto
-import com.example.dz.data.remote.mock.createMockAuthEngine
 import io.ktor.client.HttpClient
 import io.ktor.client.HttpClientConfig
 import io.ktor.client.call.body
@@ -38,8 +37,8 @@ private val IsRefreshRequest = AttributeKey<Unit>("DzIsRefreshRequest")
  * Access tokens live 15 minutes, so a session that outlasts one has to be renewed: a 401 is
  * retried once against `/auth/refresh` before it ever reaches the caller (see [SessionRefresher]).
  *
- * While [ApiConfig.useMockBackend] is true the client talks to an in-memory mock engine; flip the
- * flag and set a real [ApiConfig.baseUrl] to talk to a live server with no other changes.
+ * Tests may pass [engineOverride] to exercise this wiring without the network. Production code uses
+ * the platform engine and the configured server URL.
  */
 fun createAuthHttpClient(
     local: LocalDataSource,
@@ -65,8 +64,11 @@ fun createAuthHttpClient(
         }
     }
 
-    val engine = engineOverride ?: if (config.useMockBackend) createMockAuthEngine(json) else null
-    val client = if (engine != null) HttpClient(engine) { configure() } else HttpClient { configure() }
+    val client = if (engineOverride != null) {
+        HttpClient(engineOverride) { configure() }
+    } else {
+        HttpClient { configure() }
+    }
 
     return client.withTokenRefresh(SessionRefresher(local, config.baseUrl))
 }

@@ -1,12 +1,7 @@
 package com.example.dz.presentation.social.friends
 
 import dz.shared.generated.resources.Res
-import dz.shared.generated.resources.img_maria_renzy
-import dz.shared.generated.resources.img_neil_alvin
-import dz.shared.generated.resources.img_raunak_purohit
-import dz.shared.generated.resources.img_yza_barretto
-import dz.shared.generated.resources.profile_2
-import dz.shared.generated.resources.profile_3
+import dz.shared.generated.resources.profile_1
 import org.jetbrains.compose.resources.DrawableResource
 
 data class FriendListUiState(
@@ -32,11 +27,13 @@ data class FriendUi(
     val online: Boolean
 )
 
-val defaultFriends: List<FriendUi> = listOf(
-    FriendUi("patricia-lane", "Patricia Lane", "@patricia.reads", Res.drawable.profile_2, true),
-    FriendUi("maria-renzy", "Maria Renzy", "@maria.renzy", Res.drawable.img_maria_renzy, true),
-    FriendUi("yza-barretto", "Yza Barretto", "@yza.b", Res.drawable.img_yza_barretto, true),
-    FriendUi("daniel-moreau", "Daniel Moreau", "@dmoreau", Res.drawable.profile_3, false),
-    FriendUi("neil-alvin", "Neil Alvin", "@neilalvin", Res.drawable.img_neil_alvin, false),
-    FriendUi("raunak-purohit", "Raunak Purohit", "@raunakp", Res.drawable.img_raunak_purohit, false)
-)
+val defaultFriends: List<FriendUi> = emptyList()
+
+fun com.example.dz.domain.model.Friend.toFriendUi(): FriendUi =
+    FriendUi(
+        id = id,
+        name = name,
+        handle = "@${name.lowercase().replace(Regex("[^a-z0-9]+"), ".").trim('.')}",
+        avatarRes = Res.drawable.profile_1,
+        online = isOnline
+    )

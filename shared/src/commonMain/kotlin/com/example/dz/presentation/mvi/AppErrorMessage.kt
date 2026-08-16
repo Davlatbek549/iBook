@@ -1,5 +1,6 @@
 package com.example.dz.presentation.mvi
 
+import com.example.dz.core.common.AppConstants
 import com.example.dz.core.error.AppError
 
 internal fun AppError.toPresentationMessage(): String =
@@ -12,7 +13,8 @@ internal fun AppError.toPresentationMessage(): String =
             AppError.AuthReason.InvalidCredentials -> "Email or password is incorrect."
             AppError.AuthReason.EmailAlreadyInUse -> "An account with this email already exists."
             AppError.AuthReason.InvalidEmail -> "Please enter a valid email address."
-            AppError.AuthReason.WeakPassword -> "Password is too weak. Use at least 6 characters."
+            AppError.AuthReason.WeakPassword ->
+                "Password is too short. Use at least ${AppConstants.PASSWORD_MIN_LENGTH} characters."
             AppError.AuthReason.UserDisabled -> "This account has been disabled."
             AppError.AuthReason.TooManyAttempts -> "Too many attempts. Please try again later."
             AppError.AuthReason.Unknown -> "Sign-in failed. Please try again."

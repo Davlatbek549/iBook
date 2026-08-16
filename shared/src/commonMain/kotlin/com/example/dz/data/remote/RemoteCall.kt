@@ -5,9 +5,8 @@ import com.example.dz.core.result.AppResult
 import io.ktor.client.plugins.ResponseException
 
 /**
- * Thrown by auth backends (e.g. Firebase) when the server rejects the request for a reason the
- * UI should distinguish (wrong password, duplicate email, ...). [runRemote] maps it to
- * [AppError.Auth].
+ * Thrown by auth backends when the server rejects the request for a reason the UI should
+ * distinguish (wrong password, duplicate email, ...). [runRemote] maps it to [AppError.Auth].
  */
 class AuthBackendException(val reason: AppError.AuthReason) : Exception(reason.name)
 

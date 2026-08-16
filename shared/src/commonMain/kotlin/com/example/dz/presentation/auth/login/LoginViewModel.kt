@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.dz.core.result.AppResult
 import com.example.dz.domain.usecase.auth.LoginUseCase
 import com.example.dz.presentation.mvi.toPresentationMessage
+import com.example.dz.presentation.mvi.validateSignInCredentials
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -37,6 +38,13 @@ class LoginViewModel(
 
     private fun signIn() {
         if (_uiState.value.isLoading) return
+
+        val invalid = _uiState.value.let { validateSignInCredentials(it.email.trim(), it.password) }
+        if (invalid != null) {
+            _uiState.update { it.copy(errorMessage = invalid) }
+            return
+        }
+
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             val state = _uiState.value

@@ -58,7 +58,6 @@ kotlin {
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.ktor.client.content.negotiation)
             implementation(libs.ktor.client.core)
-            implementation(libs.ktor.client.mock)
             implementation(libs.ktor.serialization.kotlinx.json)
             implementation(libs.sqldelight.runtime)
         }
@@ -71,6 +70,7 @@ kotlin {
         }
         getByName("androidHostTest").dependencies {
             implementation(libs.sqldelight.sqlite.driver)
+            implementation(libs.ktor.client.mock)
             // ViewModels run on Dispatchers.Main, which has no implementation on a JVM test JVM;
             // Dispatchers.setMain from here gives them one.
             implementation(libs.kotlinx.coroutines.test)

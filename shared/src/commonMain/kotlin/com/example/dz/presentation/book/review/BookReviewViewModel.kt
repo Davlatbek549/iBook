@@ -6,9 +6,6 @@ import com.example.dz.core.result.AppResult
 import com.example.dz.domain.model.Book
 import com.example.dz.domain.usecase.book.GetBookDetailsUseCase
 import com.example.dz.presentation.mvi.toPresentationMessage
-import dz.shared.generated.resources.Res
-import dz.shared.generated.resources.img_neil_alvin
-import dz.shared.generated.resources.profile_2
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -21,7 +18,7 @@ class BookReviewViewModel(
     private val getBookDetails: GetBookDetailsUseCase
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(
-        BookReviewUiState(bookId = bookId, reviews = sampleReviews(), isLoading = true)
+        BookReviewUiState(bookId = bookId, reviews = emptyList(), isLoading = true)
     )
     val uiState = _uiState.asStateFlow()
 
@@ -90,26 +87,3 @@ class BookReviewViewModel(
         }
     }
 }
-
-private fun sampleReviews(): List<BookReviewItemUi> = listOf(
-    BookReviewItemUi(
-        id = "patricia-lane",
-        avatarRes = Res.drawable.profile_2,
-        name = "Patricia Lane",
-        date = "2 days ago",
-        stars = 5,
-        text = "Atmospheric and slow in the best way. I read the last hundred pages in one sitting with the lights low.",
-        helpfulCount = 32,
-        markedHelpful = true
-    ),
-    BookReviewItemUi(
-        id = "neil-alvin",
-        avatarRes = Res.drawable.img_neil_alvin,
-        name = "Neil Alvin",
-        date = "1 week ago",
-        stars = 4,
-        text = "Gorgeous prose. The middle drags slightly, but the house itself is the best character I’ve met all year.",
-        helpfulCount = 11,
-        markedHelpful = false
-    )
-)
