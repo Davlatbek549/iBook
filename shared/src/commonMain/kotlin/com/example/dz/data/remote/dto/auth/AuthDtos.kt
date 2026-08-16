@@ -22,8 +22,8 @@ data class AuthResponseDto(
      * Outlives the short-lived access token and buys a new one from `/auth/refresh`.
      * The server rotates it on every use, so the value here replaces the stored one.
      *
-     * Nullable because the in-memory mock backend does not issue one; a session
-     * without it simply cannot refresh and ends when the access token expires.
+     * `dz-server` always issues one. It stays nullable so a response that omits it still
+     * parses — such a session simply cannot refresh and ends with the access token.
      */
     val refreshToken: String? = null,
     val user: UserDto
