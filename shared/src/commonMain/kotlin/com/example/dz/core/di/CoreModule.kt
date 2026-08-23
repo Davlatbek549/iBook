@@ -40,6 +40,7 @@ import com.example.dz.domain.repository.UserRepository
 import com.example.dz.domain.usecase.auth.GetCurrentUserUseCase
 import com.example.dz.domain.usecase.auth.LoginUseCase
 import com.example.dz.domain.usecase.auth.LogoutUseCase
+import com.example.dz.domain.usecase.auth.SignInWithGoogleUseCase
 import com.example.dz.domain.usecase.auth.SignUpUseCase
 import com.example.dz.domain.usecase.book.BookPaginator
 import com.example.dz.domain.usecase.book.GetBookContentUseCase
@@ -76,6 +77,8 @@ import com.example.dz.domain.usecase.user.UpdateProfileUseCase
 import com.example.dz.presentation.auth.forgot_password.ForgotPasswordViewModel
 import com.example.dz.presentation.auth.login.LoginViewModel
 import com.example.dz.presentation.auth.sign_up.SignUpViewModel
+import com.example.dz.presentation.auth.new_password.NewPasswordViewModel
+import com.example.dz.presentation.auth.verification.VerificationPurpose
 import com.example.dz.presentation.auth.verification.VerificationViewModel
 import com.example.dz.presentation.book.author_detail.AuthorDetailViewModel
 import com.example.dz.presentation.book.category_detail.CategoryDetailViewModel
@@ -170,6 +173,7 @@ val coreModule = module {
     // Domain use cases
     factory { LoginUseCase(get()) }
     factory { SignUpUseCase(get()) }
+    factory { SignInWithGoogleUseCase(get()) }
     factory { LogoutUseCase(get()) }
     factory { GetCurrentUserUseCase(get()) }
     factory { GetProfileUseCase(get()) }
@@ -214,10 +218,13 @@ val coreModule = module {
     factory { GetPurchaseDetailsUseCase(get()) }
 
     // Presentation MVI stores
-    factory { LoginViewModel(get()) }
-    factory { SignUpViewModel(get()) }
+    factory { LoginViewModel(get(), get()) }
+    factory { SignUpViewModel(get(), get()) }
     factory { ForgotPasswordViewModel() }
-    factory { VerificationViewModel() }
+    factory { (email: String, purpose: VerificationPurpose) ->
+        VerificationViewModel(email, purpose)
+    }
+    factory { (email: String) -> NewPasswordViewModel(email) }
     factory { HomeViewModel(get(), get()) }
     factory { LibraryViewModel(get(), get(), get()) }
     factory { SearchViewModel(get(), get()) }

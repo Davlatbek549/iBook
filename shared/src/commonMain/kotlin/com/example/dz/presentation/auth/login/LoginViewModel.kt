@@ -4,8 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.dz.core.result.AppResult
 import com.example.dz.domain.usecase.auth.LoginUseCase
+import com.example.dz.domain.usecase.auth.SignInWithGoogleUseCase
 import com.example.dz.presentation.mvi.toPresentationMessage
-import com.example.dz.presentation.mvi.validateSignInCredentials
+import com.example.dz.presentation.mvi.validateSignIn
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -14,7 +15,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class LoginViewModel(
-    private val login: LoginUseCase
+    private val login: LoginUseCase,
+    private val signInWithGoogle: SignInWithGoogleUseCase
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState = _uiState.asStateFlow()
@@ -25,13 +27,23 @@ class LoginViewModel(
     fun onEvent(event: LoginEvent) {
         when (event) {
             is LoginEvent.EmailChanged ->
-                _uiState.update { it.copy(email = event.email, errorMessage = null) }
+                _uiState.update {
+                    it.copy(email = event.email, errorMessage = null, emailError = null)
+                }
             is LoginEvent.PasswordChanged ->
-                _uiState.update { it.copy(password = event.password, errorMessage = null) }
+                _uiState.update {
+                    it.copy(password = event.password, errorMessage = null, passwordError = null)
+                }
             LoginEvent.SignInClicked -> signIn()
             LoginEvent.ForgotPasswordClicked -> emitEffect(LoginEffect.NavigateToForgotPassword)
             LoginEvent.SignUpClicked -> emitEffect(LoginEffect.NavigateToSignUp)
-            LoginEvent.GoogleClicked,
+            // The picker itself is launched by the screen, which is where the platform
+            // handle lives; the view model only owns the busy flag around it.
+            LoginEvent.GoogleClicked ->
+                _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            is LoginEvent.GoogleTokenReceived -> exchangeGoogleToken(event.idToken)
+            is LoginEvent.GoogleSignInFailed ->
+                _uiState.update { it.copy(isLoading = false, errorMessage = event.message) }
             LoginEvent.AppleClicked -> Unit
         }
     }
@@ -39,16 +51,36 @@ class LoginViewModel(
     private fun signIn() {
         if (_uiState.value.isLoading) return
 
-        val invalid = _uiState.value.let { validateSignInCredentials(it.email.trim(), it.password) }
-        if (invalid != null) {
-            _uiState.update { it.copy(errorMessage = invalid) }
+        val errors = _uiState.value.let { validateSignIn(it.email.trim(), it.password) }
+        if (!errors.isValid) {
+            _uiState.update {
+                it.copy(emailError = errors.email, passwordError = errors.password)
+            }
             return
         }
 
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            _uiState.update {
+                it.copy(isLoading = true, errorMessage = null, emailError = null, passwordError = null)
+            }
             val state = _uiState.value
             when (val result = login(state.email.trim(), state.password)) {
+                is AppResult.Success -> {
+                    _uiState.update { it.copy(isLoading = false) }
+                    emitEffect(LoginEffect.NavigateToHome)
+                }
+                is AppResult.Error ->
+                    _uiState.update {
+                        it.copy(isLoading = false, errorMessage = result.error.toPresentationMessage())
+                    }
+            }
+        }
+    }
+
+    private fun exchangeGoogleToken(idToken: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            when (val result = signInWithGoogle(idToken)) {
                 is AppResult.Success -> {
                     _uiState.update { it.copy(isLoading = false) }
                     emitEffect(LoginEffect.NavigateToHome)

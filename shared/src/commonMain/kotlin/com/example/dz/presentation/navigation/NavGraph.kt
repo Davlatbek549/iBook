@@ -148,7 +148,11 @@ import com.example.dz.presentation.store.StoreEffect
 import com.example.dz.presentation.store.StoreEvent
 import com.example.dz.presentation.store.StoreScreen
 import com.example.dz.presentation.store.StoreViewModel
+import com.example.dz.presentation.auth.new_password.NewPasswordEffect
+import com.example.dz.presentation.auth.new_password.NewPasswordScreen
+import com.example.dz.presentation.auth.new_password.NewPasswordViewModel
 import com.example.dz.presentation.auth.verification.VerificationEffect
+import com.example.dz.presentation.auth.verification.VerificationPurpose
 import com.example.dz.presentation.auth.verification.VerificationScreen
 import com.example.dz.presentation.auth.verification.VerificationViewModel
 import org.koin.mp.KoinPlatform
@@ -226,6 +230,7 @@ fun DZNavGraph() {
         Routes.SIGN_UP,
         Routes.FORGOT_PASSWORD,
         Routes.VERIFICATION,
+        Routes.NEW_PASSWORD,
         Routes.PRE_PURCHASE,
         Routes.BOOK_REVIEW,
         Routes.AUTHOR_DETAIL,
@@ -386,8 +391,13 @@ fun DZNavGraph() {
                 LaunchedEffect(signUpViewModel) {
                     signUpViewModel.effects.collect { effect ->
                         when (effect) {
-                            SignUpEffect.NavigateToVerification ->
-                                navController.navigate(Routes.VERIFICATION)
+                            SignUpEffect.NavigateToHome -> navController.navigate(Routes.HOME) {
+                                popUpTo(0) { inclusive = true }
+                            }
+                            is SignUpEffect.NavigateToVerification ->
+                                navController.navigate(
+                                    Routes.verification(VerificationPurpose.VerifyEmail, effect.email)
+                                )
                             SignUpEffect.NavigateToLogin -> navController.navigate(Routes.LOGIN) {
                                 popUpTo(Routes.SIGN_UP) { inclusive = true }
                             }
@@ -408,8 +418,10 @@ fun DZNavGraph() {
                 LaunchedEffect(forgotPasswordViewModel) {
                     forgotPasswordViewModel.effects.collect { effect ->
                         when (effect) {
-                            ForgotPasswordEffect.NavigateToVerification ->
-                                navController.navigate(Routes.VERIFICATION)
+                            is ForgotPasswordEffect.NavigateToVerification ->
+                                navController.navigate(
+                                    Routes.verification(VerificationPurpose.ResetPassword, effect.email)
+                                )
                             ForgotPasswordEffect.NavigateBack -> navController.popBackStack()
                         }
                     }
@@ -421,8 +433,13 @@ fun DZNavGraph() {
                 )
             }
 
-            composable(Routes.VERIFICATION) {
-                val verificationViewModel = koinViewModel<VerificationViewModel>()
+            composable(Routes.VERIFICATION) { backStackEntry ->
+                val email = backStackEntry.stringArgument("email", "")
+                val purpose = backStackEntry.stringArgument(
+                    "purpose",
+                    VerificationPurpose.VerifyEmail.name
+                ).toVerificationPurpose()
+                val verificationViewModel = koinVerificationViewModel(email, purpose)
                 val uiState by verificationViewModel.uiState.collectAsStateWithLifecycle()
 
                 LaunchedEffect(verificationViewModel) {
@@ -431,6 +448,8 @@ fun DZNavGraph() {
                             VerificationEffect.NavigateToHome -> navController.navigate(Routes.HOME) {
                                 popUpTo(0) { inclusive = true }
                             }
+                            is VerificationEffect.NavigateToNewPassword ->
+                                navController.navigate(Routes.newPassword(effect.email))
                             VerificationEffect.NavigateBack -> navController.popBackStack()
                         }
                     }
@@ -439,6 +458,29 @@ fun DZNavGraph() {
                 VerificationScreen(
                     uiState = uiState,
                     onEvent = verificationViewModel::onEvent
+                )
+            }
+
+            composable(Routes.NEW_PASSWORD) { backStackEntry ->
+                val email = backStackEntry.stringArgument("email", "")
+                val newPasswordViewModel = koinNewPasswordViewModel(email)
+                val uiState by newPasswordViewModel.uiState.collectAsStateWithLifecycle()
+
+                LaunchedEffect(newPasswordViewModel) {
+                    newPasswordViewModel.effects.collect { effect ->
+                        when (effect) {
+                            // Saving signs the reader in, so the whole reset stack goes with it.
+                            NewPasswordEffect.NavigateToHome -> navController.navigate(Routes.HOME) {
+                                popUpTo(0) { inclusive = true }
+                            }
+                            NewPasswordEffect.NavigateBack -> navController.popBackStack()
+                        }
+                    }
+                }
+
+                NewPasswordScreen(
+                    uiState = uiState,
+                    onEvent = newPasswordViewModel::onEvent
                 )
             }
 
@@ -1128,6 +1170,29 @@ private fun koinPrePurchaseViewModel(bookId: String): PrePurchaseViewModel {
         koin.get<PrePurchaseViewModel> { parametersOf(bookId) }
     }
 }
+
+@Composable
+private fun koinVerificationViewModel(
+    email: String,
+    purpose: VerificationPurpose,
+): VerificationViewModel {
+    val koin = remember { KoinPlatform.getKoin() }
+    return viewModel(key = "verification-${purpose.name}-$email") {
+        koin.get<VerificationViewModel> { parametersOf(email, purpose) }
+    }
+}
+
+@Composable
+private fun koinNewPasswordViewModel(email: String): NewPasswordViewModel {
+    val koin = remember { KoinPlatform.getKoin() }
+    return viewModel(key = "new-password-$email") {
+        koin.get<NewPasswordViewModel> { parametersOf(email) }
+    }
+}
+
+/** An unknown or missing value falls back to the safer of the two — verifying, not resetting. */
+private fun String.toVerificationPurpose(): VerificationPurpose =
+    VerificationPurpose.entries.firstOrNull { it.name == this } ?: VerificationPurpose.VerifyEmail
 
 @Composable
 private fun koinBookReviewViewModel(bookId: String): BookReviewViewModel {

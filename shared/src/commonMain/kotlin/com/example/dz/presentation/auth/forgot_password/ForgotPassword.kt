@@ -1,132 +1,183 @@
 package com.example.dz.presentation.auth.forgot_password
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dz.designsystem.components.icons.InkIcons
-import com.example.dz.designsystem.components.ink.InkButton
-import com.example.dz.designsystem.components.ink.InkField
-import com.example.dz.designsystem.components.ink.InkFooterLink
-import com.example.dz.designsystem.components.ink.InkIconButton
-import com.example.dz.designsystem.theme.inkBodyFontFamily
-import com.example.dz.designsystem.theme.inkColors
-import com.example.dz.designsystem.theme.inkDisplayFontFamily
+import com.example.dz.designsystem.components.organic.OrganicBackButton
+import com.example.dz.designsystem.components.organic.OrganicButton
+import com.example.dz.designsystem.components.organic.OrganicField
+import com.example.dz.designsystem.components.organic.OrganicSubtitle
+import com.example.dz.designsystem.components.organic.OrganicTitle
+import com.example.dz.designsystem.theme.OrganicSize
+import com.example.dz.designsystem.theme.organicBodyFontFamily
+import com.example.dz.designsystem.theme.organicColors
 import dz.shared.generated.resources.Res
+import dz.shared.generated.resources.auth_back
 import dz.shared.generated.resources.auth_back_to_sign_in
 import dz.shared.generated.resources.auth_email_placeholder
+import dz.shared.generated.resources.auth_enter_code
 import dz.shared.generated.resources.auth_forgot_copy
 import dz.shared.generated.resources.auth_forgot_title
-import dz.shared.generated.resources.auth_remembered
+import dz.shared.generated.resources.auth_reset_sent
 import dz.shared.generated.resources.auth_send_reset
+import dz.shared.generated.resources.auth_sending_reset
 import org.jetbrains.compose.resources.stringResource
 
+/**
+ * Recovery start, per `#scr-forgot-password`: 22dp between sections, an 88dp sage roundel above
+ * the title, then one field and one action.
+ *
+ * The screen confirms in place rather than navigating on tap, so a mistyped address can be fixed
+ * without going back — the button becomes the way forward once a code has been asked for.
+ */
 @Composable
 fun ForgotPasswordScreen(
     uiState: ForgotPasswordUiState = ForgotPasswordUiState(),
     onEvent: (ForgotPasswordEvent) -> Unit = {}
 ) {
-    val colors = inkColors()
-    val displayFont = inkDisplayFontFamily()
-    val bodyFont = inkBodyFontFamily()
+    val colors = organicColors()
+    val body = organicBodyFontFamily()
+    val focusManager = LocalFocusManager.current
+    val sentTo = uiState.sentTo
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(colors.paper)
+            .background(colors.bg)
             .statusBarsPadding()
             .navigationBarsPadding()
             .imePadding()
-            .padding(start = 26.dp, end = 26.dp, top = 4.dp, bottom = 26.dp)
+            .verticalScroll(rememberScrollState())
+            .padding(
+                start = OrganicSize.authGutter,
+                end = OrganicSize.authGutter,
+                top = 18.dp,
+                bottom = 30.dp
+            ),
+        verticalArrangement = Arrangement.spacedBy(22.dp)
     ) {
-        InkIconButton(
-            icon = InkIcons.Back,
+        OrganicBackButton(
             onClick = { onEvent(ForgotPasswordEvent.BackClicked) },
+            contentDescription = stringResource(Res.string.auth_back),
             colors = colors
         )
 
-        Text(
-            text = stringResource(Res.string.auth_forgot_title),
-            modifier = Modifier.padding(top = 30.dp),
-            fontFamily = displayFont,
-            fontWeight = FontWeight.Medium,
-            fontSize = 30.sp,
-            lineHeight = 34.5.sp,
-            color = colors.ink
-        )
+        Box(
+            modifier = Modifier
+                .size(88.dp)
+                .clip(CircleShape)
+                .background(colors.accent2200),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = InkIcons.Message,
+                contentDescription = null,
+                tint = colors.accent2900,
+                modifier = Modifier.size(34.dp)
+            )
+        }
 
-        Text(
-            text = stringResource(Res.string.auth_forgot_copy),
-            modifier = Modifier.padding(top = 14.dp),
-            fontFamily = bodyFont,
-            fontSize = 14.sp,
-            lineHeight = 23.sp,
-            color = colors.inkSoft
-        )
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            OrganicTitle(
+                text = stringResource(Res.string.auth_forgot_title),
+                fontSize = 30.sp,
+                colors = colors
+            )
+            OrganicSubtitle(text = stringResource(Res.string.auth_forgot_copy), colors = colors)
+        }
 
-        Spacer(modifier = Modifier.height(26.dp))
-
-        InkField(
+        OrganicField(
             value = uiState.email,
             onValueChange = { onEvent(ForgotPasswordEvent.EmailChanged(it)) },
             placeholder = stringResource(Res.string.auth_email_placeholder),
-            leadingIcon = InkIcons.Email,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+            isError = uiState.emailError != null,
+            errorMessage = uiState.emailError,
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Email,
+                imeAction = ImeAction.Done
+            ),
+            keyboardActions = KeyboardActions(
+                onDone = {
+                    focusManager.clearFocus()
+                    onEvent(ForgotPasswordEvent.SendLinkClicked)
+                }
+            ),
             colors = colors
         )
 
-        uiState.errorMessage?.let { message ->
+        OrganicButton(
+            text = stringResource(
+                when {
+                    uiState.isLoading -> Res.string.auth_sending_reset
+                    sentTo != null -> Res.string.auth_enter_code
+                    else -> Res.string.auth_send_reset
+                }
+            ),
+            onClick = {
+                onEvent(
+                    if (sentTo != null) ForgotPasswordEvent.ContinueClicked
+                    else ForgotPasswordEvent.SendLinkClicked
+                )
+            },
+            isBusy = uiState.isLoading,
+            colors = colors
+        )
+
+        if (sentTo != null) {
             Text(
-                text = message,
-                modifier = Modifier.padding(top = 12.dp),
-                fontFamily = bodyFont,
-                fontSize = 12.5.sp,
-                color = colors.accent
+                // Deliberately non-committal: saying whether the address is registered would
+                // turn this screen into a way to test which emails have accounts.
+                text = stringResource(Res.string.auth_reset_sent, sentTo),
+                fontFamily = body,
+                fontSize = 13.sp,
+                lineHeight = 20.sp,
+                color = colors.neutral700
             )
         }
 
-        Spacer(modifier = Modifier.height(18.dp))
-
-        InkButton(
-            text = stringResource(Res.string.auth_send_reset),
-            onClick = { onEvent(ForgotPasswordEvent.SendLinkClicked) },
-            colors = colors
+        Text(
+            text = stringResource(Res.string.auth_back_to_sign_in),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onEvent(ForgotPasswordEvent.BackClicked) }
+                .padding(vertical = 8.dp),
+            fontFamily = body,
+            fontSize = 14.sp,
+            color = colors.neutral700,
+            textAlign = TextAlign.Center
         )
-
-        Spacer(modifier = Modifier.weight(1f))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center
-        ) {
-            InkFooterLink(
-                prefix = stringResource(Res.string.auth_remembered),
-                action = stringResource(Res.string.auth_back_to_sign_in),
-                onClick = { onEvent(ForgotPasswordEvent.BackClicked) },
-                colors = colors
-            )
-        }
     }
 }
 
-@Preview(showBackground = true, widthDp = 375, heightDp = 820)
+@Preview(showBackground = true, widthDp = 390, heightDp = 844)
 @Composable
 fun ForgotPasswordScreenPreview() {
     ForgotPasswordScreen()

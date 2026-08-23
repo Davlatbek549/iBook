@@ -1,5 +1,8 @@
 package com.example.dz.presentation.navigation
 
+import com.example.dz.presentation.auth.verification.VerificationPurpose
+import io.ktor.http.encodeURLPathPart
+
 object Routes {
     // Auth
     const val SPLASH = "splash"
@@ -9,7 +12,13 @@ object Routes {
     const val LOGIN = "login"
     const val SIGN_UP = "sign_up"
     const val FORGOT_PASSWORD = "forgot_password"
-    const val VERIFICATION = "verification"
+
+    /**
+     * Code entry is reached from sign-up and from a password reset, and ends somewhere different
+     * in each — so the purpose travels in the route rather than being guessed at the far end.
+     */
+    const val VERIFICATION = "verification/{purpose}/{email}"
+    const val NEW_PASSWORD = "new_password/{email}"
 
     // Bottom Nav Tabs
     const val HOME = "home"
@@ -56,6 +65,15 @@ object Routes {
     const val INVITE_FRIENDS = "invite_friends"
 
     // Helpers to build routes with arguments
+    /**
+     * [email] is percent-encoded: an address is user input, and Navigation splits the route on
+     * the same characters an address is allowed to contain.
+     */
+    fun verification(purpose: VerificationPurpose, email: String) =
+        "verification/${purpose.name}/${email.encodeURLPathPart()}"
+
+    fun newPassword(email: String) = "new_password/${email.encodeURLPathPart()}"
+
     fun prePurchase(bookId: String) = "pre_purchase/$bookId"
     fun reading(bookId: String) = "reading/$bookId"
     fun bookReview(bookId: String) = "book_review/$bookId"
