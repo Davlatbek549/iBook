@@ -712,6 +712,39 @@ object InkIcons {
         }
     }
 
+    /** Chevron-style forward arrow — used inside primary "Next"/"Start" pill buttons. */
+    val ArrowRight: ImageVector by lazy {
+        inkIcon("InkArrowRight") {
+            stroke {
+                moveTo(9f, 5f)
+                lineTo(16f, 12f)
+                lineTo(9f, 19f)
+            }
+        }
+    }
+
+    /** Two-arrow refresh/sync glyph — used for cross-device sync status. */
+    val Sync: ImageVector by lazy {
+        inkIcon("InkSync") {
+            stroke {
+                moveTo(20f, 11f)
+                curveTo(19.3f, 7.6f, 16.2f, 5f, 12.5f, 5f)
+                curveTo(9.7f, 5f, 7.3f, 6.5f, 5.9f, 8.8f)
+                moveTo(3f, 9f)
+                verticalLineTo(4f)
+                moveTo(3f, 9f)
+                horizontalLineTo(8f)
+                moveTo(4f, 13f)
+                curveTo(4.7f, 16.4f, 7.8f, 19f, 11.5f, 19f)
+                curveTo(14.3f, 19f, 16.7f, 17.5f, 18.1f, 15.2f)
+                moveTo(21f, 20f)
+                verticalLineTo(15f)
+                moveTo(21f, 20f)
+                horizontalLineTo(16f)
+            }
+        }
+    }
+
     private fun PathBuilder.square(x: Float, y: Float, s: Float) {
         moveTo(x, y)
         horizontalLineTo(x + s)

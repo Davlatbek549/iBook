@@ -1,7 +1,10 @@
 package com.example.dz.core.di
 
+import com.example.dz.data.local.CollectionLocalDataSource
+import com.example.dz.data.local.LibraryLocalDataSource
 import com.example.dz.data.local.LocalDataSource
 import com.example.dz.data.local.LocalDataSourceImpl
+import com.example.dz.data.local.db.createDatabase
 import com.example.dz.data.remote.api.ApiConfig
 import com.example.dz.data.remote.api.AuthApi
 import com.example.dz.data.remote.api.GutendexApi
@@ -12,8 +15,8 @@ import com.example.dz.data.remote.api.OpenLibraryApi
 import com.example.dz.data.remote.api.createAuthHttpClient
 import com.example.dz.data.remote.api.createRemoteHttpClient
 import com.example.dz.data.repository.ChatRepositoryImpl
-import com.example.dz.data.repository.FakeCollectionRepository
-import com.example.dz.data.repository.FakeLibraryRepository
+import com.example.dz.data.repository.LocalCollectionRepository
+import com.example.dz.data.repository.LocalLibraryRepository
 import com.example.dz.data.repository.MembershipRepositoryImpl
 import com.example.dz.data.repository.NotificationRepositoryImpl
 import com.example.dz.data.repository.PaymentRepositoryImpl
@@ -80,9 +83,8 @@ import com.example.dz.presentation.goal.GoalViewModel
 import com.example.dz.presentation.home.HomeViewModel
 import com.example.dz.presentation.membership.MembershipViewModel
 import com.example.dz.presentation.notifications.NotificationsViewModel
-import com.example.dz.presentation.onboarding.onboarding_one.OnboardingOneViewModel
-import com.example.dz.presentation.onboarding.onboarding_three.OnboardingThreeViewModel
-import com.example.dz.presentation.onboarding.onboarding_two.OnboardingTwoViewModel
+import com.example.dz.presentation.onboarding.OnboardingViewModel
+import com.example.dz.presentation.splash.SplashViewModel
 import com.example.dz.presentation.payment.payment_failed.PaymentFailedViewModel
 import com.example.dz.presentation.payment.payment_methods.PaymentMethodsViewModel
 import com.example.dz.presentation.payment.payment_success.PaymentSuccessViewModel
@@ -111,7 +113,7 @@ import org.koin.mp.KoinPlatform
 fun startKoinIfNeeded() {
     if (KoinPlatform.getKoinOrNull() == null) {
         startKoin {
-            modules(coreModule)
+            modules(coreModule, platformModule())
         }
     }
 }
@@ -144,8 +146,13 @@ val coreModule = module {
     single<GutendexApi> { KtorGutendexApi(get()) }
     single<OpenLibraryApi> { KtorOpenLibraryApi(get()) }
     single<BookRepository> { RemoteBookRepository(get(), get(), get()) }
-    single<LibraryRepository> { FakeLibraryRepository() }
-    single<CollectionRepository> { FakeCollectionRepository() }
+
+    // ── Person B — Local database (SQLDelight) ─────────────────────────────
+    single { createDatabase(get()) }
+    single { LibraryLocalDataSource(get()) }
+    single { CollectionLocalDataSource(get()) }
+    single<LibraryRepository> { LocalLibraryRepository(get()) }
+    single<CollectionRepository> { LocalCollectionRepository(get()) }
 
     // Domain use cases
     factory { LoginUseCase(get()) }
@@ -216,9 +223,8 @@ val coreModule = module {
 
     factory { NotificationsViewModel(get(), get()) }
 
-    factory { OnboardingOneViewModel() }
-    factory { OnboardingTwoViewModel() }
-    factory { OnboardingThreeViewModel() }
+    factory { SplashViewModel(get()) }
+    factory { OnboardingViewModel(get()) }
 
     factory { (bookId: String) -> PurchaseDetailsViewModel(bookId, get()) }
     factory { (bookId: String) -> PurchaseReceiptViewModel(bookId, get()) }

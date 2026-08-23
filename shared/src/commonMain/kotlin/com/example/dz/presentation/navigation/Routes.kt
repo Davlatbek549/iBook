@@ -3,9 +3,7 @@ package com.example.dz.presentation.navigation
 object Routes {
     // Auth
     const val SPLASH = "splash"
-    const val ONBOARDING_1 = "onboarding_1"
-    const val ONBOARDING_2 = "onboarding_2"
-    const val ONBOARDING_3 = "onboarding_3"
+    const val ONBOARDING = "onboarding"
     const val LOGIN = "login"
     const val SIGN_UP = "sign_up"
     const val FORGOT_PASSWORD = "forgot_password"
