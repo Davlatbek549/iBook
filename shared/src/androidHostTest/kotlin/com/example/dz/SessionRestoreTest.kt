@@ -50,6 +50,9 @@ class SessionRestoreTest {
         override suspend fun signUp(name: String, email: String, password: String): AppResult<User> =
             AppResult.Error(AppError.Unauthorized)
 
+        override suspend fun signInWithGoogle(idToken: String): AppResult<User> =
+            AppResult.Error(AppError.Unauthorized)
+
         override suspend fun logout(): AppResult<Unit> {
             logoutCalls++
             currentUser = null

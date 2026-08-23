@@ -4,6 +4,7 @@ import com.example.dz.core.error.AppError
 import com.example.dz.data.remote.AuthBackendException
 import com.example.dz.data.remote.dto.ApiErrorDto
 import com.example.dz.data.remote.dto.auth.AuthResponseDto
+import com.example.dz.data.remote.dto.auth.GoogleSignInRequestDto
 import com.example.dz.data.remote.dto.auth.LoginRequestDto
 import com.example.dz.data.remote.dto.auth.LogoutRequestDto
 import com.example.dz.data.remote.dto.auth.SignUpRequestDto
@@ -18,6 +19,7 @@ import io.ktor.http.contentType
 interface AuthApi {
     suspend fun login(request: LoginRequestDto): AuthResponseDto
     suspend fun signUp(request: SignUpRequestDto): AuthResponseDto
+    suspend fun signInWithGoogle(request: GoogleSignInRequestDto): AuthResponseDto
     suspend fun logout(request: LogoutRequestDto)
 }
 
@@ -43,6 +45,14 @@ class KtorAuthApi(
             setBody(request)
         }.body()
     }
+
+    override suspend fun signInWithGoogle(request: GoogleSignInRequestDto): AuthResponseDto =
+        withAuthErrors {
+            client.post("$baseUrl/auth/oauth/google") {
+                contentType(ContentType.Application.Json)
+                setBody(request)
+            }.body()
+        }
 
     override suspend fun logout(request: LogoutRequestDto) {
         withAuthErrors {

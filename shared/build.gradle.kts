@@ -42,6 +42,11 @@ kotlin {
             implementation(libs.ktor.client.android)
             implementation(libs.sqldelight.android.driver)
             implementation(libs.koin.android)
+            // Credential Manager is the current Android sign-in API; the old GoogleSignInClient
+            // is deprecated. The play-services artifact is what actually reaches Google.
+            implementation(libs.androidx.credentials)
+            implementation(libs.androidx.credentials.play.services)
+            implementation(libs.googleid)
         }
         commonMain.dependencies {
             implementation(libs.compose.runtime)

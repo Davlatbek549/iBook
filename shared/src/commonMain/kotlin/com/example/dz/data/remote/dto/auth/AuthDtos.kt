@@ -15,6 +15,12 @@ data class SignUpRequestDto(
     val password: String
 )
 
+/** The signed assertion from Google. The server proves it; the app only carries it. */
+@Serializable
+data class GoogleSignInRequestDto(
+    val idToken: String,
+)
+
 @Serializable
 data class AuthResponseDto(
     val token: String,

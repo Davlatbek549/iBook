@@ -5,6 +5,7 @@ import com.example.dz.core.result.AppResult
 import com.example.dz.data.local.LocalDataSource
 import com.example.dz.data.remote.api.AuthApi
 import com.example.dz.data.remote.dto.auth.AuthResponseDto
+import com.example.dz.data.remote.dto.auth.GoogleSignInRequestDto
 import com.example.dz.data.remote.dto.auth.LoginRequestDto
 import com.example.dz.data.remote.dto.auth.LogoutRequestDto
 import com.example.dz.data.remote.dto.auth.SignUpRequestDto
@@ -29,6 +30,10 @@ class RemoteAuthRepository(
 
     override suspend fun signUp(name: String, email: String, password: String): AppResult<User> =
         runRemote { api.signUp(SignUpRequestDto(name = name, email = email, password = password)) }
+            .persistSession()
+
+    override suspend fun signInWithGoogle(idToken: String): AppResult<User> =
+        runRemote { api.signInWithGoogle(GoogleSignInRequestDto(idToken = idToken)) }
             .persistSession()
 
     override suspend fun logout(): AppResult<Unit> {
