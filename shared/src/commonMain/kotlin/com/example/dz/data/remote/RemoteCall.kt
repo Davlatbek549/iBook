@@ -2,6 +2,9 @@ package com.example.dz.data.remote
 
 import com.example.dz.core.error.AppError
 import com.example.dz.core.result.AppResult
+import io.ktor.client.network.sockets.ConnectTimeoutException
+import io.ktor.client.network.sockets.SocketTimeoutException
+import io.ktor.client.plugins.HttpRequestTimeoutException
 import io.ktor.client.plugins.ResponseException
 
 /**
@@ -27,6 +30,12 @@ suspend fun <T> runRemote(block: suspend () -> T): AppResult<T> =
                 else -> AppError.Network
             }
         )
+    } catch (error: HttpRequestTimeoutException) {
+        AppResult.Error(AppError.Timeout)
+    } catch (error: ConnectTimeoutException) {
+        AppResult.Error(AppError.Timeout)
+    } catch (error: SocketTimeoutException) {
+        AppResult.Error(AppError.Timeout)
     } catch (error: Throwable) {
         AppResult.Error(AppError.Network)
     }

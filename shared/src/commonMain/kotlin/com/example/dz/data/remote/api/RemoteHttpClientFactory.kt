@@ -7,6 +7,7 @@ import kotlinx.serialization.json.Json
 
 fun createRemoteHttpClient(): HttpClient =
     HttpClient {
+        installDefaultTimeouts()
         install(ContentNegotiation) {
             json(
                 Json {
