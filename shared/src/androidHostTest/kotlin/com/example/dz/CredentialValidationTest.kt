@@ -54,6 +54,12 @@ class CredentialValidationTest {
         override suspend fun signInWithGoogle(idToken: String): AppResult<User> =
             AppResult.Error(AppError.Unauthorized)
 
+        override suspend fun verifyEmail(email: String, code: String): AppResult<Unit> =
+            AppResult.Success(Unit)
+
+        override suspend fun resendVerificationCode(email: String): AppResult<Unit> =
+            AppResult.Success(Unit)
+
         override suspend fun logout(): AppResult<Unit> = AppResult.Success(Unit)
         override suspend fun getCurrentUser(): AppResult<User?> = AppResult.Success(null)
     }

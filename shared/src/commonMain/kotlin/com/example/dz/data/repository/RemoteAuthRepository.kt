@@ -7,9 +7,11 @@ import com.example.dz.data.remote.api.AuthApi
 import com.example.dz.data.remote.dto.auth.AuthResponseDto
 import com.example.dz.data.remote.dto.auth.GoogleSignInRequestDto
 import com.example.dz.data.remote.dto.auth.LoginRequestDto
+import com.example.dz.data.remote.dto.auth.ResendVerificationRequestDto
 import com.example.dz.data.remote.dto.auth.LogoutRequestDto
 import com.example.dz.data.remote.dto.auth.SignUpRequestDto
 import com.example.dz.data.remote.dto.auth.UserDto
+import com.example.dz.data.remote.dto.auth.VerifyEmailRequestDto
 import com.example.dz.data.remote.runRemote
 import com.example.dz.domain.model.User
 import com.example.dz.domain.repository.AuthRepository
@@ -35,6 +37,12 @@ class RemoteAuthRepository(
     override suspend fun signInWithGoogle(idToken: String): AppResult<User> =
         runRemote { api.signInWithGoogle(GoogleSignInRequestDto(idToken = idToken)) }
             .persistSession()
+
+    override suspend fun verifyEmail(email: String, code: String): AppResult<Unit> =
+        runRemote { api.verifyEmail(VerifyEmailRequestDto(email = email, code = code)) }
+
+    override suspend fun resendVerificationCode(email: String): AppResult<Unit> =
+        runRemote { api.resendVerification(ResendVerificationRequestDto(email = email)) }
 
     override suspend fun logout(): AppResult<Unit> {
         // Best effort on the server; the local session is always cleared. The refresh token

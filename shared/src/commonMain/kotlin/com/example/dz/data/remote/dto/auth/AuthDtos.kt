@@ -35,6 +35,22 @@ data class AuthResponseDto(
     val user: UserDto
 )
 
+/**
+ * Spending a code. The address travels with it because this is sent while signed out — after
+ * sign-up the session exists but is not yet trusted, and a reset has none at all.
+ */
+@Serializable
+data class VerifyEmailRequestDto(
+    val email: String,
+    val code: String,
+)
+
+/** Asking for another code. The server answers the same way whether or not the address exists. */
+@Serializable
+data class ResendVerificationRequestDto(
+    val email: String,
+)
+
 @Serializable
 data class RefreshRequestDto(
     val refreshToken: String

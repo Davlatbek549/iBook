@@ -6,8 +6,10 @@ import com.example.dz.data.remote.dto.ApiErrorDto
 import com.example.dz.data.remote.dto.auth.AuthResponseDto
 import com.example.dz.data.remote.dto.auth.GoogleSignInRequestDto
 import com.example.dz.data.remote.dto.auth.LoginRequestDto
+import com.example.dz.data.remote.dto.auth.ResendVerificationRequestDto
 import com.example.dz.data.remote.dto.auth.LogoutRequestDto
 import com.example.dz.data.remote.dto.auth.SignUpRequestDto
+import com.example.dz.data.remote.dto.auth.VerifyEmailRequestDto
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.ResponseException
@@ -20,6 +22,8 @@ interface AuthApi {
     suspend fun login(request: LoginRequestDto): AuthResponseDto
     suspend fun signUp(request: SignUpRequestDto): AuthResponseDto
     suspend fun signInWithGoogle(request: GoogleSignInRequestDto): AuthResponseDto
+    suspend fun verifyEmail(request: VerifyEmailRequestDto)
+    suspend fun resendVerification(request: ResendVerificationRequestDto)
     suspend fun logout(request: LogoutRequestDto)
 }
 
@@ -57,6 +61,24 @@ class KtorAuthApi(
     override suspend fun logout(request: LogoutRequestDto) {
         withAuthErrors {
             client.post("$baseUrl/auth/logout") {
+                contentType(ContentType.Application.Json)
+                setBody(request)
+            }
+        }
+    }
+
+    override suspend fun verifyEmail(request: VerifyEmailRequestDto) {
+        withAuthErrors {
+            client.post("$baseUrl/auth/verify") {
+                contentType(ContentType.Application.Json)
+                setBody(request)
+            }
+        }
+    }
+
+    override suspend fun resendVerification(request: ResendVerificationRequestDto) {
+        withAuthErrors {
+            client.post("$baseUrl/auth/verify/resend") {
                 contentType(ContentType.Application.Json)
                 setBody(request)
             }
