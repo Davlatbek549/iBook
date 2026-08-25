@@ -284,6 +284,8 @@ fun DZNavGraph() {
                         val destination = when (effect) {
                             SplashEffect.NavigateToHome -> Routes.HOME
                             SplashEffect.NavigateToOnboarding -> Routes.ONBOARDING_1
+                            is SplashEffect.NavigateToVerification ->
+                                Routes.verification(VerificationPurpose.VerifyEmail, effect.email)
                         }
                         navController.navigate(destination) {
                             popUpTo(Routes.SPLASH) { inclusive = true }

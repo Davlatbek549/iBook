@@ -67,5 +67,7 @@ data class UserDto(
     val id: String,
     val name: String,
     val email: String? = null,
-    val avatarUrl: String? = null
+    val avatarUrl: String? = null,
+    /** Defaulted so a response from an older server still parses, as an unverified account. */
+    val emailVerified: Boolean = false
 )

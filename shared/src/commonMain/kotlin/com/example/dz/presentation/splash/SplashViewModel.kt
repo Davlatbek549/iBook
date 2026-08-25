@@ -38,8 +38,14 @@ class SplashViewModel(
     }
 
     private fun AppResult<User?>.toDestination(): SplashEffect = when (this) {
-        is AppResult.Success ->
-            if (data != null) SplashEffect.NavigateToHome else SplashEffect.NavigateToOnboarding
+        is AppResult.Success -> when {
+            data == null -> SplashEffect.NavigateToOnboarding
+            // Signing up issues a session before the code is spent, so a session on its own is
+            // not proof of anything. Without this the reader could background the app during
+            // verification and come back to a Home whose every request the server refuses.
+            !data.emailVerified -> SplashEffect.NavigateToVerification(data.email.orEmpty())
+            else -> SplashEffect.NavigateToHome
+        }
         // A half-written session is not one worth trusting; start from the top rather than
         // opening a signed-in shell whose every request would be rejected.
         is AppResult.Error -> SplashEffect.NavigateToOnboarding

@@ -40,6 +40,9 @@ class RemoteAuthRepository(
 
     override suspend fun verifyEmail(email: String, code: String): AppResult<Unit> =
         runRemote { api.verifyEmail(VerifyEmailRequestDto(email = email, code = code)) }
+            // Recorded locally too, so the next launch opens on Home rather than sending the
+            // reader back to a code screen they have already finished with.
+            .also { if (it is AppResult.Success) local.setEmailVerified(true) }
 
     override suspend fun resendVerificationCode(email: String): AppResult<Unit> =
         runRemote { api.resendVerification(ResendVerificationRequestDto(email = email)) }
@@ -57,7 +60,14 @@ class RemoteAuthRepository(
         if (!local.isLoggedIn()) return AppResult.Success(null)
         val userId = local.getUserId() ?: return AppResult.Success(null)
         val name = local.getUserName() ?: return AppResult.Error(AppError.Unauthorized)
-        return AppResult.Success(User(id = userId, name = name, email = local.getUserEmail()))
+        return AppResult.Success(
+            User(
+                id = userId,
+                name = name,
+                email = local.getUserEmail(),
+                emailVerified = local.isEmailVerified(),
+            )
+        )
     }
 
     private fun AppResult<AuthResponseDto>.persistSession(): AppResult<User> = when (this) {
@@ -67,7 +77,8 @@ class RemoteAuthRepository(
                 name = data.user.name,
                 email = data.user.email.orEmpty(),
                 token = data.token,
-                refreshToken = data.refreshToken
+                refreshToken = data.refreshToken,
+                emailVerified = data.user.emailVerified
             )
             AppResult.Success(data.user.toDomain())
         }
@@ -76,4 +87,4 @@ class RemoteAuthRepository(
 }
 
 private fun UserDto.toDomain(): User =
-    User(id = id, name = name, email = email, avatarUrl = avatarUrl)
+    User(id = id, name = name, email = email, avatarUrl = avatarUrl, emailVerified = emailVerified)

@@ -71,7 +71,7 @@ class SessionRestoreTest {
 
     @Test
     fun `a stored session opens the app on home`() = runTest {
-        val repository = FakeAuthRepository(currentUser = User(id = "u-1", name = "Ada", email = "ada@example.com"))
+        val repository = FakeAuthRepository(currentUser = User(id = "u-1", name = "Ada", email = "ada@example.com", emailVerified = true))
         val viewModel = SplashViewModel(GetCurrentUserUseCase(repository))
 
         assertEquals(SplashEffect.NavigateToHome, viewModel.effects.first())
