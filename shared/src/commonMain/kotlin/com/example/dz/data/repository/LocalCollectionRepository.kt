@@ -24,12 +24,22 @@ class LocalCollectionRepository(
             ?: AppResult.Error(AppError.NotFound)
 
     override suspend fun createCollection(title: String): AppResult<Collection> {
-        val collection = Collection(
-            id = title.trim().lowercase().replace(" ", "-").ifBlank { "collection" },
-            title = title
-        )
+        val slug = title.trim().lowercase().replace(" ", "-").ifBlank { "collection" }
+        val collection = Collection(id = freeId(slug), title = title)
         collections.create(collection, createdAt = currentEpochMillis())
         return AppResult.Success(collection)
+    }
+
+    /**
+     * Nothing stops two collections sharing a title, so the slug on its own cannot be the key —
+     * a second "Favorites" used to fail on the primary key. Suffixed rather than randomised so a
+     * stored row still reads as the collection it belongs to.
+     */
+    private fun freeId(slug: String): String {
+        if (collections.getCollection(slug) == null) return slug
+        var suffix = 2
+        while (collections.getCollection("$slug-$suffix") != null) suffix++
+        return "$slug-$suffix"
     }
 
     override suspend fun updateCollection(collection: Collection): AppResult<Collection> {

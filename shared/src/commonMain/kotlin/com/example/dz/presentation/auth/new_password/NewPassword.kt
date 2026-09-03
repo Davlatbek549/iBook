@@ -27,9 +27,9 @@ import com.example.dz.designsystem.components.organic.OrganicButton
 import com.example.dz.designsystem.components.organic.OrganicField
 import com.example.dz.designsystem.components.organic.OrganicSubtitle
 import com.example.dz.designsystem.components.organic.OrganicTitle
+import com.example.dz.designsystem.theme.OrganicColors
 import com.example.dz.designsystem.theme.OrganicSize
 import com.example.dz.designsystem.theme.organicBodyFontFamily
-import com.example.dz.designsystem.theme.organicColors
 import dz.shared.generated.resources.Res
 import dz.shared.generated.resources.auth_back
 import dz.shared.generated.resources.auth_confirm_password_placeholder
@@ -55,14 +55,13 @@ fun NewPasswordScreen(
     uiState: NewPasswordUiState = NewPasswordUiState(),
     onEvent: (NewPasswordEvent) -> Unit = {}
 ) {
-    val colors = organicColors()
     val body = organicBodyFontFamily()
     val focusManager = LocalFocusManager.current
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(colors.bg)
+            .background(OrganicColors.bg)
             .statusBarsPadding()
             .navigationBarsPadding()
             .imePadding()
@@ -77,19 +76,16 @@ fun NewPasswordScreen(
     ) {
         OrganicBackButton(
             onClick = { onEvent(NewPasswordEvent.BackClicked) },
-            contentDescription = stringResource(Res.string.auth_back),
-            colors = colors
+            contentDescription = stringResource(Res.string.auth_back)
         )
 
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             OrganicTitle(
                 text = stringResource(Res.string.auth_new_password_title),
-                fontSize = 30.sp,
-                colors = colors
+                fontSize = 30.sp
             )
             OrganicSubtitle(
-                text = stringResource(Res.string.auth_new_password_copy),
-                colors = colors
+                text = stringResource(Res.string.auth_new_password_copy)
             )
         }
 
@@ -106,8 +102,7 @@ fun NewPasswordScreen(
                 ),
                 keyboardActions = KeyboardActions(
                     onNext = { focusManager.moveFocus(FocusDirection.Down) }
-                ),
-                colors = colors
+                )
             )
 
             OrganicField(
@@ -127,8 +122,7 @@ fun NewPasswordScreen(
                         focusManager.clearFocus()
                         onEvent(NewPasswordEvent.SaveClicked)
                     }
-                ),
-                colors = colors
+                )
             )
         }
 
@@ -138,7 +132,7 @@ fun NewPasswordScreen(
                 fontFamily = body,
                 fontSize = 13.sp,
                 lineHeight = 19.sp,
-                color = colors.danger
+                color = OrganicColors.danger
             )
         }
 
@@ -148,7 +142,7 @@ fun NewPasswordScreen(
                 fontFamily = body,
                 fontSize = 13.sp,
                 lineHeight = 20.sp,
-                color = colors.neutral700
+                color = OrganicColors.neutral700
             )
         }
 
@@ -166,8 +160,7 @@ fun NewPasswordScreen(
                     else NewPasswordEvent.SaveClicked
                 )
             },
-            isBusy = uiState.isLoading,
-            colors = colors
+            isBusy = uiState.isLoading
         )
     }
 }

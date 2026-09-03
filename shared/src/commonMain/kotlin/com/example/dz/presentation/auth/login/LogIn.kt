@@ -41,9 +41,9 @@ import com.example.dz.designsystem.components.organic.OrganicField
 import com.example.dz.designsystem.components.organic.OrganicSocialButton
 import com.example.dz.designsystem.components.organic.OrganicSubtitle
 import com.example.dz.designsystem.components.organic.OrganicTitle
+import com.example.dz.designsystem.theme.OrganicColors
 import com.example.dz.designsystem.theme.OrganicSize
 import com.example.dz.designsystem.theme.organicBodyFontFamily
-import com.example.dz.designsystem.theme.organicColors
 import dz.shared.generated.resources.Res
 import dz.shared.generated.resources.auth_apple
 import dz.shared.generated.resources.auth_create_an_account
@@ -75,7 +75,6 @@ fun LoginScreen(
     uiState: LoginUiState = LoginUiState(),
     onEvent: (LoginEvent) -> Unit = {}
 ) {
-    val colors = organicColors()
     val body = organicBodyFontFamily()
     val focusManager = LocalFocusManager.current
     val (googleAvailable, launchGoogle) = rememberGoogleLauncher(
@@ -86,7 +85,7 @@ fun LoginScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(colors.bg)
+            .background(OrganicColors.bg)
             .statusBarsPadding()
             .navigationBarsPadding()
             .imePadding()
@@ -104,10 +103,9 @@ fun LoginScreen(
             verticalArrangement = Arrangement.spacedBy(22.dp)
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OrganicTitle(text = stringResource(Res.string.auth_login_title), colors = colors)
+                OrganicTitle(text = stringResource(Res.string.auth_login_title))
                 OrganicSubtitle(
-                    text = stringResource(Res.string.auth_login_subtitle),
-                    colors = colors
+                    text = stringResource(Res.string.auth_login_subtitle)
                 )
             }
 
@@ -125,8 +123,7 @@ fun LoginScreen(
                     ),
                     keyboardActions = KeyboardActions(
                         onNext = { focusManager.moveFocus(FocusDirection.Down) }
-                    ),
-                    colors = colors
+                    )
                 )
 
                 OrganicField(
@@ -147,8 +144,7 @@ fun LoginScreen(
                             focusManager.clearFocus()
                             onEvent(LoginEvent.SignInClicked)
                         }
-                    ),
-                    colors = colors
+                    )
                 )
 
                 Text(
@@ -159,7 +155,7 @@ fun LoginScreen(
                         .padding(horizontal = 4.dp, vertical = 8.dp),
                     fontFamily = body,
                     fontSize = 14.sp,
-                    color = colors.accent700
+                    color = OrganicColors.accent700
                 )
             }
 
@@ -169,7 +165,7 @@ fun LoginScreen(
                     fontFamily = body,
                     fontSize = 13.sp,
                     lineHeight = 19.sp,
-                    color = colors.danger
+                    color = OrganicColors.danger
                 )
             }
 
@@ -178,11 +174,10 @@ fun LoginScreen(
                     if (uiState.isLoading) Res.string.auth_signing_in else Res.string.auth_sign_in
                 ),
                 onClick = { onEvent(LoginEvent.SignInClicked) },
-                isBusy = uiState.isLoading,
-                colors = colors
+                isBusy = uiState.isLoading
             )
 
-            OrganicDivider(text = stringResource(Res.string.auth_or), colors = colors)
+            OrganicDivider(text = stringResource(Res.string.auth_or))
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 OrganicSocialButton(
@@ -193,16 +188,14 @@ fun LoginScreen(
                     },
                     modifier = Modifier.weight(1f),
                     // Inert where no platform implementation exists, rather than failing on tap.
-                    enabled = googleAvailable && !uiState.isLoading,
-                    colors = colors
+                    enabled = googleAvailable && !uiState.isLoading
                 )
                 OrganicSocialButton(
                     label = stringResource(Res.string.auth_apple),
                     onClick = { onEvent(LoginEvent.AppleClicked) },
                     modifier = Modifier.weight(1f),
                     // Sign in with Apple is not built; showing it live would be a lie.
-                    enabled = false,
-                    colors = colors
+                    enabled = false
                 )
             }
 
@@ -213,7 +206,7 @@ fun LoginScreen(
             text = buildAnnotatedString {
                 append(stringResource(Res.string.auth_new_here))
                 append(" ")
-                withStyle(SpanStyle(color = colors.accent700, fontWeight = FontWeight.SemiBold)) {
+                withStyle(SpanStyle(color = OrganicColors.accent700, fontWeight = FontWeight.SemiBold)) {
                     append(stringResource(Res.string.auth_create_an_account))
                 }
             },
@@ -223,7 +216,7 @@ fun LoginScreen(
                 .padding(vertical = 10.dp),
             fontFamily = body,
             fontSize = 14.sp,
-            color = colors.neutral700,
+            color = OrganicColors.neutral700,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center
         )
     }

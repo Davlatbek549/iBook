@@ -10,6 +10,7 @@ import com.example.dz.presentation.settings.SettingsEffect
 import com.example.dz.presentation.settings.SettingsEvent
 import com.example.dz.presentation.settings.SettingsViewModel
 import com.example.dz.presentation.splash.SplashEffect
+import com.example.dz.presentation.splash.SplashEvent
 import com.example.dz.presentation.splash.SplashViewModel
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
@@ -81,22 +82,44 @@ class SessionRestoreTest {
     @Test
     fun `a stored session opens the app on home`() = runTest {
         val repository = FakeAuthRepository(currentUser = User(id = "u-1", name = "Ada", email = "ada@example.com", emailVerified = true))
-        val viewModel = SplashViewModel(GetCurrentUserUseCase(repository))
+        val viewModel = SplashViewModel(GetCurrentUserUseCase(repository), FakeLocalDataSource())
 
         assertEquals(SplashEffect.NavigateToHome, viewModel.effects.first())
     }
 
     @Test
-    fun `no session falls through to onboarding`() = runTest {
-        val viewModel = SplashViewModel(GetCurrentUserUseCase(FakeAuthRepository(currentUser = null)))
+    fun `no session waits on the splash until the reader chooses`() = runTest {
+        val viewModel = SplashViewModel(
+            GetCurrentUserUseCase(FakeAuthRepository(currentUser = null)),
+            FakeLocalDataSource(),
+        )
+
+        // The redesigned splash is a screen, not a redirect: with nothing to restore it stays up
+        // and offers "Get started" / "Sign in" rather than moving on by itself.
+        viewModel.onEvent(SplashEvent.GetStartedClicked)
 
         assertEquals(SplashEffect.NavigateToOnboarding, viewModel.effects.first())
     }
 
     @Test
+    fun `onboarding is not shown twice`() = runTest {
+        val local = FakeLocalDataSource().apply { setOnboardingCompleted(true) }
+        val viewModel = SplashViewModel(
+            GetCurrentUserUseCase(FakeAuthRepository(currentUser = null)),
+            local,
+        )
+
+        viewModel.onEvent(SplashEvent.GetStartedClicked)
+
+        assertEquals(SplashEffect.NavigateToSignUp, viewModel.effects.first())
+    }
+
+    @Test
     fun `a broken session is not treated as a signed-in one`() = runTest {
         val repository = FakeAuthRepository(currentUserResult = AppResult.Error(AppError.Unauthorized))
-        val viewModel = SplashViewModel(GetCurrentUserUseCase(repository))
+        val viewModel = SplashViewModel(GetCurrentUserUseCase(repository), FakeLocalDataSource())
+
+        viewModel.onEvent(SplashEvent.GetStartedClicked)
 
         assertEquals(SplashEffect.NavigateToOnboarding, viewModel.effects.first())
     }

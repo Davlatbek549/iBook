@@ -6,6 +6,7 @@ import com.example.dz.domain.model.User
 import com.example.dz.domain.repository.AuthRepository
 import com.example.dz.domain.usecase.auth.GetCurrentUserUseCase
 import com.example.dz.presentation.splash.SplashEffect
+import com.example.dz.presentation.splash.SplashEvent
 import com.example.dz.presentation.splash.SplashViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -60,7 +61,7 @@ class UnverifiedRelaunchTest {
     }
 
     private fun splashFor(user: User?) =
-        SplashViewModel(GetCurrentUserUseCase(StoredSession(user)))
+        SplashViewModel(GetCurrentUserUseCase(StoredSession(user)), FakeLocalDataSource())
 
     private fun user(verified: Boolean) = User(
         id = "u-1",
@@ -93,6 +94,10 @@ class UnverifiedRelaunchTest {
     @Test
     fun `no session still starts from the top`() = runTest(dispatcher) {
         val viewModel = splashFor(null)
+
+        // With nothing to restore the redesigned splash stays up and waits to be told where to
+        // go, rather than redirecting on its own.
+        viewModel.onEvent(SplashEvent.GetStartedClicked)
 
         val effect = viewModel.effects.first()
 

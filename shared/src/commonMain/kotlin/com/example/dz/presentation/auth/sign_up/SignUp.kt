@@ -47,9 +47,9 @@ import com.example.dz.designsystem.components.organic.OrganicSocialButton
 import com.example.dz.designsystem.components.organic.OrganicStrengthMeter
 import com.example.dz.designsystem.components.organic.OrganicSubtitle
 import com.example.dz.designsystem.components.organic.OrganicTitle
+import com.example.dz.designsystem.theme.OrganicColors
 import com.example.dz.designsystem.theme.OrganicSize
 import com.example.dz.designsystem.theme.organicBodyFontFamily
-import com.example.dz.designsystem.theme.organicColors
 import dz.shared.generated.resources.Res
 import com.example.dz.core.legal.LegalDocuments
 import dz.shared.generated.resources.auth_agree_terms_desc
@@ -91,7 +91,6 @@ fun SignUpScreen(
     uiState: SignUpUiState = SignUpUiState(),
     onEvent: (SignUpEvent) -> Unit = {}
 ) {
-    val colors = organicColors()
     val body = organicBodyFontFamily()
     val focusManager = LocalFocusManager.current
     val next = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) })
@@ -106,15 +105,14 @@ fun SignUpScreen(
             onAgree = { onEvent(SignUpEvent.DocumentAgreed) },
             onDismiss = { onEvent(SignUpEvent.DocumentDismissed) },
             agreeLabel = stringResource(Res.string.auth_legal_agree),
-            keepReadingLabel = stringResource(Res.string.auth_legal_keep_reading),
-            colors = colors
+            keepReadingLabel = stringResource(Res.string.auth_legal_keep_reading)
         )
     }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(colors.bg)
+            .background(OrganicColors.bg)
             .statusBarsPadding()
             .navigationBarsPadding()
             .imePadding()
@@ -132,10 +130,9 @@ fun SignUpScreen(
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OrganicTitle(text = stringResource(Res.string.auth_signup_title), colors = colors)
+                OrganicTitle(text = stringResource(Res.string.auth_signup_title))
                 OrganicSubtitle(
-                    text = stringResource(Res.string.auth_signup_subtitle),
-                    colors = colors
+                    text = stringResource(Res.string.auth_signup_subtitle)
                 )
             }
 
@@ -147,8 +144,7 @@ fun SignUpScreen(
                     isError = uiState.nameError != null,
                     errorMessage = uiState.nameError,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-                    keyboardActions = next,
-                    colors = colors
+                    keyboardActions = next
                 )
                 OrganicField(
                     value = uiState.email,
@@ -160,8 +156,7 @@ fun SignUpScreen(
                         keyboardType = KeyboardType.Email,
                         imeAction = ImeAction.Next
                     ),
-                    keyboardActions = next,
-                    colors = colors
+                    keyboardActions = next
                 )
                 OrganicField(
                     value = uiState.password,
@@ -180,16 +175,14 @@ fun SignUpScreen(
                             focusManager.clearFocus()
                             onEvent(SignUpEvent.CreateAccountClicked)
                         }
-                    ),
-                    colors = colors
+                    )
                 )
 
                 if (uiState.password.isNotEmpty()) {
                     OrganicStrengthMeter(
                         filled = uiState.passwordStrength,
                         label = stringResource(strengthLabel(uiState.passwordStrength)),
-                        modifier = Modifier.padding(top = 2.dp),
-                        colors = colors
+                        modifier = Modifier.padding(top = 2.dp)
                     )
                 }
             }
@@ -198,10 +191,9 @@ fun SignUpScreen(
                 OrganicCheckbox(
                     checked = uiState.termsAccepted,
                     onCheckedChange = { onEvent(SignUpEvent.TermsToggled(it)) },
-                    contentDescription = stringResource(Res.string.auth_agree_terms_desc),
-                    colors = colors
+                    contentDescription = stringResource(Res.string.auth_agree_terms_desc)
                 )
-                val linkStyles = TextLinkStyles(style = SpanStyle(color = colors.accent700))
+                val linkStyles = TextLinkStyles(style = SpanStyle(color = OrganicColors.accent700))
                 // Resolved before the builder: its lambdas are not composable scopes.
                 val agreePrefix = stringResource(Res.string.auth_terms_agree_prefix)
                 val termsWord = stringResource(Res.string.auth_terms_lower)
@@ -228,7 +220,7 @@ fun SignUpScreen(
                     fontFamily = body,
                     fontSize = 13.sp,
                     lineHeight = 19.5.sp,
-                    color = colors.neutral700
+                    color = OrganicColors.neutral700
                 )
             }
 
@@ -238,7 +230,7 @@ fun SignUpScreen(
                     fontFamily = body,
                     fontSize = 13.sp,
                     lineHeight = 19.sp,
-                    color = colors.danger
+                    color = OrganicColors.danger
                 )
             }
 
@@ -249,11 +241,10 @@ fun SignUpScreen(
                 ),
                 onClick = { onEvent(SignUpEvent.CreateAccountClicked) },
                 enabled = uiState.termsAccepted,
-                isBusy = uiState.isLoading,
-                colors = colors
+                isBusy = uiState.isLoading
             )
 
-            OrganicDivider(text = stringResource(Res.string.auth_or), colors = colors)
+            OrganicDivider(text = stringResource(Res.string.auth_or))
 
             // Federated sign-up creates an account just as the form does, so it sits behind the
             // same agreement. Leaving these live would make the checkbox a formality anyone
@@ -266,16 +257,14 @@ fun SignUpScreen(
                         launchGoogle()
                     },
                     modifier = Modifier.weight(1f),
-                    enabled = uiState.termsAccepted && googleAvailable && !uiState.isLoading,
-                    colors = colors
+                    enabled = uiState.termsAccepted && googleAvailable && !uiState.isLoading
                 )
                 OrganicSocialButton(
                     label = stringResource(Res.string.auth_apple),
                     onClick = { onEvent(SignUpEvent.AppleClicked) },
                     modifier = Modifier.weight(1f),
                     // Sign in with Apple is not built; showing it live would be a lie.
-                    enabled = false,
-                    colors = colors
+                    enabled = false
                 )
             }
 
@@ -286,7 +275,7 @@ fun SignUpScreen(
             text = buildAnnotatedString {
                 append(stringResource(Res.string.auth_already_have_one))
                 append(" ")
-                withStyle(SpanStyle(color = colors.accent700, fontWeight = FontWeight.SemiBold)) {
+                withStyle(SpanStyle(color = OrganicColors.accent700, fontWeight = FontWeight.SemiBold)) {
                     append(stringResource(Res.string.auth_sign_in))
                 }
             },
@@ -296,7 +285,7 @@ fun SignUpScreen(
                 .padding(vertical = 10.dp),
             fontFamily = body,
             fontSize = 14.sp,
-            color = colors.neutral700,
+            color = OrganicColors.neutral700,
             textAlign = TextAlign.Center
         )
     }

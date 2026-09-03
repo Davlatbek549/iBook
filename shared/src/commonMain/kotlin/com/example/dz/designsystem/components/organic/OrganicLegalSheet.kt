@@ -38,7 +38,6 @@ import com.example.dz.core.legal.LegalDocument
 import com.example.dz.designsystem.theme.OrganicColors
 import com.example.dz.designsystem.theme.OrganicShape
 import com.example.dz.designsystem.theme.organicBodyFontFamily
-import com.example.dz.designsystem.theme.organicColors
 import com.example.dz.designsystem.theme.organicHeadingFontFamily
 
 /**
@@ -63,7 +62,6 @@ fun OrganicLegalSheet(
     modifier: Modifier = Modifier,
     agreeLabel: String,
     keepReadingLabel: String,
-    colors: OrganicColors = organicColors(),
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scrollState = rememberScrollState()
@@ -89,8 +87,8 @@ fun OrganicLegalSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = colors.bg,
-        scrimColor = colors.neutral900.copy(alpha = 0.42f),
+        containerColor = OrganicColors.bg,
+        scrimColor = OrganicColors.neutral900.copy(alpha = 0.42f),
         dragHandle = {
             Box(
                 modifier = Modifier.fillMaxWidth().padding(top = 14.dp, bottom = 6.dp),
@@ -101,7 +99,7 @@ fun OrganicLegalSheet(
                         .width(38.dp)
                         .height(4.dp)
                         .clip(RoundedCornerShape(OrganicShape.pill))
-                        .background(colors.neutral300)
+                        .background(OrganicColors.neutral300)
                 )
             }
         },
@@ -119,7 +117,7 @@ fun OrganicLegalSheet(
                 fontFamily = heading,
                 fontSize = 26.sp,
                 lineHeight = 30.sp,
-                color = colors.text
+                color = OrganicColors.text
             )
             Text(
                 text = "Version ${document.version}",
@@ -127,7 +125,7 @@ fun OrganicLegalSheet(
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.2.sp,
-                color = colors.neutral600
+                color = OrganicColors.neutral600
             )
 
             Column(
@@ -145,7 +143,7 @@ fun OrganicLegalSheet(
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 1.3.sp,
-                            color = colors.accent700
+                            color = OrganicColors.accent700
                         )
                         section.blocks.forEach { block ->
                             when (block) {
@@ -154,7 +152,7 @@ fun OrganicLegalSheet(
                                     fontFamily = body,
                                     fontSize = 15.sp,
                                     lineHeight = 25.sp,
-                                    color = colors.neutral700
+                                    color = OrganicColors.neutral700
                                 )
                                 is LegalBlock.Bullets -> Column(
                                     verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -166,14 +164,14 @@ fun OrganicLegalSheet(
                                                     .padding(top = 9.dp)
                                                     .size(5.dp)
                                                     .clip(RoundedCornerShape(OrganicShape.pill))
-                                                    .background(colors.accent)
+                                                    .background(OrganicColors.accent)
                                             )
                                             Text(
                                                 text = item,
                                                 fontFamily = body,
                                                 fontSize = 15.sp,
                                                 lineHeight = 25.sp,
-                                                color = colors.neutral700
+                                                color = OrganicColors.neutral700
                                             )
                                         }
                                     }
@@ -189,8 +187,7 @@ fun OrganicLegalSheet(
                 text = if (hasReachedEnd) agreeLabel else keepReadingLabel,
                 onClick = onAgree,
                 modifier = Modifier.padding(top = 16.dp, bottom = 20.dp),
-                enabled = hasReachedEnd,
-                colors = colors
+                enabled = hasReachedEnd
             )
         }
     }

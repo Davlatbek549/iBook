@@ -24,9 +24,9 @@ import androidx.compose.ui.unit.sp
 import com.example.dz.designsystem.components.organic.OrganicBackButton
 import com.example.dz.designsystem.components.organic.OrganicButton
 import com.example.dz.designsystem.components.organic.OrganicCodeField
+import com.example.dz.designsystem.theme.OrganicColors
 import com.example.dz.designsystem.theme.OrganicSize
 import com.example.dz.designsystem.theme.organicBodyFontFamily
-import com.example.dz.designsystem.theme.organicColors
 import com.example.dz.designsystem.theme.organicHeadingFontFamily
 import dz.shared.generated.resources.Res
 import dz.shared.generated.resources.auth_back
@@ -51,13 +51,12 @@ fun VerificationScreen(
     uiState: VerificationUiState = VerificationUiState(),
     onEvent: (VerificationEvent) -> Unit = {}
 ) {
-    val colors = organicColors()
     val body = organicBodyFontFamily()
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(colors.bg)
+            .background(OrganicColors.bg)
             .statusBarsPadding()
             .navigationBarsPadding()
             .imePadding()
@@ -72,8 +71,7 @@ fun VerificationScreen(
     ) {
         OrganicBackButton(
             onClick = { onEvent(VerificationEvent.BackClicked) },
-            contentDescription = stringResource(Res.string.auth_back),
-            colors = colors
+            contentDescription = stringResource(Res.string.auth_back)
         )
 
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -82,7 +80,7 @@ fun VerificationScreen(
                 fontFamily = organicHeadingFontFamily(),
                 fontSize = 30.sp,
                 lineHeight = 34.5.sp,
-                color = colors.text
+                color = OrganicColors.text
             )
             Text(
                 // Naming the address is how a typo on the previous screen gets caught, rather
@@ -90,7 +88,7 @@ fun VerificationScreen(
                 text = buildAnnotatedString {
                     if (uiState.email.isNotBlank()) {
                         append(stringResource(Res.string.auth_verification_copy_prefix))
-                        withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = colors.text)) {
+                        withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = OrganicColors.text)) {
                             append(uiState.email)
                         }
                         append(".")
@@ -101,7 +99,7 @@ fun VerificationScreen(
                 fontFamily = body,
                 fontSize = 15.sp,
                 lineHeight = 24.sp,
-                color = colors.neutral700
+                color = OrganicColors.neutral700
             )
         }
 
@@ -110,22 +108,21 @@ fun VerificationScreen(
             onCodeChange = { onEvent(VerificationEvent.CodeChanged(it)) },
             length = VERIFICATION_CODE_LENGTH,
             isError = uiState.errorMessage != null,
-            onComplete = { onEvent(VerificationEvent.VerifyClicked) },
-            colors = colors
+            onComplete = { onEvent(VerificationEvent.VerifyClicked) }
         )
 
         Text(
             text = buildAnnotatedString {
                 if (uiState.canResend) {
                     withStyle(
-                        SpanStyle(color = colors.accent700, fontWeight = FontWeight.SemiBold)
+                        SpanStyle(color = OrganicColors.accent700, fontWeight = FontWeight.SemiBold)
                     ) {
                         append(stringResource(Res.string.auth_resend_code))
                     }
                 } else {
                     append(stringResource(Res.string.auth_resend_in))
                     withStyle(
-                        SpanStyle(color = colors.accent700, fontWeight = FontWeight.Bold)
+                        SpanStyle(color = OrganicColors.accent700, fontWeight = FontWeight.Bold)
                     ) {
                         append(uiState.countdown)
                     }
@@ -136,7 +133,7 @@ fun VerificationScreen(
                 .padding(vertical = 4.dp),
             fontFamily = body,
             fontSize = 14.sp,
-            color = colors.neutral700
+            color = OrganicColors.neutral700
         )
 
         uiState.errorMessage?.let { message ->
@@ -145,7 +142,7 @@ fun VerificationScreen(
                 fontFamily = body,
                 fontSize = 13.sp,
                 lineHeight = 19.sp,
-                color = colors.danger
+                color = OrganicColors.danger
             )
         }
 
@@ -155,8 +152,7 @@ fun VerificationScreen(
             ),
             onClick = { onEvent(VerificationEvent.VerifyClicked) },
             enabled = uiState.isComplete,
-            isBusy = uiState.isLoading,
-            colors = colors
+            isBusy = uiState.isLoading
         )
     }
 }

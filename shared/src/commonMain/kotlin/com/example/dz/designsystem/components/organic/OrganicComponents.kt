@@ -7,12 +7,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -34,6 +36,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -46,7 +49,6 @@ import com.example.dz.designsystem.theme.OrganicColors
 import com.example.dz.designsystem.theme.OrganicShape
 import com.example.dz.designsystem.theme.OrganicSize
 import com.example.dz.designsystem.theme.organicBodyFontFamily
-import com.example.dz.designsystem.theme.organicColors
 import com.example.dz.designsystem.theme.organicHeadingFontFamily
 
 /**
@@ -62,20 +64,19 @@ fun OrganicBackButton(
     onClick: () -> Unit,
     contentDescription: String?,
     modifier: Modifier = Modifier,
-    colors: OrganicColors = organicColors(),
 ) {
     Box(
         modifier = modifier
             .size(OrganicSize.backButton)
             .clip(CircleShape)
-            .background(colors.neutral200)
+            .background(OrganicColors.neutral200)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         Icon(
             imageVector = InkIcons.Back,
             contentDescription = contentDescription,
-            tint = colors.neutral800,
+            tint = OrganicColors.neutral800,
             modifier = Modifier.size(18.dp)
         )
     }
@@ -87,7 +88,6 @@ fun OrganicTitle(
     text: String,
     modifier: Modifier = Modifier,
     fontSize: androidx.compose.ui.unit.TextUnit = 32.sp,
-    colors: OrganicColors = organicColors(),
 ) {
     Text(
         text = text,
@@ -96,7 +96,7 @@ fun OrganicTitle(
         fontWeight = FontWeight.Normal,
         fontSize = fontSize,
         lineHeight = fontSize * 1.15f,
-        color = colors.text
+        color = OrganicColors.text
     )
 }
 
@@ -105,7 +105,6 @@ fun OrganicTitle(
 fun OrganicSubtitle(
     text: String,
     modifier: Modifier = Modifier,
-    colors: OrganicColors = organicColors(),
 ) {
     Text(
         text = text,
@@ -113,7 +112,7 @@ fun OrganicSubtitle(
         fontFamily = organicBodyFontFamily(),
         fontSize = 15.sp,
         lineHeight = 24.sp,
-        color = colors.neutral700
+        color = OrganicColors.neutral700
     )
 }
 
@@ -125,7 +124,6 @@ fun OrganicSubtitle(
 fun OrganicFieldLabel(
     text: String,
     modifier: Modifier = Modifier,
-    colors: OrganicColors = organicColors(),
 ) {
     Text(
         text = text.uppercase(),
@@ -133,7 +131,7 @@ fun OrganicFieldLabel(
         fontFamily = organicBodyFontFamily(),
         fontSize = 12.sp,
         letterSpacing = 0.6.sp,
-        color = colors.neutral700
+        color = OrganicColors.neutral700
     )
 }
 
@@ -157,21 +155,20 @@ fun OrganicField(
     showLabel: String? = null,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
-    colors: OrganicColors = organicColors(),
 ) {
     var focused by remember { mutableStateOf(false) }
     var revealed by remember { mutableStateOf(false) }
-    val shape = RoundedCornerShape(OrganicShape.lg)
+    val shape = RoundedCornerShape(OrganicShape.radiusLg)
     val body = organicBodyFontFamily()
 
     val borderColor = when {
-        isError -> colors.danger
-        focused -> colors.accent
-        else -> colors.neutral300
+        isError -> OrganicColors.danger
+        focused -> OrganicColors.accent
+        else -> OrganicColors.neutral300
     }
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(7.dp)) {
-        label?.let { OrganicFieldLabel(text = it, colors = colors) }
+        label?.let { OrganicFieldLabel(text = it) }
 
         BasicTextField(
             value = value,
@@ -180,7 +177,7 @@ fun OrganicField(
                 .fillMaxWidth()
                 .height(OrganicSize.fieldHeight)
                 .clip(shape)
-                .background(colors.neutral100)
+                .background(OrganicColors.neutral100)
                 .border(1.dp, borderColor, shape)
                 .onFocusChanged { focused = it.isFocused },
             textStyle = TextStyle(
@@ -188,10 +185,10 @@ fun OrganicField(
                 fontSize = if (isPassword && !revealed) 17.sp else 15.sp,
                 // The masked dots are tracked out in the design; unmasked text is not.
                 letterSpacing = if (isPassword && !revealed) 3.sp else 0.sp,
-                color = colors.text
+                color = OrganicColors.text
             ),
             singleLine = true,
-            cursorBrush = SolidColor(colors.accent),
+            cursorBrush = SolidColor(OrganicColors.accent),
             visualTransformation =
                 if (isPassword && !revealed) PasswordVisualTransformation('•')
                 else VisualTransformation.None,
@@ -208,7 +205,7 @@ fun OrganicField(
                                 text = placeholder,
                                 fontFamily = body,
                                 fontSize = 15.sp,
-                                color = colors.neutral500,
+                                color = OrganicColors.neutral500,
                                 maxLines = 1
                             )
                         }
@@ -222,7 +219,7 @@ fun OrganicField(
                                 .padding(start = 10.dp, top = 8.dp, bottom = 8.dp),
                             fontFamily = body,
                             fontSize = 12.sp,
-                            color = if (focused) colors.accent700 else colors.neutral600
+                            color = if (focused) OrganicColors.accent700 else OrganicColors.neutral600
                         )
                     }
                 }
@@ -236,7 +233,7 @@ fun OrganicField(
                 fontFamily = body,
                 fontSize = 12.sp,
                 lineHeight = 17.sp,
-                color = colors.danger
+                color = OrganicColors.danger
             )
         }
     }
@@ -250,7 +247,6 @@ fun OrganicButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     isBusy: Boolean = false,
-    colors: OrganicColors = organicColors(),
 ) {
     val interactive = enabled && !isBusy
     val shape = RoundedCornerShape(OrganicShape.pill)
@@ -260,7 +256,7 @@ fun OrganicButton(
             .height(OrganicSize.buttonHeight)
             .shadow(if (interactive) 6.dp else 0.dp, shape, clip = false)
             .clip(shape)
-            .background(if (interactive) colors.accent else colors.neutral400)
+            .background(if (interactive) OrganicColors.accent else OrganicColors.neutral400)
             .clickable(enabled = interactive, onClick = onClick),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally)
@@ -290,15 +286,14 @@ fun OrganicSocialButton(
     modifier: Modifier = Modifier,
     leadingIcon: ImageVector? = null,
     enabled: Boolean = true,
-    colors: OrganicColors = organicColors(),
 ) {
     val shape = RoundedCornerShape(OrganicShape.pill)
     Row(
         modifier = modifier
             .height(OrganicSize.socialButtonHeight)
             .clip(shape)
-            .background(if (enabled) colors.neutral100 else colors.neutral200)
-            .border(1.dp, colors.neutral300, shape)
+            .background(if (enabled) OrganicColors.neutral100 else OrganicColors.neutral200)
+            .border(1.dp, OrganicColors.neutral300, shape)
             .clickable(enabled = enabled, onClick = onClick),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
@@ -307,7 +302,7 @@ fun OrganicSocialButton(
             Icon(
                 imageVector = it,
                 contentDescription = null,
-                tint = if (enabled) colors.text else colors.neutral500,
+                tint = if (enabled) OrganicColors.text else OrganicColors.neutral500,
                 modifier = Modifier.size(16.dp)
             )
         }
@@ -316,7 +311,7 @@ fun OrganicSocialButton(
             fontFamily = organicBodyFontFamily(),
             fontWeight = FontWeight.SemiBold,
             fontSize = 14.sp,
-            color = if (enabled) colors.text else colors.neutral500
+            color = if (enabled) OrganicColors.text else OrganicColors.neutral500
         )
     }
 }
@@ -326,21 +321,20 @@ fun OrganicSocialButton(
 fun OrganicDivider(
     text: String,
     modifier: Modifier = Modifier,
-    colors: OrganicColors = organicColors(),
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Box(modifier = Modifier.weight(1f).height(1.dp).background(colors.neutral300))
+        Box(modifier = Modifier.weight(1f).height(1.dp).background(OrganicColors.neutral300))
         Text(
             text = text,
             fontFamily = organicBodyFontFamily(),
             fontSize = 13.sp,
-            color = colors.neutral600
+            color = OrganicColors.neutral600
         )
-        Box(modifier = Modifier.weight(1f).height(1.dp).background(colors.neutral300))
+        Box(modifier = Modifier.weight(1f).height(1.dp).background(OrganicColors.neutral300))
     }
 }
 
@@ -351,16 +345,15 @@ fun OrganicCheckbox(
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
     contentDescription: String? = null,
-    colors: OrganicColors = organicColors(),
 ) {
-    val shape = RoundedCornerShape(OrganicShape.sm)
+    val shape = RoundedCornerShape(OrganicShape.radiusSm)
     Box(
         modifier = modifier
             .size(24.dp)
             .clip(shape)
-            .background(if (checked) colors.accent else colors.neutral200)
+            .background(if (checked) OrganicColors.accent else OrganicColors.neutral200)
             .then(
-                if (checked) Modifier else Modifier.border(1.dp, colors.neutral400, shape)
+                if (checked) Modifier else Modifier.border(1.dp, OrganicColors.neutral400, shape)
             )
             .clickable { onCheckedChange(!checked) },
         contentAlignment = Alignment.Center
@@ -385,7 +378,6 @@ fun OrganicStrengthMeter(
     filled: Int,
     label: String,
     modifier: Modifier = Modifier,
-    colors: OrganicColors = organicColors(),
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -398,7 +390,7 @@ fun OrganicStrengthMeter(
                     .weight(1f)
                     .height(5.dp)
                     .clip(RoundedCornerShape(OrganicShape.pill))
-                    .background(if (index < filled) colors.accent2 else colors.neutral300)
+                    .background(if (index < filled) OrganicColors.accent2 else OrganicColors.neutral300)
             )
         }
         Spacer(modifier = Modifier.width(6.dp))
@@ -406,7 +398,7 @@ fun OrganicStrengthMeter(
             text = label,
             fontFamily = organicBodyFontFamily(),
             fontSize = 12.sp,
-            color = colors.neutral700
+            color = OrganicColors.neutral700
         )
     }
 }
@@ -425,7 +417,6 @@ fun OrganicCodeField(
     modifier: Modifier = Modifier,
     isError: Boolean = false,
     onComplete: () -> Unit = {},
-    colors: OrganicColors = organicColors(),
 ) {
     var focused by remember { mutableStateOf(false) }
     val heading = organicHeadingFontFamily()
@@ -457,13 +448,13 @@ fun OrganicCodeField(
                                 .weight(1f)
                                 .height(OrganicSize.codeBoxHeight)
                                 .clip(shape)
-                                .background(colors.neutral100)
+                                .background(OrganicColors.neutral100)
                                 .border(
                                     width = 1.dp,
                                     color = when {
-                                        isError -> colors.danger
-                                        filled || active -> colors.accent
-                                        else -> colors.neutral300
+                                        isError -> OrganicColors.danger
+                                        filled || active -> OrganicColors.accent
+                                        else -> OrganicColors.neutral300
                                     },
                                     shape = shape
                                 ),
@@ -475,14 +466,14 @@ fun OrganicCodeField(
                                     text = digit,
                                     fontFamily = heading,
                                     fontSize = 24.sp,
-                                    color = colors.text
+                                    color = OrganicColors.text
                                 )
                             } else if (active) {
                                 Box(
                                     modifier = Modifier
                                         .width(2.dp)
                                         .height(26.dp)
-                                        .background(colors.accent)
+                                        .background(OrganicColors.accent)
                                 )
                             }
                         }
@@ -491,4 +482,106 @@ fun OrganicCodeField(
             }
         }
     )
+}
+
+// ---------------------------------------------------------------------------
+// Splash & onboarding
+// ---------------------------------------------------------------------------
+
+/**
+ * Large pill action button in the "Organic" voice — accent fill, 58dp tall,
+ * with standard Android pressed/ripple feedback baked in via [Modifier.clickable].
+ * When [trailingArrow] is set the chevron is drawn *inside* this same clickable
+ * row (never a separate tappable element).
+ */
+@Composable
+fun OrganicPrimaryButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    fullWidth: Boolean = true,
+    trailingArrow: Boolean = false,
+) {
+    Row(
+        modifier = modifier
+            .then(if (fullWidth) Modifier.fillMaxWidth() else Modifier.wrapContentWidth())
+            .height(58.dp)
+            .shadow(
+                elevation = 6.dp,
+                shape = RoundedCornerShape(OrganicShape.pill),
+                ambientColor = OrganicColors.shadow.copy(alpha = 0.22f),
+                spotColor = OrganicColors.shadow.copy(alpha = 0.22f)
+            )
+            .clip(RoundedCornerShape(OrganicShape.pill))
+            .background(OrganicColors.accent)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = 30.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = text,
+                fontFamily = organicBodyFontFamily(),
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 16.sp,
+                color = Color.White
+            )
+            if (trailingArrow) {
+                Icon(
+                    imageVector = InkIcons.ArrowRight,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+        }
+    }
+}
+
+/**
+ * One pagination dot. The visible mark is small (8dp) but the tappable area
+ * is expanded to a comfortable 44dp touch target, per Android accessibility
+ * guidance.
+ */
+@Composable
+private fun RowScope.OrganicDot(
+    active: Boolean,
+    onClick: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .size(44.dp)
+            .clickable(role = Role.Button, onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .width(if (active) 26.dp else 8.dp)
+                .height(8.dp)
+                .clip(CircleShape)
+                .background(if (active) OrganicColors.accent else OrganicColors.neutral300)
+        )
+    }
+}
+
+/** Row of pagination dots — tap any dot to jump to that page. */
+@Composable
+fun OrganicPaginationDots(
+    pageCount: Int,
+    activeIndex: Int,
+    onDotClick: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        repeat(pageCount) { index ->
+            OrganicDot(active = index == activeIndex, onClick = { onDotClick(index) })
+        }
+    }
 }

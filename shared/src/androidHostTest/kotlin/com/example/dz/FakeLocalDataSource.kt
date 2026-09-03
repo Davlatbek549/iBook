@@ -48,4 +48,10 @@ internal class FakeLocalDataSource : LocalDataSource {
     override fun getSetting(key: String, default: String): String = values[key] ?: default
     override fun saveSetting(key: String, value: String) { values[key] = value }
     override fun removeSetting(key: String) { values.remove(key) }
+
+    override fun isOnboardingCompleted(): Boolean = values["onboardingCompleted"].toBoolean()
+
+    override fun setOnboardingCompleted(completed: Boolean) {
+        values["onboardingCompleted"] = completed.toString()
+    }
 }

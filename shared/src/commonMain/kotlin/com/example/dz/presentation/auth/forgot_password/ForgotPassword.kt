@@ -36,9 +36,9 @@ import com.example.dz.designsystem.components.organic.OrganicButton
 import com.example.dz.designsystem.components.organic.OrganicField
 import com.example.dz.designsystem.components.organic.OrganicSubtitle
 import com.example.dz.designsystem.components.organic.OrganicTitle
+import com.example.dz.designsystem.theme.OrganicColors
 import com.example.dz.designsystem.theme.OrganicSize
 import com.example.dz.designsystem.theme.organicBodyFontFamily
-import com.example.dz.designsystem.theme.organicColors
 import dz.shared.generated.resources.Res
 import dz.shared.generated.resources.auth_back
 import dz.shared.generated.resources.auth_back_to_sign_in
@@ -63,7 +63,6 @@ fun ForgotPasswordScreen(
     uiState: ForgotPasswordUiState = ForgotPasswordUiState(),
     onEvent: (ForgotPasswordEvent) -> Unit = {}
 ) {
-    val colors = organicColors()
     val body = organicBodyFontFamily()
     val focusManager = LocalFocusManager.current
     val sentTo = uiState.sentTo
@@ -71,7 +70,7 @@ fun ForgotPasswordScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(colors.bg)
+            .background(OrganicColors.bg)
             .statusBarsPadding()
             .navigationBarsPadding()
             .imePadding()
@@ -86,21 +85,20 @@ fun ForgotPasswordScreen(
     ) {
         OrganicBackButton(
             onClick = { onEvent(ForgotPasswordEvent.BackClicked) },
-            contentDescription = stringResource(Res.string.auth_back),
-            colors = colors
+            contentDescription = stringResource(Res.string.auth_back)
         )
 
         Box(
             modifier = Modifier
                 .size(88.dp)
                 .clip(CircleShape)
-                .background(colors.accent2200),
+                .background(OrganicColors.accent2_200),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = InkIcons.Message,
                 contentDescription = null,
-                tint = colors.accent2900,
+                tint = OrganicColors.accent2_900,
                 modifier = Modifier.size(34.dp)
             )
         }
@@ -108,10 +106,9 @@ fun ForgotPasswordScreen(
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             OrganicTitle(
                 text = stringResource(Res.string.auth_forgot_title),
-                fontSize = 30.sp,
-                colors = colors
+                fontSize = 30.sp
             )
-            OrganicSubtitle(text = stringResource(Res.string.auth_forgot_copy), colors = colors)
+            OrganicSubtitle(text = stringResource(Res.string.auth_forgot_copy))
         }
 
         OrganicField(
@@ -129,8 +126,7 @@ fun ForgotPasswordScreen(
                     focusManager.clearFocus()
                     onEvent(ForgotPasswordEvent.SendLinkClicked)
                 }
-            ),
-            colors = colors
+            )
         )
 
         OrganicButton(
@@ -147,8 +143,7 @@ fun ForgotPasswordScreen(
                     else ForgotPasswordEvent.SendLinkClicked
                 )
             },
-            isBusy = uiState.isLoading,
-            colors = colors
+            isBusy = uiState.isLoading
         )
 
         if (sentTo != null) {
@@ -159,7 +154,7 @@ fun ForgotPasswordScreen(
                 fontFamily = body,
                 fontSize = 13.sp,
                 lineHeight = 20.sp,
-                color = colors.neutral700
+                color = OrganicColors.neutral700
             )
         }
 
@@ -171,7 +166,7 @@ fun ForgotPasswordScreen(
                 .padding(vertical = 8.dp),
             fontFamily = body,
             fontSize = 14.sp,
-            color = colors.neutral700,
+            color = OrganicColors.neutral700,
             textAlign = TextAlign.Center
         )
     }
