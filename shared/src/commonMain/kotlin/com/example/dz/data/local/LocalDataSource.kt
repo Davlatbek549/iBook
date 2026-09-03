@@ -21,4 +21,6 @@ interface LocalDataSource {
     fun getSetting(key: String, default: String = ""): String
     fun saveSetting(key: String, value: String)
     fun removeSetting(key: String)
+    fun isOnboardingCompleted(): Boolean
+    fun setOnboardingCompleted(completed: Boolean)
 }

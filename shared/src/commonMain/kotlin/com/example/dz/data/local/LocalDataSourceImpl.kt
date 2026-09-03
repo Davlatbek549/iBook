@@ -9,6 +9,7 @@ private object Keys {
     const val USER_EMAIL = "user_email"
     const val USER_NAME = "user_name"
     const val LOGGED_IN = "is_logged_in"
+    const val ONBOARDING_COMPLETED = "onboarding_completed"
 }
 
 class LocalDataSourceImpl(private val settings: Settings) : LocalDataSource {
@@ -66,5 +67,12 @@ class LocalDataSourceImpl(private val settings: Settings) : LocalDataSource {
 
     override fun removeSetting(key: String) {
         settings.remove(key)
+    }
+
+    override fun isOnboardingCompleted(): Boolean =
+        settings.getBoolean(Keys.ONBOARDING_COMPLETED, false)
+
+    override fun setOnboardingCompleted(completed: Boolean) {
+        settings.putBoolean(Keys.ONBOARDING_COMPLETED, completed)
     }
 }

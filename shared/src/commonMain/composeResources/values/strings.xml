@@ -18,6 +18,31 @@
     <string name="chip_loved">Loved</string>
     <string name="onb3_title">Read together</string>
     <string name="onb3_copy">Follow friends, swap recommendations, and see what your circle is reading right now.</string>
+
+    <!-- Organic-design Splash & Onboarding (redesign) -->
+    <string name="splash_wordmark">dz</string>
+    <string name="splash_subtitle">A shelf that remembers where you stopped.</string>
+    <string name="splash_signin_prefix">Already reading with us?</string>
+    <string name="splash_signin_action">Sign in</string>
+
+    <string name="onboarding_page1_title">Every book you own, in one pocket</string>
+    <string name="onboarding_page1_desc">Buy once, read anywhere — your place, notes and highlights follow you across devices.</string>
+    <string name="onboarding_page1_page_number">p. 214</string>
+    <string name="onboarding_page1_synced">Synced just now</string>
+
+    <string name="onboarding_page2_title">A goal you can actually keep</string>
+    <string name="onboarding_page2_desc">Twenty quiet minutes a day. dz nudges gently and keeps the streak for you.</string>
+    <string name="onboarding_page2_minutes_value">14</string>
+    <string name="onboarding_page2_minutes_label">OF 20 MIN</string>
+
+    <string name="onboarding_page3_title">Read alongside your people</string>
+    <string name="onboarding_page3_desc">See what friends are reading, swap notes, and pass books back and forth.</string>
+    <string name="onboarding_page3_book_title">Piranesi</string>
+    <string name="onboarding_page3_friend_status">Maya is on ch. 4</string>
+    <string name="onboarding_page3_note">"That last page — read it twice."</string>
+
+    <string name="onboarding_next">Next</string>
+    <string name="onboarding_start">Start</string>
     <string name="auth_login_eyebrow">DZ · Sign in</string>
     <string name="auth_login_title">Welcome back,&#10;reader</string>
     <string name="auth_email_placeholder">Email address</string>

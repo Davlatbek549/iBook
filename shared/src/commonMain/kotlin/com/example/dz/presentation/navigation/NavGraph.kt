@@ -96,15 +96,9 @@ import com.example.dz.presentation.social.no_friends.NoFriendsViewModel
 import com.example.dz.presentation.notifications.NotificationsEffect
 import com.example.dz.presentation.notifications.NotificationsScreen
 import com.example.dz.presentation.notifications.NotificationsViewModel
-import com.example.dz.presentation.onboarding.onboarding_one.OnboardingOneEffect
-import com.example.dz.presentation.onboarding.onboarding_one.OnboardingOneViewModel
-import com.example.dz.presentation.onboarding.onboarding_one.OnboardingScreenOne
-import com.example.dz.presentation.onboarding.onboarding_three.OnboardingScreenThree
-import com.example.dz.presentation.onboarding.onboarding_three.OnboardingThreeEffect
-import com.example.dz.presentation.onboarding.onboarding_three.OnboardingThreeViewModel
-import com.example.dz.presentation.onboarding.onboarding_two.OnboardingScreenTwo
-import com.example.dz.presentation.onboarding.onboarding_two.OnboardingTwoEffect
-import com.example.dz.presentation.onboarding.onboarding_two.OnboardingTwoViewModel
+import com.example.dz.presentation.onboarding.OnboardingEffect
+import com.example.dz.presentation.onboarding.OnboardingScreen
+import com.example.dz.presentation.onboarding.OnboardingViewModel
 import com.example.dz.presentation.payment.payment_failed.PaymentFailedEffect
 import com.example.dz.presentation.payment.payment_failed.PaymentFailedViewModel
 import com.example.dz.presentation.payment.payment_failed.PurchaseFailedScreen
@@ -142,6 +136,7 @@ import com.example.dz.presentation.auth.sign_up.SignUpEffect
 import com.example.dz.presentation.auth.sign_up.SignUpScreen
 import com.example.dz.presentation.auth.sign_up.SignUpViewModel
 import com.example.dz.presentation.splash.SplashEffect
+import com.example.dz.presentation.splash.SplashEvent
 import com.example.dz.presentation.splash.SplashScreen
 import com.example.dz.presentation.splash.SplashViewModel
 import com.example.dz.presentation.store.StoreEffect
@@ -219,9 +214,7 @@ fun DZNavGraph() {
 
     val bottomBarHiddenRoutes = setOf(
         Routes.SPLASH,
-        Routes.ONBOARDING_1,
-        Routes.ONBOARDING_2,
-        Routes.ONBOARDING_3,
+        Routes.ONBOARDING,
         Routes.LOGIN,
         Routes.SIGN_UP,
         Routes.FORGOT_PASSWORD,
@@ -276,82 +269,41 @@ fun DZNavGraph() {
 
                 LaunchedEffect(splashViewModel) {
                     splashViewModel.effects.collect { effect ->
-                        val destination = when (effect) {
-                            SplashEffect.NavigateToHome -> Routes.HOME
-                            SplashEffect.NavigateToOnboarding -> Routes.ONBOARDING_1
-                        }
-                        navController.navigate(destination) {
-                            popUpTo(Routes.SPLASH) { inclusive = true }
-                        }
-                    }
-                }
-
-                SplashScreen()
-            }
-
-            composable(Routes.ONBOARDING_1) {
-                val onboardingOneViewModel = koinViewModel<OnboardingOneViewModel>()
-                val uiState by onboardingOneViewModel.uiState.collectAsStateWithLifecycle()
-
-                LaunchedEffect(onboardingOneViewModel) {
-                    onboardingOneViewModel.effects.collect { effect ->
                         when (effect) {
-                            OnboardingOneEffect.NavigateToNext -> navController.navigate(Routes.ONBOARDING_2)
-                            OnboardingOneEffect.NavigateToLogin -> navController.navigate(Routes.LOGIN) {
-                                popUpTo(Routes.ONBOARDING_1) { inclusive = true }
+                            SplashEffect.NavigateToHome -> navController.navigate(Routes.HOME) {
+                                popUpTo(Routes.SPLASH) { inclusive = true }
                             }
+                            SplashEffect.NavigateToOnboarding -> navController.navigate(Routes.ONBOARDING) {
+                                popUpTo(Routes.SPLASH) { inclusive = true }
+                            }
+                            SplashEffect.NavigateToSignUp -> navController.navigate(Routes.SIGN_UP) {
+                                popUpTo(Routes.SPLASH) { inclusive = true }
+                            }
+                            SplashEffect.NavigateToSignIn -> navController.navigate(Routes.LOGIN)
                         }
                     }
                 }
 
-                OnboardingScreenOne(
-                    uiState = uiState,
-                    onEvent = onboardingOneViewModel::onEvent
+                SplashScreen(
+                    onGetStarted = { splashViewModel.onEvent(SplashEvent.GetStartedClicked) },
+                    onSignIn = { splashViewModel.onEvent(SplashEvent.SignInClicked) }
                 )
             }
 
-            composable(Routes.ONBOARDING_2) {
-                val onboardingTwoViewModel = koinViewModel<OnboardingTwoViewModel>()
-                val uiState by onboardingTwoViewModel.uiState.collectAsStateWithLifecycle()
+            composable(Routes.ONBOARDING) {
+                val onboardingViewModel = koinViewModel<OnboardingViewModel>()
 
-                LaunchedEffect(onboardingTwoViewModel) {
-                    onboardingTwoViewModel.effects.collect { effect ->
+                LaunchedEffect(onboardingViewModel) {
+                    onboardingViewModel.effects.collect { effect ->
                         when (effect) {
-                            OnboardingTwoEffect.NavigateToNext -> navController.navigate(Routes.ONBOARDING_3)
-                            OnboardingTwoEffect.NavigateToLogin -> navController.navigate(Routes.LOGIN) {
-                                popUpTo(Routes.ONBOARDING_1) { inclusive = true }
+                            OnboardingEffect.NavigateToSignUp -> navController.navigate(Routes.SIGN_UP) {
+                                popUpTo(Routes.ONBOARDING) { inclusive = true }
                             }
                         }
                     }
                 }
 
-                OnboardingScreenTwo(
-                    uiState = uiState,
-                    onEvent = onboardingTwoViewModel::onEvent
-                )
-            }
-
-            composable(Routes.ONBOARDING_3) {
-                val onboardingThreeViewModel = koinViewModel<OnboardingThreeViewModel>()
-                val uiState by onboardingThreeViewModel.uiState.collectAsStateWithLifecycle()
-
-                LaunchedEffect(onboardingThreeViewModel) {
-                    onboardingThreeViewModel.effects.collect { effect ->
-                        when (effect) {
-                            OnboardingThreeEffect.NavigateToSignUp -> navController.navigate(Routes.SIGN_UP) {
-                                popUpTo(Routes.ONBOARDING_1) { inclusive = true }
-                            }
-                            OnboardingThreeEffect.NavigateToLogin -> navController.navigate(Routes.LOGIN) {
-                                popUpTo(Routes.ONBOARDING_1) { inclusive = true }
-                            }
-                        }
-                    }
-                }
-
-                OnboardingScreenThree(
-                    uiState = uiState,
-                    onEvent = onboardingThreeViewModel::onEvent
-                )
+                OnboardingScreen(onEvent = onboardingViewModel::onEvent)
             }
 
             composable(Routes.LOGIN) {

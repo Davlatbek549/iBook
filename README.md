@@ -77,7 +77,7 @@ Version highlights are managed in `gradle/libs.versions.toml`:
 └── build.gradle.kts
 ```
 
-## Modules
+## Modules 
 
 ### `androidApp`
 
