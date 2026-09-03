@@ -11,7 +11,7 @@ class IBookApplication : Application() {
         super.onCreate()
         startKoin {
             androidContext(this@IBookApplication)
-            modules(coreModule, platformModule())
+            modules(coreModule, platformModule)
         }
     }
 }

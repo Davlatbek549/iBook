@@ -8,40 +8,37 @@ import com.example.dz.domain.model.Collection
 import com.example.dz.domain.repository.CollectionRepository
 
 /**
- * Persists user collections and their book membership via SQLDelight, so they survive an app
- * restart. Updating or deleting a collection's books goes through [updateCollection] — the caller
- * passes the full [Collection] (with its desired [Collection.books]) and membership is replaced
- * atomically by [CollectionLocalDataSource.update].
+ * Collection persistence backed by the local SQLDelight database ([CollectionLocalDataSource]),
+ * replacing the in-memory fake. Membership and metadata survive app restarts.
  */
 class LocalCollectionRepository(
-    private val local: CollectionLocalDataSource
+    private val collections: CollectionLocalDataSource
 ) : CollectionRepository {
+
     override suspend fun getCollections(): AppResult<List<Collection>> =
-        AppResult.Success(local.getCollections())
+        AppResult.Success(collections.getCollections())
 
     override suspend fun getCollectionDetails(collectionId: String): AppResult<Collection> =
-        local.getCollection(collectionId)
+        collections.getCollection(collectionId)
             ?.let { AppResult.Success(it) }
             ?: AppResult.Error(AppError.NotFound)
 
     override suspend fun createCollection(title: String): AppResult<Collection> {
-        val createdAt = currentEpochMillis()
-        val collection = Collection(id = "${slugify(title)}-$createdAt", title = title)
-        local.create(collection, createdAt)
+        val collection = Collection(
+            id = title.trim().lowercase().replace(" ", "-").ifBlank { "collection" },
+            title = title
+        )
+        collections.create(collection, createdAt = currentEpochMillis())
         return AppResult.Success(collection)
     }
 
     override suspend fun updateCollection(collection: Collection): AppResult<Collection> {
-        local.update(collection)
+        collections.update(collection)
         return AppResult.Success(collection)
     }
 
     override suspend fun deleteCollection(collectionId: String): AppResult<Unit> {
-        local.delete(collectionId)
+        collections.delete(collectionId)
         return AppResult.Success(Unit)
     }
 }
-
-/** Readable id prefix; the caller appends a timestamp so two collections with the same title don't collide. */
-private fun slugify(title: String): String =
-    title.trim().lowercase().replace(" ", "-").ifBlank { "collection" }

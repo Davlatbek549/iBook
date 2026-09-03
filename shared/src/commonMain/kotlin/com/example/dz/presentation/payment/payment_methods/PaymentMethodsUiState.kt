@@ -9,15 +9,11 @@ data class PaymentMethodItem(
     val subtitle: String
 )
 
-val defaultPaymentMethods = listOf(
-    PaymentMethodItem("paypal", PaymentBrand.Paypal, "PayPal", "amelia@hartwell.co"),
-    PaymentMethodItem("visa", PaymentBrand.Visa, "Visa ·· 4129", "Expires 08/27"),
-    PaymentMethodItem("apple", PaymentBrand.ApplePay, "Apple Pay", "Device wallet")
-)
+val defaultPaymentMethods: List<PaymentMethodItem> = emptyList()
 
 data class PaymentMethodsUiState(
     val methods: List<PaymentMethodItem> = defaultPaymentMethods,
-    val selectedId: String = defaultPaymentMethods.first().id,
+    val selectedId: String = defaultPaymentMethods.firstOrNull()?.id.orEmpty(),
     val isLoading: Boolean = false,
     val errorMessage: String? = null
 )

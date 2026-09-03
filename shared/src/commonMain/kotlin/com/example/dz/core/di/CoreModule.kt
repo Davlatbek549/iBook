@@ -15,6 +15,7 @@ import com.example.dz.data.remote.api.OpenLibraryApi
 import com.example.dz.data.remote.api.createAuthHttpClient
 import com.example.dz.data.remote.api.createRemoteHttpClient
 import com.example.dz.data.repository.ChatRepositoryImpl
+import com.example.dz.data.repository.DownloadRepositoryImpl
 import com.example.dz.data.repository.LocalCollectionRepository
 import com.example.dz.data.repository.LocalLibraryRepository
 import com.example.dz.data.repository.MembershipRepositoryImpl
@@ -28,6 +29,7 @@ import com.example.dz.domain.repository.AuthRepository
 import com.example.dz.domain.repository.BookRepository
 import com.example.dz.domain.repository.ChatRepository
 import com.example.dz.domain.repository.CollectionRepository
+import com.example.dz.domain.repository.DownloadRepository
 import com.example.dz.domain.repository.LibraryRepository
 import com.example.dz.domain.repository.MembershipRepository
 import com.example.dz.domain.repository.NotificationRepository
@@ -45,6 +47,8 @@ import com.example.dz.domain.usecase.book.GetBooksByCategoryUseCase
 import com.example.dz.domain.usecase.book.GetCategoriesUseCase
 import com.example.dz.domain.usecase.book.GetHomeBooksUseCase
 import com.example.dz.domain.usecase.book.SearchBooksUseCase
+import com.example.dz.domain.usecase.book.DeleteDownloadUseCase
+import com.example.dz.domain.usecase.book.DownloadBookUseCase
 import com.example.dz.domain.usecase.chat.GetChatsUseCase
 import com.example.dz.domain.usecase.chat.GetMessagesUseCase
 import com.example.dz.domain.usecase.chat.SendMessageUseCase
@@ -113,7 +117,7 @@ import org.koin.mp.KoinPlatform
 fun startKoinIfNeeded() {
     if (KoinPlatform.getKoinOrNull() == null) {
         startKoin {
-            modules(coreModule, platformModule())
+            modules(coreModule, platformModule)
         }
     }
 }
@@ -127,10 +131,18 @@ val coreModule = module {
     single { Settings() }
     single<LocalDataSource> { LocalDataSourceImpl(get()) }
 
-    // ── App backend API (mock engine until a real server exists) ────────────
+    // ── SQLDelight database (DatabaseDriverFactory + FileStorage come from platformModule) ──
+    single { createDatabase(get()) }
+    single { LibraryLocalDataSource(get()) }
+    single { CollectionLocalDataSource(get()) }
+
+    // ── App backend API (our own dz-server) ─────────────────────────────────
     single { ApiConfig() }
     single(named(AUTH_HTTP_CLIENT)) { createAuthHttpClient(local = get(), config = get()) }
-    single<AuthApi> { KtorAuthApi(client = get(named(AUTH_HTTP_CLIENT)), baseUrl = get<ApiConfig>().baseUrl) }
+    single<AuthApi> {
+        val config = get<ApiConfig>()
+        KtorAuthApi(client = get(named(AUTH_HTTP_CLIENT)), baseUrl = config.baseUrl)
+    }
 
     // ── Person B — User & Commerce (local / session-backed) ─────────────────
     single<AuthRepository> { RemoteAuthRepository(get(), get()) }
@@ -138,21 +150,19 @@ val coreModule = module {
     single<SocialRepository> { SocialRepositoryImpl(get()) }
     single<ChatRepository> { ChatRepositoryImpl(get()) }
     single<NotificationRepository> { NotificationRepositoryImpl(get()) }
-    single<MembershipRepository> { MembershipRepositoryImpl(get()) }
-    single<PaymentRepository> { PaymentRepositoryImpl(get()) }
+    single<MembershipRepository> { MembershipRepositoryImpl() }
+    single<PaymentRepository> { PaymentRepositoryImpl(get(), get()) }
 
     // ── Person A — Book content (remote Gutendex/OpenLibrary) ───────────────
     single<HttpClient> { createRemoteHttpClient() }
     single<GutendexApi> { KtorGutendexApi(get()) }
     single<OpenLibraryApi> { KtorOpenLibraryApi(get()) }
     single<BookRepository> { RemoteBookRepository(get(), get(), get()) }
-
-    // ── Person B — Local database (SQLDelight) ─────────────────────────────
-    single { createDatabase(get()) }
-    single { LibraryLocalDataSource(get()) }
-    single { CollectionLocalDataSource(get()) }
     single<LibraryRepository> { LocalLibraryRepository(get()) }
     single<CollectionRepository> { LocalCollectionRepository(get()) }
+
+    // ── Offline downloads (Phase 3) ──────────────────────────────────────────
+    single<DownloadRepository> { DownloadRepositoryImpl(get(), get(), get()) }
 
     // Domain use cases
     factory { LoginUseCase(get()) }
@@ -168,7 +178,9 @@ val coreModule = module {
     factory { GetBookDetailsUseCase(get()) }
     factory { GetCategoriesUseCase(get()) }
     factory { BookPaginator() }
-    factory { GetBookContentUseCase(get(), get()) }
+    factory { GetBookContentUseCase(repository = get(), downloadRepository = get()) }
+    factory { DownloadBookUseCase(get()) }
+    factory { DeleteDownloadUseCase(get()) }
 
     factory { GetLibraryBooksUseCase(get()) }
     factory { GetContinueReadingUseCase(get()) }
@@ -208,13 +220,13 @@ val coreModule = module {
     factory { SearchViewModel(get(), get()) }
     factory { StoreViewModel(get(), get()) }
     factory { (authorId: String) -> AuthorDetailViewModel(authorId) }
-    factory { (bookId: String) -> PrePurchaseViewModel(bookId, get(), get()) }
+    factory { (bookId: String) -> PrePurchaseViewModel(bookId, get(), get(), get()) }
     factory { (bookId: String) -> BookReviewViewModel(bookId, get()) }
     factory { (categoryId: String) -> CategoryDetailViewModel(categoryId, get(), get()) }
 
     factory { CollectionsViewModel(get()) }
     factory { (collectionId: String) -> CollectionDetailsViewModel(collectionId, get()) }
-    factory { (collectionId: String) -> CollectionsEditViewModel(collectionId, get(), get(), get()) }
+    factory { (collectionId: String) -> CollectionsEditViewModel(collectionId, get(), get(), get(), get()) }
 
     factory { GoalViewModel(get()) }
 
@@ -223,7 +235,7 @@ val coreModule = module {
 
     factory { NotificationsViewModel(get(), get()) }
 
-    factory { SplashViewModel(get()) }
+    factory { SplashViewModel(get(), get()) }
     factory { OnboardingViewModel(get()) }
 
     factory { (bookId: String) -> PurchaseDetailsViewModel(bookId, get()) }
@@ -234,8 +246,8 @@ val coreModule = module {
     factory { PaymentFailedViewModel() }
 
     factory { ProfileViewModel(get()) }
-    factory { (bookId: String) -> ReadingViewModel(bookId, get(), get()) }
-    factory { SettingsViewModel() }
+    factory { (bookId: String) -> ReadingViewModel(bookId, get(), get(), get(), get(), get()) }
+    factory { SettingsViewModel(get()) }
 
     factory { FriendListViewModel(get()) }
     factory { (friendId: String) -> FriendDetailViewModel(friendId, get()) }

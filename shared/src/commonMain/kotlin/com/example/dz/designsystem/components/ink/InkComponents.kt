@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -55,32 +56,50 @@ import com.example.dz.designsystem.theme.inkColors
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 
-/** Primary action button — accent ground, 52dp tall. */
+/**
+ * Primary action button — accent ground, 52dp tall.
+ *
+ * Set [isBusy] while the action is in flight: the button dims, stops accepting taps, and shows a
+ * spinner beside its label. Work that reaches the network needs this — against a sleeping server
+ * the first call can take up to a minute, and a button that looks idle throughout reads as a
+ * frozen app. [enabled] covers the same ground for actions blocked for other reasons.
+ */
 @Composable
 fun InkButton(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     leadingIcon: ImageVector? = null,
+    enabled: Boolean = true,
+    isBusy: Boolean = false,
     colors: InkColors = inkColors(),
 ) {
+    val isInteractive = enabled && !isBusy
     Row(
         modifier = modifier
             .fillMaxWidth()
             .height(52.dp)
             .clip(RoundedCornerShape(InkShape.radiusSm + 2.dp))
-            .background(colors.accent)
-            .clickable(onClick = onClick),
+            .background(if (isInteractive) colors.accent else colors.accent.copy(alpha = 0.55f))
+            .clickable(enabled = isInteractive, onClick = onClick),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(9.dp, Alignment.CenterHorizontally)
     ) {
-        leadingIcon?.let {
-            Icon(
-                imageVector = it,
-                contentDescription = null,
-                tint = colors.onAccent,
-                modifier = Modifier.size(14.dp)
+        if (isBusy) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(16.dp),
+                color = colors.onAccent,
+                strokeWidth = 2.dp
             )
+        } else {
+            leadingIcon?.let {
+                Icon(
+                    imageVector = it,
+                    contentDescription = null,
+                    tint = colors.onAccent,
+                    modifier = Modifier.size(14.dp)
+                )
+            }
         }
         Text(
             text = text,

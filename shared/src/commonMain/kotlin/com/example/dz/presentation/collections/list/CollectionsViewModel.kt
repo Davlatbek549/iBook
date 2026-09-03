@@ -25,6 +25,9 @@ class CollectionsViewModel(
         load()
     }
 
+    /** Reloads the collections, e.g. when returning from the create/edit screen. */
+    fun refresh() = load()
+
     fun onEvent(event: CollectionsEvent) {
         when (event) {
             CollectionsEvent.BackClicked -> emitEffect(CollectionsEffect.NavigateBack)

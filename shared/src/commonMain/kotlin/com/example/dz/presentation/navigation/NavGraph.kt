@@ -25,7 +25,9 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavBackStackEntry
@@ -268,6 +270,9 @@ fun DZNavGraph() {
                 LaunchedEffect(splashViewModel) {
                     splashViewModel.effects.collect { effect ->
                         when (effect) {
+                            SplashEffect.NavigateToHome -> navController.navigate(Routes.HOME) {
+                                popUpTo(Routes.SPLASH) { inclusive = true }
+                            }
                             SplashEffect.NavigateToOnboarding -> navController.navigate(Routes.ONBOARDING) {
                                 popUpTo(Routes.SPLASH) { inclusive = true }
                             }
@@ -526,6 +531,11 @@ fun DZNavGraph() {
                 val prePurchaseViewModel = koinPrePurchaseViewModel(bookId)
                 val uiState by prePurchaseViewModel.uiState.collectAsStateWithLifecycle()
 
+                // Refresh the offline badge when returning from the reader after a download/delete.
+                LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+                    prePurchaseViewModel.refreshDownloadState()
+                }
+
                 LaunchedEffect(prePurchaseViewModel) {
                     prePurchaseViewModel.effects.collect { effect ->
                         when (effect) {
@@ -759,6 +769,11 @@ fun DZNavGraph() {
                 val collectionsViewModel = koinViewModel<CollectionsViewModel>()
                 val uiState by collectionsViewModel.uiState.collectAsStateWithLifecycle()
 
+                // Refresh when this entry comes back to the foreground (e.g. after "New collection").
+                LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+                    collectionsViewModel.refresh()
+                }
+
                 LaunchedEffect(collectionsViewModel) {
                     collectionsViewModel.effects.collect { effect ->
                         when (effect) {
@@ -829,6 +844,11 @@ fun DZNavGraph() {
                             SettingsEffect.NavigateBack -> navController.popBackStack()
                             // "Edit profile" reuses the purchase-history destination (existing behavior)
                             SettingsEffect.NavigateToEditProfile -> navController.navigate(Routes.purchaseDetails("history"))
+                            // Clear the whole stack: every screen behind this one belongs to
+                            // the session that was just signed out.
+                            SettingsEffect.NavigateToLogin -> navController.navigate(Routes.LOGIN) {
+                                popUpTo(0) { inclusive = true }
+                            }
                         }
                     }
                 }

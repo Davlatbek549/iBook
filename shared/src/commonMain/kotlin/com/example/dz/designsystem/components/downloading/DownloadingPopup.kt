@@ -140,19 +140,21 @@ fun DownloadingPopup(
                 )
             )
 
-            Spacer(modifier = Modifier.height(metrics.authorTopSpacing))
+            if (author.isNotBlank()) {
+                Spacer(modifier = Modifier.height(metrics.authorTopSpacing))
 
-            Text(
-                text = author,
-                color = colorScheme.onBackground.copy(alpha = 0.78f),
-                textAlign = TextAlign.Center,
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontSize = metrics.authorFontSize,
-                    lineHeight = metrics.authorFontSize * 1.25f,
-                    fontWeight = FontWeight.Normal,
-                    letterSpacing = 0.sp
+                Text(
+                    text = author,
+                    color = colorScheme.onBackground.copy(alpha = 0.78f),
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontSize = metrics.authorFontSize,
+                        lineHeight = metrics.authorFontSize * 1.25f,
+                        fontWeight = FontWeight.Normal,
+                        letterSpacing = 0.sp
+                    )
                 )
-            )
+            }
 
             Spacer(modifier = Modifier.height(metrics.progressTopSpacing))
 

@@ -46,6 +46,7 @@ import dz.shared.generated.resources.auth_new_here
 import dz.shared.generated.resources.auth_or
 import dz.shared.generated.resources.auth_password_placeholder
 import dz.shared.generated.resources.auth_sign_in
+import dz.shared.generated.resources.auth_signing_in
 import dz.shared.generated.resources.ic_apple
 import dz.shared.generated.resources.ic_google
 import org.jetbrains.compose.resources.stringResource
@@ -136,8 +137,11 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(22.dp))
 
             InkButton(
-                text = stringResource(Res.string.auth_sign_in),
+                text = stringResource(
+                    if (uiState.isLoading) Res.string.auth_signing_in else Res.string.auth_sign_in
+                ),
                 onClick = { onEvent(LoginEvent.SignInClicked) },
+                isBusy = uiState.isLoading,
                 colors = colors
             )
 

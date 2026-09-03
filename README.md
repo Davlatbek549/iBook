@@ -195,7 +195,7 @@ shared/src/commonMain/kotlin/com/example/dz/theme
 Main theme entry point:
 
 ```kotlin
-DZTheme { ... }
+DZTheme {  }
 ```
 
 Brand and category colors are defined in `Color.kt`, typography helpers are in `Type.kt` and related theme files.
@@ -216,6 +216,62 @@ Current bottom navigation routes:
 - `search`
 
 The active app entry point currently launches the Home screen directly from `App.kt`. If full navigation is wired in later, keep the routing layer in shared code so Android and iOS stay aligned.
+
+## Backend & Auth
+
+The app talks to **our own server**, `dz-server` — a Kotlin/Spring Boot service backed by
+PostgreSQL, kept in a separate repository alongside this one. It owns accounts, profiles, each
+user's library and their collections, so there is no third-party backend in between.
+
+`KtorAuthApi` calls it through the shared Ktor client using `ApiConfig.baseUrl`, which already
+includes the `/api/v1` prefix.
+
+### Sessions
+
+Login and sign-up return a short-lived access token (15 minutes) alongside a refresh token that
+lasts 30 days, and both are stored through `LocalDataSource`.
+
+Renewal is **reactive**: the client retries a 401 once against `/auth/refresh` and replays the
+original request, so callers never see the expired token — see `createAuthHttpClient`. The server
+rotates the refresh token on every use, so concurrent 401s are funnelled through a single refresh
+rather than each spending the stored one. A refusal from `/auth/refresh` clears the session; a
+timeout or 5xx leaves it alone, because neither says the token is invalid.
+
+The splash screen restores a stored session through `GetCurrentUserUseCase` and opens straight on
+Home, so signing in persists across launches. Settings → Sign out revokes that session server-side
+and clears the back stack.
+
+### The deployed server (default)
+
+`ApiConfig.baseUrl` points at <https://dz-server.onrender.com/api/v1>, so **the app runs with
+nothing started locally** — no Docker, no Gradle, no database. That is what a fresh clone gets.
+
+It sleeps after inactivity, so the first request after a pause can take up to a minute while the
+server wakes. Screens that call the network on load should show a loading state rather than appear
+frozen.
+
+### Running against a local server instead
+
+Set `baseUrl = ApiConfig.localBaseUrl`, then from the `dz-server` repository:
+
+```bash
+docker compose up -d && ./gradlew bootRun
+```
+
+`localBaseUrl` builds on `devServerHost`, which is per-platform because the simulators reach the
+host machine differently: `10.0.2.2` on the Android emulator, `127.0.0.1` on the iOS simulator. A
+**physical device** needs your machine's LAN address instead.
+
+Both platforms block plain HTTP by default, so each carries a narrow exception for loopback only —
+`androidApp/src/main/res/xml/network_security_config.xml` and `NSAppTransportSecurity` in
+`iosApp/iosApp/Info.plist`. Those matter only for local work; the deployed server is HTTPS. Every
+other host still requires HTTPS, so both exceptions are safe to ship.
+
+### Errors
+
+The server returns `{"code": "...", "message": "..."}`, where auth codes match `AppError.AuthReason`
+exactly, so the UI can tell a duplicate email from a wrong password. Unrecognised codes fall back to
+status-code mapping. `DzServerAuthApiTest` pins this contract against real captured responses.
 
 ## Prerequisites
 

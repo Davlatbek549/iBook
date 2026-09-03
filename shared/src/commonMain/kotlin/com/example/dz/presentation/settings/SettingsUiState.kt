@@ -5,6 +5,7 @@ data class SettingsUiState(
     val appearance: String = "Light",
     val textSize: String = "Medium",
     val dailyGoal: String = "30 min",
+    val isSigningOut: Boolean = false,
     val readingRemindersEnabled: Boolean = true,
     val messagesEnabled: Boolean = true,
     val priceDropsEnabled: Boolean = false

@@ -1,13 +1,30 @@
 package com.example.dz.data.remote.api
 
 /**
- * Runtime configuration for the app's own backend API.
+ * Runtime configuration for the app's own backend API (see `dz-server`).
  *
- * There is no server yet, so [useMockBackend] defaults to `true` and requests are served by an
- * in-memory Ktor `MockEngine`. To go live, set [useMockBackend] to `false` and point [baseUrl]
- * at the real API — no other code changes are required.
+ * [baseUrl] already includes the `/api/v1` prefix, so [KtorAuthApi] appends
+ * paths like `/auth/login` directly. It points at the deployed server by
+ * default, so the app runs with nothing else started.
+ *
+ * To work against a server on your own machine instead, swap in
+ * [localBaseUrl] — [devServerHost] resolves to whatever address this platform's
+ * simulator reaches the host on.
+ *
+ * Auth always goes through the configured server. Tests can still pass their own HTTP engine into
+ * the client factory, but production code no longer ships an in-memory auth backend.
  */
 data class ApiConfig(
-    val baseUrl: String = "https://api.dz.example.com",
-    val useMockBackend: Boolean = true
-)
+    val baseUrl: String = DEPLOYED_BASE_URL
+) {
+    companion object {
+        const val DEPLOYED_BASE_URL = "https://dz-server.onrender.com/api/v1"
+
+        /**
+         * The free tier sleeps after inactivity, so the first call after a pause
+         * can take up to a minute while the server starts. Screens that hit the
+         * network on load should show a loading state rather than appear stuck.
+         */
+        val localBaseUrl: String get() = "http://$devServerHost:8080/api/v1"
+    }
+}

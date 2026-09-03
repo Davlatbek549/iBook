@@ -50,6 +50,7 @@ import com.example.dz.designsystem.theme.inkColors
 import com.example.dz.designsystem.theme.inkDisplayFontFamily
 import dz.shared.generated.resources.Res
 import dz.shared.generated.resources.detail_about
+import dz.shared.generated.resources.detail_available_offline
 import dz.shared.generated.resources.detail_buy_now
 import dz.shared.generated.resources.detail_meta_lang
 import dz.shared.generated.resources.detail_meta_pages
@@ -225,6 +226,32 @@ fun PrePurchaseScreen(
                 .fillMaxWidth()
                 .background(colors.paper)
         ) {
+            if (book.isDownloaded) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(colors.alt)
+                        .padding(vertical = 8.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = InkIcons.Done,
+                        contentDescription = null,
+                        tint = colors.accent,
+                        modifier = Modifier.size(13.dp)
+                    )
+                    Text(
+                        text = stringResource(Res.string.detail_available_offline),
+                        modifier = Modifier.padding(start = 6.dp),
+                        fontFamily = bodyFont,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 11.sp,
+                        letterSpacing = 0.4.sp,
+                        color = colors.accent
+                    )
+                }
+            }
             HorizontalDivider(thickness = 1.dp, color = colors.line)
             Row(
                 modifier = Modifier

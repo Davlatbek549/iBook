@@ -338,6 +338,20 @@ object InkIcons {
         }
     }
 
+    val Download: ImageVector by lazy {
+        inkIcon("InkDownload") {
+            stroke {
+                moveTo(12f, 4.5f)
+                verticalLineTo(14.6f)
+                moveTo(8f, 10.6f)
+                lineTo(12f, 14.6f)
+                lineTo(16f, 10.6f)
+                moveTo(5.5f, 18.6f)
+                horizontalLineTo(18.5f)
+            }
+        }
+    }
+
     val Move: ImageVector by lazy {
         inkIcon("InkMove") {
             stroke {

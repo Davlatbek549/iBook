@@ -54,6 +54,8 @@
     <string name="auth_apple">Apple</string>
     <string name="auth_new_here">New here?</string>
     <string name="auth_create_account">Create account</string>
+    <string name="auth_signing_in">Signing in…</string>
+    <string name="auth_creating_account">Creating account…</string>
     <string name="auth_signup_eyebrow">DZ · Create account</string>
     <string name="auth_signup_title">Begin your&#10;reading life</string>
     <string name="auth_full_name">Full name</string>
@@ -386,7 +388,7 @@ Try searching through your social networks</string>
     <string name="pre_purchase_cover_title">MURDER\nBOARD</string>
     <string name="pre_purchase_cover_author">BRIAN SHEA</string>
     <string name="book_download_cover_cd">Book cover</string>
-    <string name="book_downloading_progress">Downloading  %1$d%%</string>
+    <string name="book_downloading_progress">Downloading %1$d%</string>
     <string name="download_completed_title">Download Completed</string>
     <string name="download_completed_coffee_message">Grab a Coffee and start reading it!</string>
     <string name="onboarding3_mock_search">Enter now to find an author</string>
@@ -600,6 +602,11 @@ Try searching through your social networks</string>
     <string name="popup_remove_from_collection">Remove from Collection</string>
     <string name="popup_remove_everywhere">Remove Everywhere</string>
     <string name="popup_delete_purchased_message">Your book has still\nbeen purchased</string>
+    <string name="popup_delete_download_message">Delete this download?\nThe book stays in your library.</string>
+    <string name="popup_keep_download">Keep Download</string>
+    <string name="popup_delete_download">Delete Download</string>
+    <string name="detail_available_offline">Available offline</string>
+    <string name="library_downloaded">Downloaded</string>
     <string name="popup_purchased_book_title">Purchased book</string>
     <string name="popup_purchased_search_hint">Enter the title of the book</string>
     <string name="cd_search_purchased_books">Search purchased books</string>

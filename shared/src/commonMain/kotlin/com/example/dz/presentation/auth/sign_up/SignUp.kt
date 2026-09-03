@@ -40,6 +40,7 @@ import dz.shared.generated.resources.Res
 import dz.shared.generated.resources.auth_apple
 import dz.shared.generated.resources.auth_already_reader
 import dz.shared.generated.resources.auth_create_account
+import dz.shared.generated.resources.auth_creating_account
 import dz.shared.generated.resources.auth_email_placeholder
 import dz.shared.generated.resources.auth_full_name
 import dz.shared.generated.resources.auth_google
@@ -158,8 +159,12 @@ fun SignUpScreen(
             Spacer(modifier = Modifier.height(18.dp))
 
             InkButton(
-                text = stringResource(Res.string.auth_create_account),
+                text = stringResource(
+                    if (uiState.isLoading) Res.string.auth_creating_account
+                    else Res.string.auth_create_account
+                ),
                 onClick = { onEvent(SignUpEvent.CreateAccountClicked) },
+                isBusy = uiState.isLoading,
                 colors = colors
             )
 

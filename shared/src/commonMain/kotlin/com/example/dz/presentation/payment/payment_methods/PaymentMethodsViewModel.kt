@@ -3,6 +3,8 @@ package com.example.dz.presentation.payment.payment_methods
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.dz.core.result.AppResult
+import com.example.dz.domain.model.PaymentBrand as DomainPaymentBrand
+import com.example.dz.domain.model.PaymentMethod
 import com.example.dz.domain.usecase.payment.GetPaymentMethodsUseCase
 import com.example.dz.presentation.mvi.toPresentationMessage
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -38,13 +40,16 @@ class PaymentMethodsViewModel(
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             when (val result = getPaymentMethods()) {
                 is AppResult.Success -> _uiState.update { state ->
-                    // Reflect the previously-selected method from storage when it maps to
-                    // one of the methods on screen; the curated list keeps the demo's
-                    // Apple Pay option that drives the decline path.
+                    val methods = result.data.map { it.toPaymentMethodItem() }
                     val selectedId = result.data.firstOrNull { it.isSelected }?.id
-                        ?.takeIf { id -> state.methods.any { it.id == id } }
-                        ?: state.selectedId
-                    state.copy(selectedId = selectedId, isLoading = false, errorMessage = null)
+                        ?.takeIf { id -> methods.any { it.id == id } }
+                        ?: methods.firstOrNull()?.id.orEmpty()
+                    state.copy(
+                        methods = methods,
+                        selectedId = selectedId,
+                        isLoading = false,
+                        errorMessage = null
+                    )
                 }
                 is AppResult.Error -> _uiState.update {
                     it.copy(isLoading = false, errorMessage = result.error.toPresentationMessage())
@@ -71,3 +76,17 @@ class PaymentMethodsViewModel(
         }
     }
 }
+
+private fun PaymentMethod.toPaymentMethodItem(): PaymentMethodItem =
+    PaymentMethodItem(
+        id = id,
+        brand = when (brand) {
+            DomainPaymentBrand.Paypal -> PaymentBrand.Paypal
+            DomainPaymentBrand.Visa,
+            DomainPaymentBrand.Mastercard,
+            DomainPaymentBrand.Unknown -> PaymentBrand.Visa
+            DomainPaymentBrand.ApplePay -> PaymentBrand.ApplePay
+        },
+        title = title,
+        subtitle = subtitle.orEmpty()
+    )

@@ -44,10 +44,10 @@ import dz.shared.generated.resources.splash_wordmark
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * First screen of the app. Pure brand moment: no auto-advance — the reader
- * chooses "Get started" (→ onboarding, or straight past it if already seen)
- * or "Sign in" (→ existing sign-in screen). The shelf illustration is
- * decorative only.
+ * First screen of the app. Brand moment while [SplashViewModel] checks for a restored session in
+ * the background (silently forwarding straight to Home if one is found); otherwise the reader
+ * chooses "Get started" (→ onboarding, or straight past it if already seen) or "Sign in" (→
+ * existing sign-in screen). The shelf illustration is decorative only.
  */
 @Composable
 fun SplashScreen(
