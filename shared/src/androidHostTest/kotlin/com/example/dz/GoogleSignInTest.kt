@@ -69,12 +69,32 @@ class GoogleSignInTest {
         override suspend fun resendVerificationCode(email: String): AppResult<Unit> =
             AppResult.Success(Unit)
 
+        override suspend fun requestPasswordReset(email: String): AppResult<Unit> =
+            AppResult.Success(Unit)
+
+        override suspend fun resetPassword(
+            email: String,
+            code: String,
+            newPassword: String,
+        ): AppResult<Unit> = AppResult.Success(Unit)
+
         override suspend fun logout(): AppResult<Unit> = AppResult.Success(Unit)
         override suspend fun getCurrentUser(): AppResult<User?> = AppResult.Success(null)
     }
 
     private fun loginViewModel(repository: RecordingAuthRepository) =
         LoginViewModel(LoginUseCase(repository), SignInWithGoogleUseCase(repository))
+
+    /**
+     * Consent as a reader now gives it. The box cannot be ticked outright any more, so both
+     * documents are opened and agreed to in turn — the same journey the screen requires.
+     */
+    private fun SignUpViewModel.acceptLegalDocuments() {
+        onEvent(SignUpEvent.TermsClicked)
+        onEvent(SignUpEvent.DocumentAgreed)
+        onEvent(SignUpEvent.PrivacyClicked)
+        onEvent(SignUpEvent.DocumentAgreed)
+    }
 
     private fun signUpViewModel(repository: RecordingAuthRepository) =
         SignUpViewModel(SignUpUseCase(repository), SignInWithGoogleUseCase(repository))
@@ -154,7 +174,7 @@ class GoogleSignInTest {
         val effects = mutableListOf<SignUpEffect>()
         val collector = launch { viewModel.effects.collect { effects += it } }
 
-        viewModel.onEvent(SignUpEvent.TermsToggled(accepted = true))
+        viewModel.acceptLegalDocuments()
         viewModel.onEvent(SignUpEvent.GoogleTokenReceived("id-token-abc"))
         testScheduler.advanceUntilIdle()
 
@@ -178,9 +198,9 @@ class GoogleSignInTest {
         testScheduler.advanceUntilIdle()
         assertEquals(0, repository.googleCalls, "an unticked agreement must not create an account")
 
-        viewModel.onEvent(SignUpEvent.TermsToggled(accepted = true))
+        viewModel.acceptLegalDocuments()
         viewModel.onEvent(SignUpEvent.GoogleTokenReceived("id-token-abc"))
         testScheduler.advanceUntilIdle()
-        assertEquals(1, repository.googleCalls, "ticking the box unblocks the same token")
+        assertEquals(1, repository.googleCalls, "agreeing to both documents unblocks the same token")
     }
 }

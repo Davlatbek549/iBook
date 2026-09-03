@@ -451,7 +451,9 @@ fun DZNavGraph() {
                                 popUpTo(0) { inclusive = true }
                             }
                             is VerificationEffect.NavigateToNewPassword ->
-                                navController.navigate(Routes.newPassword(effect.email))
+                                navController.navigate(
+                                    Routes.newPassword(effect.email, effect.code)
+                                )
                             VerificationEffect.NavigateBack -> navController.popBackStack()
                         }
                     }
@@ -465,16 +467,19 @@ fun DZNavGraph() {
 
             composable(Routes.NEW_PASSWORD) { backStackEntry ->
                 val email = backStackEntry.stringArgument("email", "")
-                val newPasswordViewModel = koinNewPasswordViewModel(email)
+                val code = backStackEntry.stringArgument("code", "")
+                val newPasswordViewModel = koinNewPasswordViewModel(email, code)
                 val uiState by newPasswordViewModel.uiState.collectAsStateWithLifecycle()
 
                 LaunchedEffect(newPasswordViewModel) {
                     newPasswordViewModel.effects.collect { effect ->
                         when (effect) {
-                            // Saving signs the reader in, so the whole reset stack goes with it.
-                            NewPasswordEffect.NavigateToHome -> navController.navigate(Routes.HOME) {
-                                popUpTo(0) { inclusive = true }
-                            }
+                            // A reset issues no session, so this goes to sign-in, not Home. The
+                            // whole reset stack goes with it: back into a spent code is a dead end.
+                            NewPasswordEffect.NavigateToLogin ->
+                                navController.navigate(Routes.LOGIN) {
+                                    popUpTo(0) { inclusive = true }
+                                }
                             NewPasswordEffect.NavigateBack -> navController.popBackStack()
                         }
                     }
@@ -1185,10 +1190,10 @@ private fun koinVerificationViewModel(
 }
 
 @Composable
-private fun koinNewPasswordViewModel(email: String): NewPasswordViewModel {
+private fun koinNewPasswordViewModel(email: String, code: String): NewPasswordViewModel {
     val koin = remember { KoinPlatform.getKoin() }
     return viewModel(key = "new-password-$email") {
-        koin.get<NewPasswordViewModel> { parametersOf(email) }
+        koin.get<NewPasswordViewModel> { parametersOf(email, code) }
     }
 }
 

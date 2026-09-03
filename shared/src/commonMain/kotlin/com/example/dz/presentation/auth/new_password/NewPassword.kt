@@ -33,9 +33,11 @@ import com.example.dz.designsystem.theme.organicColors
 import dz.shared.generated.resources.Res
 import dz.shared.generated.resources.auth_back
 import dz.shared.generated.resources.auth_confirm_password_placeholder
+import dz.shared.generated.resources.auth_go_to_sign_in
 import dz.shared.generated.resources.auth_new_password_copy
 import dz.shared.generated.resources.auth_new_password_placeholder
 import dz.shared.generated.resources.auth_new_password_title
+import dz.shared.generated.resources.auth_password_changed
 import dz.shared.generated.resources.auth_save_and_sign_in
 import dz.shared.generated.resources.auth_saving
 import dz.shared.generated.resources.auth_show
@@ -91,7 +93,7 @@ fun NewPasswordScreen(
             )
         }
 
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        if (!uiState.isSaved) Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             OrganicField(
                 value = uiState.password,
                 onValueChange = { onEvent(NewPasswordEvent.PasswordChanged(it)) },
@@ -140,11 +142,30 @@ fun NewPasswordScreen(
             )
         }
 
+        if (uiState.isSaved) {
+            Text(
+                text = stringResource(Res.string.auth_password_changed),
+                fontFamily = body,
+                fontSize = 13.sp,
+                lineHeight = 20.sp,
+                color = colors.neutral700
+            )
+        }
+
         OrganicButton(
             text = stringResource(
-                if (uiState.isLoading) Res.string.auth_saving else Res.string.auth_save_and_sign_in
+                when {
+                    uiState.isSaved -> Res.string.auth_go_to_sign_in
+                    uiState.isLoading -> Res.string.auth_saving
+                    else -> Res.string.auth_save_and_sign_in
+                }
             ),
-            onClick = { onEvent(NewPasswordEvent.SaveClicked) },
+            onClick = {
+                onEvent(
+                    if (uiState.isSaved) NewPasswordEvent.SignInClicked
+                    else NewPasswordEvent.SaveClicked
+                )
+            },
             isBusy = uiState.isLoading,
             colors = colors
         )

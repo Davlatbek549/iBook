@@ -17,6 +17,20 @@ interface AuthRepository {
      */
     suspend fun resendVerificationCode(email: String): AppResult<Unit>
 
+    /**
+     * Asks for a code to reset a forgotten password. Succeeds even for an address with no
+     * account, for the same reason [resendVerificationCode] does.
+     */
+    suspend fun requestPasswordReset(email: String): AppResult<Unit>
+
+    /**
+     * Spends a reset code and sets [newPassword].
+     *
+     * The server revokes every session on success, this device's included — a reset is what
+     * someone does when they think the old password is known to somebody else.
+     */
+    suspend fun resetPassword(email: String, code: String, newPassword: String): AppResult<Unit>
+
     suspend fun logout(): AppResult<Unit>
     suspend fun getCurrentUser(): AppResult<User?>
 }

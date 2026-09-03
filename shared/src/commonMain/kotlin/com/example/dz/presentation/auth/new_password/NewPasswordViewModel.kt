@@ -2,6 +2,9 @@ package com.example.dz.presentation.auth.new_password
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.dz.core.result.AppResult
+import com.example.dz.domain.usecase.auth.ResetPasswordUseCase
+import com.example.dz.presentation.mvi.toPresentationMessage
 import com.example.dz.presentation.mvi.validateNewPassword
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,12 +17,16 @@ import kotlinx.coroutines.launch
  * Last step of a password reset: the code proved the reader owns the mailbox, this changes what
  * the account's password actually is.
  *
- * Nothing is saved yet — the server has no reset endpoint — so [save] validates and routes.
- * The single call to add lands in the same place, with [NewPasswordUiState.email] and the new
- * password already to hand.
+ * [code] is held here rather than in [NewPasswordUiState] because the screen never draws it — it
+ * was typed on the screen before this one and is only in hand to be spent.
+ *
+ * This is also where a wrong code surfaces. The step before carries it without checking, so the
+ * refusal for a bad code and the refusal for an expired one both arrive at this screen.
  */
 class NewPasswordViewModel(
     email: String = "",
+    private val code: String = "",
+    private val resetPassword: ResetPasswordUseCase,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(NewPasswordUiState(email = email))
@@ -47,13 +54,15 @@ class NewPasswordViewModel(
                     )
                 }
             NewPasswordEvent.SaveClicked -> save()
+            NewPasswordEvent.SignInClicked -> emitEffect(NewPasswordEffect.NavigateToLogin)
             NewPasswordEvent.BackClicked -> emitEffect(NewPasswordEffect.NavigateBack)
         }
     }
 
     private fun save() {
         val state = _uiState.value
-        if (state.isLoading) return
+        // Saved is terminal: the code has been spent, so a second save could only fail.
+        if (state.isLoading || state.isSaved) return
 
         val invalid = validateNewPassword(state.password, state.confirmation)
         if (invalid != null) {
@@ -61,7 +70,22 @@ class NewPasswordViewModel(
             return
         }
 
-        emitEffect(NewPasswordEffect.NavigateToHome)
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(isLoading = true, errorMessage = null, confirmationError = null)
+            }
+            when (val result = resetPassword(state.email, code, state.password)) {
+                is AppResult.Success ->
+                    _uiState.update { it.copy(isLoading = false, isSaved = true) }
+                is AppResult.Error ->
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = result.error.toPresentationMessage(),
+                        )
+                    }
+            }
+        }
     }
 
     private fun emitEffect(effect: NewPasswordEffect) {

@@ -32,10 +32,7 @@ class SignUpViewModel(
                 _uiState.update {
                     it.copy(fullName = event.fullName, errorMessage = null, nameError = null)
                 }
-            is SignUpEvent.TermsToggled ->
-                _uiState.update {
-                    it.copy(acceptedTermsVersion = if (event.accepted) LEGAL_DOCUMENTS_VERSION else null)
-                }
+            is SignUpEvent.TermsToggled -> onTermsToggled(event.accepted)
             is SignUpEvent.EmailChanged ->
                 _uiState.update {
                     it.copy(email = event.email, errorMessage = null, emailError = null)
@@ -57,13 +54,50 @@ class SignUpViewModel(
                 _uiState.update { it.copy(openDocument = LegalDocumentKind.Privacy) }
             SignUpEvent.DocumentDismissed ->
                 _uiState.update { it.copy(openDocument = null) }
-            // Reaching the end of either document and agreeing is the same act as ticking the
-            // box, so it closes the sheet and records the version.
-            SignUpEvent.DocumentAgreed ->
-                _uiState.update {
-                    it.copy(openDocument = null, acceptedTermsVersion = LEGAL_DOCUMENTS_VERSION)
-                }
+            SignUpEvent.DocumentAgreed -> onDocumentAgreed()
             SignUpEvent.AppleClicked -> Unit
+        }
+    }
+
+    /**
+     * The box records consent; it is not a way to give it.
+     *
+     * A tap before both documents have been read opens whichever is still outstanding rather than
+     * ticking, because the sentence beside the box names two documents and only reading them both
+     * can honour it. The second tap, once the last one is agreed, is what finally ticks it.
+     *
+     * Unticking is never gated: withdrawing consent is allowed to be as cheap as it sounds.
+     */
+    private fun onTermsToggled(accepted: Boolean) {
+        if (!accepted) {
+            _uiState.update { it.copy(acceptedTermsVersion = null) }
+            return
+        }
+        _uiState.update { state ->
+            state.nextUnreadDocument
+                ?.let { state.copy(openDocument = it) }
+                ?: state.copy(acceptedTermsVersion = LEGAL_DOCUMENTS_VERSION)
+        }
+    }
+
+    /**
+     * Agreeing at the foot of a document records that one document, and nothing more.
+     *
+     * The box then follows on its own once none is outstanding, so a reader who opens both
+     * through the links never has to come back and tick anything by hand.
+     */
+    private fun onDocumentAgreed() {
+        _uiState.update { state ->
+            val agreed = state.openDocument
+                ?.let { state.agreedDocuments + it }
+                ?: state.agreedDocuments
+            val complete = LegalDocumentKind.entries.all { it in agreed }
+            state.copy(
+                openDocument = null,
+                agreedDocuments = agreed,
+                acceptedTermsVersion =
+                    if (complete) LEGAL_DOCUMENTS_VERSION else state.acceptedTermsVersion,
+            )
         }
     }
 

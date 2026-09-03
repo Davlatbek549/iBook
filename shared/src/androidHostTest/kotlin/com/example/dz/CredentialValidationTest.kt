@@ -60,6 +60,15 @@ class CredentialValidationTest {
         override suspend fun resendVerificationCode(email: String): AppResult<Unit> =
             AppResult.Success(Unit)
 
+        override suspend fun requestPasswordReset(email: String): AppResult<Unit> =
+            AppResult.Success(Unit)
+
+        override suspend fun resetPassword(
+            email: String,
+            code: String,
+            newPassword: String,
+        ): AppResult<Unit> = AppResult.Success(Unit)
+
         override suspend fun logout(): AppResult<Unit> = AppResult.Success(Unit)
         override suspend fun getCurrentUser(): AppResult<User?> = AppResult.Success(null)
     }
@@ -67,12 +76,23 @@ class CredentialValidationTest {
     private fun viewModelWith(repository: RecordingAuthRepository) =
         SignUpViewModel(SignUpUseCase(repository), SignInWithGoogleUseCase(repository))
 
-    /** Ticks the terms box too — the design gates Create account on it, so nothing sends without it. */
+    /** Consents too — the design gates Create account on it, so nothing sends without it. */
     private fun SignUpViewModel.fill(name: String, email: String, password: String) {
         onEvent(SignUpEvent.FullNameChanged(name))
         onEvent(SignUpEvent.EmailChanged(email))
         onEvent(SignUpEvent.PasswordChanged(password))
-        onEvent(SignUpEvent.TermsToggled(accepted = true))
+        acceptLegalDocuments()
+    }
+
+    /**
+     * Consent as a reader now gives it. The box cannot be ticked outright any more, so both
+     * documents are opened and agreed to in turn — the same journey the screen requires.
+     */
+    private fun SignUpViewModel.acceptLegalDocuments() {
+        onEvent(SignUpEvent.TermsClicked)
+        onEvent(SignUpEvent.DocumentAgreed)
+        onEvent(SignUpEvent.PrivacyClicked)
+        onEvent(SignUpEvent.DocumentAgreed)
     }
 
     @Test
@@ -160,11 +180,15 @@ class CredentialValidationTest {
 
         assertEquals(0, repository.signUpCalls, "an unticked agreement must not create an account")
 
-        viewModel.onEvent(SignUpEvent.TermsToggled(accepted = true))
+        viewModel.acceptLegalDocuments()
         viewModel.onEvent(SignUpEvent.CreateAccountClicked)
         testScheduler.advanceUntilIdle()
 
-        assertEquals(1, repository.signUpCalls, "ticking the box unblocks the same tap")
+        assertEquals(
+            1,
+            repository.signUpCalls,
+            "agreeing to both documents unblocks the same tap",
+        )
     }
 
     @Test

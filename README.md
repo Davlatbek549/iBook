@@ -241,6 +241,22 @@ The splash screen restores a stored session through `GetCurrentUserUseCase` and 
 Home, so signing in persists across launches. Settings → Sign out revokes that session server-side
 and clears the back stack.
 
+### Password reset
+
+`Forgot password` → code → `New password`, against `/auth/password/forgot` and
+`/auth/password/reset`. Both are public: a reset is the flow for someone who cannot sign in, so it
+can never require having signed in.
+
+The code is spent by `/auth/password/reset`, not by the code screen before it. The server allows a
+fixed number of guesses against a code and the reset itself needs one of them, so a separate "is
+this code right?" step would cost a guess for nothing — a wrong or expired code therefore surfaces
+on the New password screen.
+
+A completed reset ends at **sign-in, not Home**. The server issues no session for one and revokes
+every existing refresh token, so `RemoteAuthRepository` clears the local session too. Asking for a
+code answers the same way whether or not the address is registered, so nothing in this flow can be
+used to discover who has an account.
+
 ### The deployed server (default)
 
 `ApiConfig.baseUrl` points at <https://dz-server.onrender.com/api/v1>, so **the app runs with

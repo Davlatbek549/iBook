@@ -18,7 +18,11 @@ object Routes {
      * in each — so the purpose travels in the route rather than being guessed at the far end.
      */
     const val VERIFICATION = "verification/{purpose}/{email}"
-    const val NEW_PASSWORD = "new_password/{email}"
+    /**
+     * The reset code rides along: it is spent by the call this screen makes, not by the code
+     * screen that collected it.
+     */
+    const val NEW_PASSWORD = "new_password/{email}/{code}"
 
     // Bottom Nav Tabs
     const val HOME = "home"
@@ -72,7 +76,8 @@ object Routes {
     fun verification(purpose: VerificationPurpose, email: String) =
         "verification/${purpose.name}/${email.encodeURLPathPart()}"
 
-    fun newPassword(email: String) = "new_password/${email.encodeURLPathPart()}"
+    fun newPassword(email: String, code: String) =
+        "new_password/${email.encodeURLPathPart()}/${code.encodeURLPathPart()}"
 
     fun prePurchase(bookId: String) = "pre_purchase/$bookId"
     fun reading(bookId: String) = "reading/$bookId"

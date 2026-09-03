@@ -59,6 +59,15 @@ class SessionRestoreTest {
         override suspend fun resendVerificationCode(email: String): AppResult<Unit> =
             AppResult.Success(Unit)
 
+        override suspend fun requestPasswordReset(email: String): AppResult<Unit> =
+            AppResult.Success(Unit)
+
+        override suspend fun resetPassword(
+            email: String,
+            code: String,
+            newPassword: String,
+        ): AppResult<Unit> = AppResult.Success(Unit)
+
         override suspend fun logout(): AppResult<Unit> {
             logoutCalls++
             currentUser = null

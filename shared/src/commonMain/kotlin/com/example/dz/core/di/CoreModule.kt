@@ -41,7 +41,9 @@ import com.example.dz.domain.usecase.auth.GetCurrentUserUseCase
 import com.example.dz.domain.usecase.auth.LoginUseCase
 import com.example.dz.domain.usecase.auth.LogoutUseCase
 import com.example.dz.domain.usecase.auth.SignInWithGoogleUseCase
+import com.example.dz.domain.usecase.auth.RequestPasswordResetUseCase
 import com.example.dz.domain.usecase.auth.ResendVerificationCodeUseCase
+import com.example.dz.domain.usecase.auth.ResetPasswordUseCase
 import com.example.dz.domain.usecase.auth.SignUpUseCase
 import com.example.dz.domain.usecase.auth.VerifyEmailUseCase
 import com.example.dz.domain.usecase.book.BookPaginator
@@ -178,6 +180,8 @@ val coreModule = module {
     factory { SignInWithGoogleUseCase(get()) }
     factory { VerifyEmailUseCase(get()) }
     factory { ResendVerificationCodeUseCase(get()) }
+    factory { RequestPasswordResetUseCase(get()) }
+    factory { ResetPasswordUseCase(get()) }
     factory { LogoutUseCase(get()) }
     factory { GetCurrentUserUseCase(get()) }
     factory { GetProfileUseCase(get()) }
@@ -224,11 +228,11 @@ val coreModule = module {
     // Presentation MVI stores
     factory { LoginViewModel(get(), get()) }
     factory { SignUpViewModel(get(), get()) }
-    factory { ForgotPasswordViewModel() }
+    factory { ForgotPasswordViewModel(get()) }
     factory { (email: String, purpose: VerificationPurpose) ->
-        VerificationViewModel(email, purpose, get(), get())
+        VerificationViewModel(email, purpose, get(), get(), get())
     }
-    factory { (email: String) -> NewPasswordViewModel(email) }
+    factory { (email: String, code: String) -> NewPasswordViewModel(email, code, get()) }
     factory { HomeViewModel(get(), get()) }
     factory { LibraryViewModel(get(), get(), get()) }
     factory { SearchViewModel(get(), get()) }

@@ -15,6 +15,14 @@ data class SignUpUiState(
     val acceptedTermsVersion: Int? = null,
     /** Non-null while a document is open; the sheet shows whichever one was asked for. */
     val openDocument: LegalDocumentKind? = null,
+    /**
+     * The documents that have been read to the end and agreed to, one entry each.
+     *
+     * Consent needs every one of them. The sentence beside the box names the terms *and* the
+     * privacy policy, and reaching the foot of one says nothing about the other — so agreement
+     * is collected per document and only adds up once none is outstanding.
+     */
+    val agreedDocuments: Set<LegalDocumentKind> = emptySet(),
     val isLoading: Boolean = false,
     /** The server's verdict. */
     val errorMessage: String? = null,
@@ -23,6 +31,13 @@ data class SignUpUiState(
     val passwordError: String? = null,
 ) {
     val termsAccepted: Boolean get() = acceptedTermsVersion == LEGAL_DOCUMENTS_VERSION
+
+    /**
+     * Whichever document has still to be read, or null once both have been. Enum order decides
+     * which comes first, so the two links and the box all send a reader the same way through.
+     */
+    val nextUnreadDocument: LegalDocumentKind?
+        get() = LegalDocumentKind.entries.firstOrNull { it !in agreedDocuments }
 
     val canSubmit: Boolean get() = termsAccepted && !isLoading
 

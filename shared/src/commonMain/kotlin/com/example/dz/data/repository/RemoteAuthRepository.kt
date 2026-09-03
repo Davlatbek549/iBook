@@ -5,9 +5,11 @@ import com.example.dz.core.result.AppResult
 import com.example.dz.data.local.LocalDataSource
 import com.example.dz.data.remote.api.AuthApi
 import com.example.dz.data.remote.dto.auth.AuthResponseDto
+import com.example.dz.data.remote.dto.auth.ForgotPasswordRequestDto
 import com.example.dz.data.remote.dto.auth.GoogleSignInRequestDto
 import com.example.dz.data.remote.dto.auth.LoginRequestDto
 import com.example.dz.data.remote.dto.auth.ResendVerificationRequestDto
+import com.example.dz.data.remote.dto.auth.ResetPasswordRequestDto
 import com.example.dz.data.remote.dto.auth.LogoutRequestDto
 import com.example.dz.data.remote.dto.auth.SignUpRequestDto
 import com.example.dz.data.remote.dto.auth.UserDto
@@ -46,6 +48,24 @@ class RemoteAuthRepository(
 
     override suspend fun resendVerificationCode(email: String): AppResult<Unit> =
         runRemote { api.resendVerification(ResendVerificationRequestDto(email = email)) }
+
+    override suspend fun requestPasswordReset(email: String): AppResult<Unit> =
+        runRemote { api.forgotPassword(ForgotPasswordRequestDto(email = email)) }
+
+    override suspend fun resetPassword(
+        email: String,
+        code: String,
+        newPassword: String,
+    ): AppResult<Unit> =
+        runRemote {
+            api.resetPassword(
+                ResetPasswordRequestDto(email = email, code = code, newPassword = newPassword)
+            )
+        }
+            // The server has just revoked every session, including whatever this device was
+            // holding. Keeping it would leave a token that can never refresh and a Home whose
+            // every request is refused.
+            .also { if (it is AppResult.Success) local.clearSession() }
 
     override suspend fun logout(): AppResult<Unit> {
         // Best effort on the server; the local session is always cleared. The refresh token

@@ -2,6 +2,9 @@ package com.example.dz.presentation.auth.forgot_password
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.dz.core.result.AppResult
+import com.example.dz.domain.usecase.auth.RequestPasswordResetUseCase
+import com.example.dz.presentation.mvi.toPresentationMessage
 import com.example.dz.presentation.mvi.validateEmail
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -11,14 +14,15 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
- * The address is checked here and the screen confirms in place, but nothing is actually mailed:
- * the server has no password-reset endpoint yet. [requestCode] is the single place that changes
- * when it does — everything around it is already shaped for the real call.
+ * Where a reset starts: an address goes in and the server mails a code to it.
  *
- * The confirmation deliberately does not say whether the address is registered. Answering that
- * would turn this screen into a way to test which emails have accounts.
+ * The confirmation deliberately does not say whether the address is registered — and it cannot,
+ * because the server answers an unknown address exactly as a known one. Reporting anything more
+ * specific here would turn this screen into a way to test which emails have accounts.
  */
-class ForgotPasswordViewModel : ViewModel() {
+class ForgotPasswordViewModel(
+    private val requestPasswordReset: RequestPasswordResetUseCase,
+) : ViewModel() {
     private val _uiState = MutableStateFlow(ForgotPasswordUiState())
     val uiState = _uiState.asStateFlow()
 
@@ -47,6 +51,8 @@ class ForgotPasswordViewModel : ViewModel() {
     private fun requestCode() {
         if (_uiState.value.isLoading) return
 
+        // Checked here so an obvious typo does not cost a round trip to a server that may be
+        // waking from sleep — see [validateEmail].
         val email = _uiState.value.email.trim()
         val invalid = validateEmail(email)
         if (invalid != null) {
@@ -54,7 +60,22 @@ class ForgotPasswordViewModel : ViewModel() {
             return
         }
 
-        _uiState.update { it.copy(sentTo = email, errorMessage = null, emailError = null) }
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null, emailError = null) }
+            when (val result = requestPasswordReset(email)) {
+                is AppResult.Success ->
+                    _uiState.update { it.copy(isLoading = false, sentTo = email) }
+                is AppResult.Error ->
+                    // Only a real failure — a dead connection, a server that is down — lands
+                    // here. "No such account" is not one of them, by design.
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = result.error.toPresentationMessage(),
+                        )
+                    }
+            }
+        }
     }
 
     private fun continueToCode() {

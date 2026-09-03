@@ -65,7 +65,7 @@
     <string name="auth_resend_code">Resend code</string>
     <string name="auth_toggle_password">Show or hide password</string>
     <string name="auth_sending_reset">Sending&#8230;</string>
-    <string name="auth_reset_sent">If %1$s has an account, a code is on its way. It expires in 10 minutes.</string>
+    <string name="auth_reset_sent">If %1$s has an account, a code is on its way. It expires in 15 minutes.</string>
     <string name="auth_enter_code">Enter the code</string>
     <string name="auth_terms_prefix">By continuing you agree to DZ&#8217;s </string>
     <string name="auth_terms">Terms</string>
@@ -78,10 +78,12 @@
     <string name="auth_strength_good">Good</string>
     <string name="auth_strength_strong">Strong</string>
     <string name="auth_new_password_title">Choose a new password</string>
-    <string name="auth_new_password_copy">Almost there. Pick something you haven&#8217;t used on DZ before &#8212; this signs you in on this device.</string>
+    <string name="auth_new_password_copy">Almost there. Pick something you haven&#8217;t used on DZ before. Saving signs out every device using the old password.</string>
     <string name="auth_new_password_placeholder">New password</string>
     <string name="auth_confirm_password_placeholder">Confirm new password</string>
-    <string name="auth_save_and_sign_in">Save and sign in</string>
+    <string name="auth_save_and_sign_in">Save password</string>
+    <string name="auth_password_changed">Password changed. Sign in with your new one.</string>
+    <string name="auth_go_to_sign_in">Go to sign in</string>
     <string name="auth_saving">Saving&#8230;</string>
     <string name="auth_wrong_address">Wrong address?</string>
     <string name="auth_change_it">Change it</string>

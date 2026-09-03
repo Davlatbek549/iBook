@@ -4,6 +4,7 @@ import com.example.dz.core.error.AppError
 import com.example.dz.core.result.AppResult
 import com.example.dz.domain.model.User
 import com.example.dz.domain.repository.AuthRepository
+import com.example.dz.domain.usecase.auth.RequestPasswordResetUseCase
 import com.example.dz.domain.usecase.auth.ResendVerificationCodeUseCase
 import com.example.dz.domain.usecase.auth.VerifyEmailUseCase
 import com.example.dz.presentation.auth.verification.VerificationEffect
@@ -47,6 +48,8 @@ class EmailVerificationTest {
             private set
         var resendCalls = 0
             private set
+        var resetRequests = 0
+            private set
 
         override suspend fun verifyEmail(email: String, code: String): AppResult<Unit> {
             verifiedWith = email to code
@@ -57,6 +60,17 @@ class EmailVerificationTest {
             resendCalls++
             return resendResult
         }
+
+        override suspend fun requestPasswordReset(email: String): AppResult<Unit> {
+            resetRequests++
+            return resendResult
+        }
+
+        override suspend fun resetPassword(
+            email: String,
+            code: String,
+            newPassword: String,
+        ): AppResult<Unit> = AppResult.Success(Unit)
 
         override suspend fun login(email: String, password: String): AppResult<User> =
             AppResult.Error(AppError.Unauthorized)
@@ -76,6 +90,7 @@ class EmailVerificationTest {
         purpose = purpose,
         verifyEmail = VerifyEmailUseCase(repository),
         resendCode = ResendVerificationCodeUseCase(repository),
+        requestPasswordReset = RequestPasswordResetUseCase(repository),
     )
 
     private fun VerificationViewModel.enter(code: String) {
@@ -155,14 +170,38 @@ class EmailVerificationTest {
 
     @OptIn(ExperimentalCoroutinesApi::class)
     @Test
-    fun `a reset still routes, because the server has no endpoint for it yet`() = runTest(dispatcher) {
-        val repository = RecordingAuthRepository()
-        val viewModel = viewModel(repository, purpose = VerificationPurpose.ResetPassword)
+    fun `a reset code is carried to the password screen rather than spent here`() =
+        runTest(dispatcher) {
+            val repository = RecordingAuthRepository()
+            val viewModel = viewModel(repository, purpose = VerificationPurpose.ResetPassword)
 
-        viewModel.enter("123456")
-        val effect = viewModel.effects.first()
+            viewModel.enter("123456")
+            val effect = viewModel.effects.first()
 
-        assertNull(repository.verifiedWith, "there is nothing to check a reset code against")
-        assertEquals(VerificationEffect.NavigateToNewPassword("ada@example.com"), effect)
-    }
+            // Checking it here would cost one of the guesses the server allows, and the reset
+            // call needs one of them for the change itself.
+            assertNull(repository.verifiedWith, "a reset code is not spent on the code screen")
+            assertEquals(
+                VerificationEffect.NavigateToNewPassword("ada@example.com", "123456"),
+                effect,
+            )
+        }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `resending in a reset asks for a reset code, not a confirmation one`() =
+        runTest(dispatcher) {
+            val repository = RecordingAuthRepository()
+            val viewModel = viewModel(repository, purpose = VerificationPurpose.ResetPassword)
+
+            testScheduler.advanceTimeBy(VERIFICATION_RESEND_SECONDS * 1000L + 100)
+            testScheduler.runCurrent()
+            viewModel.onEvent(VerificationEvent.ResendClicked)
+            testScheduler.runCurrent()
+
+            // The two are separate on the server: a confirmation code cannot finish a reset, so
+            // asking the wrong endpoint would mail something useless to the reader.
+            assertEquals(1, repository.resetRequests)
+            assertEquals(0, repository.resendCalls, "that endpoint issues the wrong kind of code")
+        }
 }

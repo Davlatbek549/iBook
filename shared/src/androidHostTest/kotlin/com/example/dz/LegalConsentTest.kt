@@ -53,6 +53,15 @@ class LegalConsentTest {
         override suspend fun resendVerificationCode(email: String): AppResult<Unit> =
             AppResult.Success(Unit)
 
+        override suspend fun requestPasswordReset(email: String): AppResult<Unit> =
+            AppResult.Success(Unit)
+
+        override suspend fun resetPassword(
+            email: String,
+            code: String,
+            newPassword: String,
+        ): AppResult<Unit> = AppResult.Success(Unit)
+
         override suspend fun logout(): AppResult<Unit> = AppResult.Success(Unit)
         override suspend fun getCurrentUser(): AppResult<User?> = AppResult.Success(null)
     }
@@ -90,16 +99,80 @@ class LegalConsentTest {
     }
 
     @Test
-    fun `agreeing in the sheet closes it and ticks the box`() = runTest {
+    fun `agreeing to one document is not agreeing to both`() = runTest {
         val model = viewModel()
 
         model.onEvent(SignUpEvent.TermsClicked)
         model.onEvent(SignUpEvent.DocumentAgreed)
 
         val state = model.uiState.value
+        assertNull(state.openDocument, "the sheet still closes on agreeing")
+        assertFalse(
+            state.termsAccepted,
+            "the box claims the privacy policy too, and it has not been opened",
+        )
+        assertEquals(LegalDocumentKind.Privacy, state.nextUnreadDocument)
+    }
+
+    @Test
+    fun `agreeing to both ticks the box with no further tap`() = runTest {
+        val model = viewModel()
+
+        model.onEvent(SignUpEvent.TermsClicked)
+        model.onEvent(SignUpEvent.DocumentAgreed)
+        model.onEvent(SignUpEvent.PrivacyClicked)
+        model.onEvent(SignUpEvent.DocumentAgreed)
+
+        val state = model.uiState.value
         assertNull(state.openDocument)
+        assertNull(state.nextUnreadDocument)
         assertTrue(state.termsAccepted)
         assertEquals(LEGAL_DOCUMENTS_VERSION, state.acceptedTermsVersion)
+    }
+
+    @Test
+    fun `tapping the box opens what is left to read rather than ticking`() = runTest {
+        val model = viewModel()
+
+        model.onEvent(SignUpEvent.TermsToggled(true))
+
+        val first = model.uiState.value
+        assertFalse(first.termsAccepted, "nothing had been read when the box was tapped")
+        assertEquals(LegalDocumentKind.Terms, first.openDocument)
+
+        model.onEvent(SignUpEvent.DocumentAgreed)
+        model.onEvent(SignUpEvent.TermsToggled(true))
+
+        val second = model.uiState.value
+        assertFalse(second.termsAccepted, "the privacy policy was still outstanding")
+        assertEquals(LegalDocumentKind.Privacy, second.openDocument)
+
+        // The tap that follows the last outstanding document is the one that lands.
+        model.onEvent(SignUpEvent.DocumentAgreed)
+        assertTrue(model.uiState.value.termsAccepted)
+    }
+
+    @Test
+    fun `consent can be withdrawn, and given again without re-reading`() = runTest {
+        val model = viewModel()
+
+        model.onEvent(SignUpEvent.TermsClicked)
+        model.onEvent(SignUpEvent.DocumentAgreed)
+        model.onEvent(SignUpEvent.PrivacyClicked)
+        model.onEvent(SignUpEvent.DocumentAgreed)
+        assertTrue(model.uiState.value.termsAccepted)
+
+        model.onEvent(SignUpEvent.TermsToggled(false))
+        assertFalse(
+            model.uiState.value.termsAccepted,
+            "withdrawing consent is never gated",
+        )
+
+        // Both documents have still been read, so consenting again is one tap and no sheet.
+        model.onEvent(SignUpEvent.TermsToggled(true))
+        val state = model.uiState.value
+        assertTrue(state.termsAccepted)
+        assertNull(state.openDocument, "nothing was left to re-read")
     }
 
     @Test

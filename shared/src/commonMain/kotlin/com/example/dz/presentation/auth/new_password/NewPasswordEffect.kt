@@ -1,7 +1,11 @@
 package com.example.dz.presentation.auth.new_password
 
 sealed interface NewPasswordEffect {
-    /** Saving signs the reader in, so they never re-type what they just chose. */
-    data object NavigateToHome : NewPasswordEffect
+    /**
+     * A reset is not a sign-in. The server issues no session for one and revokes the ones that
+     * existed, so the only honest place to go is the sign-in screen — with the password the
+     * reader just chose.
+     */
+    data object NavigateToLogin : NewPasswordEffect
     data object NavigateBack : NewPasswordEffect
 }

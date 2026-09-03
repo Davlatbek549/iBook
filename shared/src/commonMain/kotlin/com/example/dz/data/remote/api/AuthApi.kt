@@ -4,9 +4,11 @@ import com.example.dz.core.error.AppError
 import com.example.dz.data.remote.AuthBackendException
 import com.example.dz.data.remote.dto.ApiErrorDto
 import com.example.dz.data.remote.dto.auth.AuthResponseDto
+import com.example.dz.data.remote.dto.auth.ForgotPasswordRequestDto
 import com.example.dz.data.remote.dto.auth.GoogleSignInRequestDto
 import com.example.dz.data.remote.dto.auth.LoginRequestDto
 import com.example.dz.data.remote.dto.auth.ResendVerificationRequestDto
+import com.example.dz.data.remote.dto.auth.ResetPasswordRequestDto
 import com.example.dz.data.remote.dto.auth.LogoutRequestDto
 import com.example.dz.data.remote.dto.auth.SignUpRequestDto
 import com.example.dz.data.remote.dto.auth.VerifyEmailRequestDto
@@ -24,6 +26,8 @@ interface AuthApi {
     suspend fun signInWithGoogle(request: GoogleSignInRequestDto): AuthResponseDto
     suspend fun verifyEmail(request: VerifyEmailRequestDto)
     suspend fun resendVerification(request: ResendVerificationRequestDto)
+    suspend fun forgotPassword(request: ForgotPasswordRequestDto)
+    suspend fun resetPassword(request: ResetPasswordRequestDto)
     suspend fun logout(request: LogoutRequestDto)
 }
 
@@ -79,6 +83,24 @@ class KtorAuthApi(
     override suspend fun resendVerification(request: ResendVerificationRequestDto) {
         withAuthErrors {
             client.post("$baseUrl/auth/verify/resend") {
+                contentType(ContentType.Application.Json)
+                setBody(request)
+            }
+        }
+    }
+
+    override suspend fun forgotPassword(request: ForgotPasswordRequestDto) {
+        withAuthErrors {
+            client.post("$baseUrl/auth/password/forgot") {
+                contentType(ContentType.Application.Json)
+                setBody(request)
+            }
+        }
+    }
+
+    override suspend fun resetPassword(request: ResetPasswordRequestDto) {
+        withAuthErrors {
+            client.post("$baseUrl/auth/password/reset") {
                 contentType(ContentType.Application.Json)
                 setBody(request)
             }

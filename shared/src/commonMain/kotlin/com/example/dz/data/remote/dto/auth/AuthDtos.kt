@@ -51,6 +51,29 @@ data class ResendVerificationRequestDto(
     val email: String,
 )
 
+/**
+ * Asking for a reset code. The server answers alike whether or not the address is registered,
+ * so success here says nothing about who has an account.
+ */
+@Serializable
+data class ForgotPasswordRequestDto(
+    val email: String,
+)
+
+/**
+ * Spending a reset code on a new password.
+ *
+ * The code is spent here rather than on the code screen before it. The server allows a fixed
+ * number of guesses against a code, so a separate "is this one right?" step would cost one of
+ * them for nothing and hand an attacker a free oracle.
+ */
+@Serializable
+data class ResetPasswordRequestDto(
+    val email: String,
+    val code: String,
+    val newPassword: String,
+)
+
 @Serializable
 data class RefreshRequestDto(
     val refreshToken: String
