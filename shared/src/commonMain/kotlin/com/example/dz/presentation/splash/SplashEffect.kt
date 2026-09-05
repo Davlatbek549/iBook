@@ -15,7 +15,4 @@ sealed interface SplashEffect {
 
     /** Onboarding was already completed/skipped in a previous session — go straight on. */
     data object NavigateToSignUp : SplashEffect
-
-    /** Returning reader tapped "Sign in". */
-    data object NavigateToSignIn : SplashEffect
 }

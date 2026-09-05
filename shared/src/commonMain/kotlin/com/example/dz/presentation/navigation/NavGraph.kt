@@ -136,7 +136,6 @@ import com.example.dz.presentation.auth.sign_up.SignUpEffect
 import com.example.dz.presentation.auth.sign_up.SignUpScreen
 import com.example.dz.presentation.auth.sign_up.SignUpViewModel
 import com.example.dz.presentation.splash.SplashEffect
-import com.example.dz.presentation.splash.SplashEvent
 import com.example.dz.presentation.splash.SplashScreen
 import com.example.dz.presentation.splash.SplashViewModel
 import com.example.dz.presentation.store.StoreEffect
@@ -289,15 +288,11 @@ fun DZNavGraph() {
                             ) {
                                 popUpTo(Routes.SPLASH) { inclusive = true }
                             }
-                            SplashEffect.NavigateToSignIn -> navController.navigate(Routes.LOGIN)
                         }
                     }
                 }
 
-                SplashScreen(
-                    onGetStarted = { splashViewModel.onEvent(SplashEvent.GetStartedClicked) },
-                    onSignIn = { splashViewModel.onEvent(SplashEvent.SignInClicked) }
-                )
+                SplashScreen()
             }
 
             composable(Routes.ONBOARDING) {

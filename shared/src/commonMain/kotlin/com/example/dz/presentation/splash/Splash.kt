@@ -1,7 +1,11 @@
 package com.example.dz.presentation.splash
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,40 +24,40 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.dz.designsystem.components.organic.OrganicPrimaryButton
 import com.example.dz.designsystem.theme.OrganicColors
 import com.example.dz.designsystem.theme.organicBodyFontFamily
 import com.example.dz.designsystem.theme.organicHeadingFontFamily
 import dz.shared.generated.resources.Res
-import dz.shared.generated.resources.get_started
-import dz.shared.generated.resources.splash_signin_action
-import dz.shared.generated.resources.splash_signin_prefix
 import dz.shared.generated.resources.splash_subtitle
 import dz.shared.generated.resources.splash_wordmark
+import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * First screen of the app. Brand moment while [SplashViewModel] checks for a restored session in
- * the background (silently forwarding straight to Home if one is found); otherwise the reader
- * chooses "Get started" (→ onboarding, or straight past it if already seen) or "Sign in" (→
- * existing sign-in screen). The shelf illustration is decorative only.
+ * First screen of the app: a brand moment, and nothing else. [SplashViewModel] decides where to go
+ * while it plays and moves on by itself — there is nothing here to tap.
+ *
+ * The entrance is staggered so the shelf appears to fill itself: the mark, wordmark and line
+ * settle first, then the spines rise into place one after another. Timings are tuned to finish
+ * inside `SPLASH_MINIMUM_MILLIS`, so the screen is never cut off mid-animation.
  */
 @Composable
-fun SplashScreen(
-    onGetStarted: () -> Unit = {},
-    onSignIn: () -> Unit = {},
-) {
+fun SplashScreen() {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -73,38 +77,62 @@ fun SplashScreen(
 
             Spacer(modifier = Modifier.weight(1f))
 
-            BookshelfIllustration(
-                modifier = Modifier
-                    .align(Alignment.CenterHorizontally)
-                    .padding(bottom = 24.dp)
-            )
+            BookshelfIllustration(modifier = Modifier.align(Alignment.CenterHorizontally))
 
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 28.dp, vertical = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                OrganicPrimaryButton(
-                    text = stringResource(Res.string.get_started),
-                    onClick = onGetStarted
-                )
-
-                SignInPrompt(
-                    onSignInClick = onSignIn,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
+            // Holds the shelf in the lower third now that nothing sits under it.
+            Spacer(modifier = Modifier.weight(0.6f))
         }
     }
 }
 
+/**
+ * Progress for one entrance, from 0 before it starts to 1 once it has settled. [delayMillis]
+ * staggers this element behind the ones before it.
+ */
+@Composable
+private fun entranceProgress(delayMillis: Int, durationMillis: Int = 440): State<Float> {
+    val progress = remember { Animatable(0f) }
+    LaunchedEffect(Unit) {
+        progress.animateTo(
+            targetValue = 1f,
+            animationSpec = tween(durationMillis, delayMillis, FastOutSlowInEasing),
+        )
+    }
+    return progress.asState()
+}
+
+/**
+ * Same idea for a spine, but on a spring: it carries a shade past its resting place and settles
+ * back, which is what makes the book read as *placed* rather than faded in.
+ */
+@Composable
+private fun spineProgress(delayMillis: Int): State<Float> {
+    val progress = remember { Animatable(0f) }
+    LaunchedEffect(Unit) {
+        delay(delayMillis.toLong())
+        progress.animateTo(
+            targetValue = 1f,
+            animationSpec = spring(dampingRatio = 0.7f, stiffness = Spring.StiffnessMediumLow),
+        )
+    }
+    return progress.asState()
+}
+
 @Composable
 private fun BrandBlock(modifier: Modifier = Modifier) {
+    val mark by entranceProgress(delayMillis = 0, durationMillis = 380)
+    val wordmark by entranceProgress(delayMillis = 100)
+    val subtitle by entranceProgress(delayMillis = 220)
+
     Column(modifier = modifier) {
         // The "d" mark — a filled accent circle with the wordmark's first letter.
         Box(
             modifier = Modifier
+                .graphicsLayer {
+                    alpha = mark
+                    scaleX = 0.82f + 0.18f * mark
+                    scaleY = 0.82f + 0.18f * mark
+                }
                 .size(54.dp)
                 .clip(CircleShape)
                 .background(OrganicColors.accent),
@@ -122,6 +150,10 @@ private fun BrandBlock(modifier: Modifier = Modifier) {
 
         Text(
             text = stringResource(Res.string.splash_wordmark),
+            modifier = Modifier.graphicsLayer {
+                alpha = wordmark
+                translationY = (1f - wordmark) * 18.dp.toPx()
+            },
             fontFamily = organicHeadingFontFamily(),
             fontSize = 76.sp,
             lineHeight = 68.sp,
@@ -132,7 +164,12 @@ private fun BrandBlock(modifier: Modifier = Modifier) {
 
         Text(
             text = stringResource(Res.string.splash_subtitle),
-            modifier = Modifier.widthIn(max = 250.dp),
+            modifier = Modifier
+                .widthIn(max = 250.dp)
+                .graphicsLayer {
+                    alpha = subtitle
+                    translationY = (1f - subtitle) * 14.dp.toPx()
+                },
             fontFamily = organicBodyFontFamily(),
             fontSize = 17.sp,
             lineHeight = 26.sp,
@@ -141,42 +178,14 @@ private fun BrandBlock(modifier: Modifier = Modifier) {
     }
 }
 
-@Composable
-private fun SignInPrompt(
-    onSignInClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val bodyFont = organicBodyFontFamily()
-
-    Row(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.Center
-    ) {
-        Text(
-            text = stringResource(Res.string.splash_signin_prefix),
-            fontFamily = bodyFont,
-            fontSize = 14.sp,
-            color = OrganicColors.neutral700
-        )
-        Spacer(modifier = Modifier.width(4.dp))
-        Text(
-            text = stringResource(Res.string.splash_signin_action),
-            modifier = Modifier
-                .clip(RoundedCornerShape(6.dp))
-                .clickable(onClick = onSignInClick)
-                // Widen the tap target a little beyond the visible glyphs.
-                .padding(horizontal = 4.dp, vertical = 4.dp),
-            fontFamily = bodyFont,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = 14.sp,
-            color = OrganicColors.accent700
-        )
-    }
-}
+/** How far apart the spines start, so they land one after another rather than together. */
+private const val SPINE_STAGGER_MILLIS = 80
+private const val FIRST_SPINE_DELAY_MILLIS = 320
 
 /**
- * Decorative bookshelf: five spines of varying height/tilt resting on a
- * shelf line. Not interactive — no click handling anywhere in this subtree.
+ * Decorative bookshelf: five spines of varying height/tilt resting on a shelf line. The row is
+ * clipped to its own bounds, so a spine still below its resting place is hidden behind the shelf
+ * and appears to be slotted in. Not interactive — no click handling anywhere in this subtree.
  */
 @Composable
 private fun BookshelfIllustration(modifier: Modifier = Modifier) {
@@ -195,20 +204,29 @@ private fun BookshelfIllustration(modifier: Modifier = Modifier) {
         Spine(36.dp, 158.dp, 5f, Brush.linearGradient(listOf(OrganicColors.accent2_700, OrganicColors.accent2_700))),
     )
 
+    val shelf by entranceProgress(delayMillis = 160, durationMillis = 460)
+
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Row(
+            modifier = Modifier.clipToBounds(),
             horizontalArrangement = Arrangement.spacedBy(9.dp, Alignment.CenterHorizontally),
             verticalAlignment = Alignment.Bottom
         ) {
-            spines.forEach { spine ->
+            spines.forEachIndexed { index, spine ->
+                val rise by spineProgress(FIRST_SPINE_DELAY_MILLIS + index * SPINE_STAGGER_MILLIS)
+
                 Box(
                     modifier = Modifier
                         .width(spine.width)
                         .height(spine.height)
-                        .rotate(spine.rotation)
+                        .graphicsLayer {
+                            alpha = rise.coerceIn(0f, 1f)
+                            translationY = (1f - rise) * spine.height.toPx()
+                            rotationZ = spine.rotation * rise.coerceIn(0f, 1f)
+                        }
                         .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp, bottomStart = 4.dp, bottomEnd = 4.dp))
                         .background(spine.brush)
                 )
@@ -217,6 +235,10 @@ private fun BookshelfIllustration(modifier: Modifier = Modifier) {
         Spacer(modifier = Modifier.height(10.dp))
         Box(
             modifier = Modifier
+                .graphicsLayer {
+                    alpha = shelf
+                    scaleX = 0.35f + 0.65f * shelf
+                }
                 .width(280.dp)
                 .height(10.dp)
                 .clip(RoundedCornerShape(50))

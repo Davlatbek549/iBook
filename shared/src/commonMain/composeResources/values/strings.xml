@@ -22,8 +22,6 @@
     <!-- Organic-design Splash & Onboarding (redesign) -->
     <string name="splash_wordmark">dz</string>
     <string name="splash_subtitle">A shelf that remembers where you stopped.</string>
-    <string name="splash_signin_prefix">Already reading with us?</string>
-    <string name="splash_signin_action">Sign in</string>
 
     <string name="onboarding_page1_title">Every book you own, in one pocket</string>
     <string name="onboarding_page1_desc">Buy once, read anywhere — your place, notes and highlights follow you across devices.</string>

@@ -12,15 +12,21 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 
-/** How long the emblem stays up at minimum, so a restored session does not flash past the user. */
-private const val SPLASH_MINIMUM_MILLIS = 1500L
+/**
+ * How long the brand moment stays up. Long enough for the shelf to finish assembling itself (see
+ * `SplashScreen`), which is what sets the floor here rather than the session check — that usually
+ * answers sooner.
+ */
+private const val SPLASH_MINIMUM_MILLIS = 1600L
 
 /**
- * The Splash screen shows the brand moment while a stored session is checked in the background
- * (the session survives in local storage, so someone who signed in yesterday lands on Home
- * instead of being asked for their password again). If no session is restored, the reader picks
- * where to go next: "Get started" (→ onboarding, or straight past it if already seen — see
- * [LocalDataSource.isOnboardingCompleted]) or "Sign in" (→ existing sign-in screen).
+ * Decides where the app opens, while the splash plays. Nothing on that screen is tappable, so this
+ * always resolves to exactly one destination:
+ *
+ * - a restored, verified session → Home;
+ * - a restored session whose address was never proved → the code screen;
+ * - no session → onboarding, or straight past it to sign-up if it has already been seen
+ *   (see [LocalDataSource.isOnboardingCompleted]).
  */
 class SplashViewModel(
     private val getCurrentUser: GetCurrentUserUseCase,
@@ -38,43 +44,29 @@ class SplashViewModel(
         viewModelScope.launch {
             val session = async { getCurrentUser() }
             delay(SPLASH_MINIMUM_MILLIS)
-            session.await().toUser()?.let { user ->
-                _effects.emit(
-                    // Signing up issues a session before the code is spent, so a session on its
-                    // own is not proof of anything. Without this the reader could background the
-                    // app during verification and come back to a Home whose every request the
-                    // server refuses.
-                    if (user.emailVerified) {
-                        SplashEffect.NavigateToHome
-                    } else {
-                        SplashEffect.NavigateToVerification(user.email.orEmpty())
-                    }
-                )
-            }
-            // No restored session: stay on the interactive splash and wait for onEvent.
+            _effects.emit(session.await().toDestination())
         }
     }
 
-    fun onEvent(event: SplashEvent) {
-        when (event) {
-            SplashEvent.GetStartedClicked -> emitEffect(
-                if (localDataSource.isOnboardingCompleted()) {
-                    SplashEffect.NavigateToSignUp
-                } else {
-                    SplashEffect.NavigateToOnboarding
-                }
-            )
+    private fun AppResult<User?>.toDestination(): SplashEffect {
+        // A half-written session is not one worth trusting; start from the top rather than
+        // opening a signed-in shell whose every request would be rejected.
+        val user = (this as? AppResult.Success)?.data ?: return firstRunDestination()
 
-            SplashEvent.SignInClicked -> emitEffect(SplashEffect.NavigateToSignIn)
+        // Signing up issues a session before the code is spent, so a session on its own is not
+        // proof of anything. Without this the reader could background the app during verification
+        // and come back to a Home whose every request the server refuses.
+        return if (user.emailVerified) {
+            SplashEffect.NavigateToHome
+        } else {
+            SplashEffect.NavigateToVerification(user.email.orEmpty())
         }
     }
 
-    // A half-written session is not one worth trusting; stay on the splash and let the reader
-    // start from the top rather than opening a signed-in shell whose every request would be
-    // rejected.
-    private fun AppResult<User?>.toUser(): User? = (this as? AppResult.Success)?.data
-
-    private fun emitEffect(effect: SplashEffect) {
-        viewModelScope.launch { _effects.emit(effect) }
-    }
+    private fun firstRunDestination(): SplashEffect =
+        if (localDataSource.isOnboardingCompleted()) {
+            SplashEffect.NavigateToSignUp
+        } else {
+            SplashEffect.NavigateToOnboarding
+        }
 }
