@@ -1,7 +1,7 @@
 package com.example.dz.presentation.auth.sign_up
 
-import com.example.dz.core.common.AppConstants
 import com.example.dz.core.legal.LEGAL_DOCUMENTS_VERSION
+import com.example.dz.presentation.auth.passwordStrength
 import com.example.dz.core.legal.LegalDocumentKind
 
 data class SignUpUiState(
@@ -42,12 +42,5 @@ data class SignUpUiState(
     val canSubmit: Boolean get() = termsAccepted && !isLoading
 
     /** Lit segments of the three-bar meter, 0 while the password is still too short to accept. */
-    val passwordStrength: Int
-        get() = when {
-            password.isEmpty() -> 0
-            password.length < AppConstants.PASSWORD_MIN_LENGTH -> 0
-            password.length < AppConstants.PASSWORD_MIN_LENGTH + 3 -> 1
-            password.length < AppConstants.PASSWORD_MIN_LENGTH + 7 -> 2
-            else -> 3
-        }
+    val passwordStrength: Int get() = passwordStrength(password)
 }

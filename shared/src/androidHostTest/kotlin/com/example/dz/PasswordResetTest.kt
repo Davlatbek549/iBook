@@ -16,7 +16,10 @@ import com.example.dz.presentation.auth.forgot_password.ForgotPasswordEvent
 import com.example.dz.presentation.auth.forgot_password.ForgotPasswordViewModel
 import com.example.dz.presentation.auth.new_password.NewPasswordEffect
 import com.example.dz.presentation.auth.new_password.NewPasswordEvent
+import com.example.dz.presentation.auth.new_password.NewPasswordUiState
 import com.example.dz.presentation.auth.new_password.NewPasswordViewModel
+import com.example.dz.presentation.auth.new_password.RESET_SUCCESS_DWELL_MILLIS
+import com.example.dz.presentation.auth.sign_up.SignUpUiState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -353,6 +356,43 @@ class PasswordResetTest {
         assertEquals(1, repository.resetCalls, "the second save must not reach the server")
         assertTrue(viewModel.uiState.value.isSaved)
         assertNull(viewModel.uiState.value.errorMessage)
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `the success moment is held before the screen leaves`() = runTest(dispatcher) {
+        val viewModel = newPasswordViewModel(RecordingAuthRepository())
+
+        viewModel.choose("a-long-enough-password")
+        testScheduler.runCurrent()
+        // The overlay is up while the moment is held, and the form under it is inert.
+        assertTrue(viewModel.uiState.value.isSaved, "the confirmation shows straight away")
+
+        val effect = viewModel.effects.first()
+
+        assertEquals(NewPasswordEffect.NavigateToLogin("ada@example.com"), effect)
+        assertTrue(
+            testScheduler.currentTime >= RESET_SUCCESS_DWELL_MILLIS,
+            "leaving at once would flash the confirmation past before it could be read",
+        )
+    }
+
+    @Test
+    fun `the meter reads a reset password the way sign-up reads it`() {
+        // Both screens set a password against the same server rule, so one calling it strong
+        // while the other calls it fair would be the app disagreeing with itself.
+        for (password in listOf("", "short", "exactly8", "a-long-enough-password")) {
+            assertEquals(
+                SignUpUiState(password = password).passwordStrength,
+                NewPasswordUiState(password = password).passwordStrength,
+                "the two meters disagree about \"$password\"",
+            )
+        }
+    }
+
+    @Test
+    fun `the meter lights nothing for a password the server would refuse`() {
+        assertEquals(0, NewPasswordUiState(password = "short").passwordStrength)
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)

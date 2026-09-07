@@ -30,6 +30,7 @@ import com.example.dz.designsystem.theme.organicBodyFontFamily
 import com.example.dz.designsystem.theme.organicHeadingFontFamily
 import dz.shared.generated.resources.Res
 import dz.shared.generated.resources.auth_back
+import dz.shared.generated.resources.auth_nothing_arrived
 import dz.shared.generated.resources.auth_resend_code
 import dz.shared.generated.resources.auth_resend_in
 import dz.shared.generated.resources.auth_verification_copy_prefix
@@ -134,7 +135,12 @@ fun VerificationScreen(
         )
 
         Text(
+            // The prompt leads, the action follows in accent — the same shape as "New here?
+            // Create an account" on sign-in. Without it the countdown states a fact without
+            // saying why anyone should care about it.
             text = buildAnnotatedString {
+                append(stringResource(Res.string.auth_nothing_arrived))
+                append(" ")
                 if (uiState.canResend) {
                     withStyle(
                         SpanStyle(color = OrganicColors.accent700, fontWeight = FontWeight.SemiBold)

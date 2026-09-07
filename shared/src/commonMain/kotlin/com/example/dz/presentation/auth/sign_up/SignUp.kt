@@ -45,6 +45,7 @@ import com.example.dz.designsystem.components.organic.OrganicField
 import com.example.dz.designsystem.components.organic.OrganicLegalSheet
 import com.example.dz.designsystem.components.organic.OrganicSocialButton
 import com.example.dz.designsystem.components.organic.OrganicStrengthMeter
+import com.example.dz.presentation.auth.passwordStrengthLabel
 import com.example.dz.designsystem.components.organic.OrganicSubtitle
 import com.example.dz.designsystem.components.organic.OrganicTitle
 import com.example.dz.designsystem.theme.OrganicColors
@@ -181,7 +182,7 @@ fun SignUpScreen(
                 if (uiState.password.isNotEmpty()) {
                     OrganicStrengthMeter(
                         filled = uiState.passwordStrength,
-                        label = stringResource(strengthLabel(uiState.passwordStrength)),
+                        label = stringResource(passwordStrengthLabel(uiState.passwordStrength)),
                         modifier = Modifier.padding(top = 2.dp)
                     )
                 }
@@ -289,13 +290,6 @@ fun SignUpScreen(
             textAlign = TextAlign.Center
         )
     }
-}
-
-private fun strengthLabel(filled: Int): StringResource = when (filled) {
-    0 -> Res.string.auth_strength_weak
-    1 -> Res.string.auth_strength_fair
-    2 -> Res.string.auth_strength_good
-    else -> Res.string.auth_strength_strong
 }
 
 

@@ -57,7 +57,7 @@ import dz.shared.generated.resources.auth_login_subtitle
 import dz.shared.generated.resources.auth_login_title
 import dz.shared.generated.resources.auth_new_here
 import dz.shared.generated.resources.auth_or
-import dz.shared.generated.resources.auth_password_changed
+import dz.shared.generated.resources.auth_sign_in_with_new_password
 import dz.shared.generated.resources.auth_password_label
 import dz.shared.generated.resources.auth_password_placeholder
 import dz.shared.generated.resources.auth_show
@@ -116,7 +116,7 @@ fun LoginScreen(
                 // A reset ends here rather than on Home, because the server issues no session
                 // for one. Said plainly, or arriving at a sign-in screen reads as a failure.
                 Text(
-                    text = stringResource(Res.string.auth_password_changed),
+                    text = stringResource(Res.string.auth_sign_in_with_new_password),
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(14.dp))

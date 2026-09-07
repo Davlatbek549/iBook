@@ -6,6 +6,7 @@ import com.example.dz.core.result.AppResult
 import com.example.dz.domain.usecase.auth.ResetPasswordUseCase
 import com.example.dz.presentation.mvi.toPresentationMessage
 import com.example.dz.presentation.mvi.validateNewPassword
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -23,9 +24,10 @@ import kotlinx.coroutines.launch
  * This is also where a wrong code surfaces. The step before carries it without checking, so the
  * refusal for a bad code and the refusal for an expired one both arrive at this screen.
  *
- * A change that lands leaves for sign-in at once rather than confirming here and waiting to be
- * dismissed — there is nothing left to do on this screen, and the address travels with it so the
- * reader signs in without typing what they have just proved they own.
+ * A change that lands is confirmed and then left behind: the success overlay holds for
+ * [RESET_SUCCESS_DWELL_MILLIS] and the screen goes to sign-in on its own, rather than waiting to
+ * be dismissed. There is nothing left to do here, and the address travels with it so the reader
+ * signs in without typing what they have just proved they own.
  */
 class NewPasswordViewModel(
     email: String = "",
@@ -88,6 +90,7 @@ class NewPasswordViewModel(
             when (val result = resetPassword(state.email, code, state.password)) {
                 is AppResult.Success -> {
                     _uiState.update { it.copy(isLoading = false, isSaved = true) }
+                    delay(RESET_SUCCESS_DWELL_MILLIS)
                     emitEffect(NewPasswordEffect.NavigateToLogin(state.email))
                 }
                 is AppResult.Error ->

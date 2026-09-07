@@ -24,6 +24,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -45,6 +49,7 @@ import dz.shared.generated.resources.auth_back_to_sign_in
 import dz.shared.generated.resources.auth_email_placeholder
 import dz.shared.generated.resources.auth_forgot_copy
 import dz.shared.generated.resources.auth_forgot_title
+import dz.shared.generated.resources.auth_remembered
 import dz.shared.generated.resources.auth_send_reset
 import dz.shared.generated.resources.auth_sending_reset
 import org.jetbrains.compose.resources.stringResource
@@ -148,7 +153,16 @@ fun ForgotPasswordScreen(
         }
 
         Text(
-            text = stringResource(Res.string.auth_back_to_sign_in),
+            // Prompt then action, matching the footers on sign-in and sign-up.
+            text = buildAnnotatedString {
+                append(stringResource(Res.string.auth_remembered))
+                append(" ")
+                withStyle(
+                    SpanStyle(color = OrganicColors.accent700, fontWeight = FontWeight.SemiBold)
+                ) {
+                    append(stringResource(Res.string.auth_back_to_sign_in))
+                }
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable { onEvent(ForgotPasswordEvent.BackClicked) }
