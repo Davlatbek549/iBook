@@ -71,6 +71,9 @@
     <string name="auth_verification_title">Check your inbox</string>
     <string name="auth_verification_copy_prefix">We sent a code to </string>
     <string name="auth_verification_copy_no_email">We sent a code to your email address.</string>
+    <string name="auth_verification_reset_prefix">If </string>
+    <string name="auth_verification_reset_suffix"> has an account, a code is on its way. It expires in 15 minutes.</string>
+    <string name="auth_verification_reset_no_email">If that address has an account, a code is on its way. It expires in 15 minutes.</string>
     <string name="auth_verify">Verify and continue</string>
     <string name="auth_resend_in">Resend code in </string>
     <string name="auth_email_label">Email</string>
@@ -88,8 +91,6 @@
     <string name="auth_resend_code">Resend code</string>
     <string name="auth_toggle_password">Show or hide password</string>
     <string name="auth_sending_reset">Sending&#8230;</string>
-    <string name="auth_reset_sent">If %1$s has an account, a code is on its way. It expires in 15 minutes.</string>
-    <string name="auth_enter_code">Enter the code</string>
     <string name="auth_terms_prefix">By continuing you agree to DZ&#8217;s </string>
     <string name="auth_terms">Terms</string>
     <string name="auth_terms_join"> and </string>

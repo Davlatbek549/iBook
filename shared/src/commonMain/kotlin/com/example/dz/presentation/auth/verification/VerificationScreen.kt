@@ -34,6 +34,9 @@ import dz.shared.generated.resources.auth_resend_code
 import dz.shared.generated.resources.auth_resend_in
 import dz.shared.generated.resources.auth_verification_copy_prefix
 import dz.shared.generated.resources.auth_verification_copy_no_email
+import dz.shared.generated.resources.auth_verification_reset_no_email
+import dz.shared.generated.resources.auth_verification_reset_prefix
+import dz.shared.generated.resources.auth_verification_reset_suffix
 import dz.shared.generated.resources.auth_verification_title
 import dz.shared.generated.resources.auth_verify
 import dz.shared.generated.resources.auth_verifying
@@ -84,16 +87,35 @@ fun VerificationScreen(
             )
             Text(
                 // Naming the address is how a typo on the previous screen gets caught, rather
-                // than waiting for a code that was never going to arrive.
+                // than waiting for a code that was never going to arrive. It matters more now
+                // that asking for a reset code comes straight here without confirming first.
+                //
+                // A reset hedges where sign-up does not: the reader may have typed an address
+                // that has no account, and the server answers both alike on purpose, so this is
+                // the one screen that has to carry that promise without breaking it.
                 text = buildAnnotatedString {
-                    if (uiState.email.isNotBlank()) {
-                        append(stringResource(Res.string.auth_verification_copy_prefix))
+                    val isReset = uiState.purpose == VerificationPurpose.ResetPassword
+                    if (uiState.email.isBlank()) {
+                        append(
+                            stringResource(
+                                if (isReset) Res.string.auth_verification_reset_no_email
+                                else Res.string.auth_verification_copy_no_email
+                            )
+                        )
+                    } else {
+                        append(
+                            stringResource(
+                                if (isReset) Res.string.auth_verification_reset_prefix
+                                else Res.string.auth_verification_copy_prefix
+                            )
+                        )
                         withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = OrganicColors.text)) {
                             append(uiState.email)
                         }
-                        append(".")
-                    } else {
-                        append(stringResource(Res.string.auth_verification_copy_no_email))
+                        append(
+                            if (isReset) stringResource(Res.string.auth_verification_reset_suffix)
+                            else "."
+                        )
                     }
                 },
                 fontFamily = body,

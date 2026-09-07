@@ -14,11 +14,17 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
- * Where a reset starts: an address goes in and the server mails a code to it.
+ * Where a reset starts: an address goes in, the server mails a code to it, and the reader is
+ * carried straight on to type it.
  *
- * The confirmation deliberately does not say whether the address is registered — and it cannot,
- * because the server answers an unknown address exactly as a known one. Reporting anything more
- * specific here would turn this screen into a way to test which emails have accounts.
+ * There is no confirmation step in between. The screen used to report the send in place and wait
+ * for a second tap, so that a typo could be caught before leaving — but the code screen names the
+ * address itself and can be backed out of, so that step asked for a tap and bought nothing.
+ *
+ * Nothing here says whether the address is registered — and nothing can, because the server
+ * answers an unknown address exactly as a known one. Saying more would turn this screen into a
+ * way to test which emails have accounts; the wording that keeps that promise travels on to the
+ * code screen, which is where the reader now waits.
  */
 class ForgotPasswordViewModel(
     private val requestPasswordReset: RequestPasswordResetUseCase,
@@ -33,17 +39,9 @@ class ForgotPasswordViewModel(
         when (event) {
             is ForgotPasswordEvent.EmailChanged ->
                 _uiState.update {
-                    // Editing the address invalidates the confirmation: the code that was
-                    // requested went to the old one.
-                    it.copy(
-                        email = event.email,
-                        errorMessage = null,
-                        emailError = null,
-                        sentTo = null
-                    )
+                    it.copy(email = event.email, errorMessage = null, emailError = null)
                 }
             ForgotPasswordEvent.SendLinkClicked -> requestCode()
-            ForgotPasswordEvent.ContinueClicked -> continueToCode()
             ForgotPasswordEvent.BackClicked -> emitEffect(ForgotPasswordEffect.NavigateBack)
         }
     }
@@ -63,8 +61,10 @@ class ForgotPasswordViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null, emailError = null) }
             when (val result = requestPasswordReset(email)) {
-                is AppResult.Success ->
-                    _uiState.update { it.copy(isLoading = false, sentTo = email) }
+                is AppResult.Success -> {
+                    _uiState.update { it.copy(isLoading = false) }
+                    emitEffect(ForgotPasswordEffect.NavigateToVerification(email))
+                }
                 is AppResult.Error ->
                     // Only a real failure — a dead connection, a server that is down — lands
                     // here. "No such account" is not one of them, by design.
@@ -76,11 +76,6 @@ class ForgotPasswordViewModel(
                     }
             }
         }
-    }
-
-    private fun continueToCode() {
-        val sentTo = _uiState.value.sentTo ?: return
-        emitEffect(ForgotPasswordEffect.NavigateToVerification(sentTo))
     }
 
     private fun emitEffect(effect: ForgotPasswordEffect) {

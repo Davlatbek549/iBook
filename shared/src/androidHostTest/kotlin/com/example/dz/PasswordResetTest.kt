@@ -13,9 +13,11 @@ import com.example.dz.presentation.auth.new_password.NewPasswordEffect
 import com.example.dz.presentation.auth.new_password.NewPasswordEvent
 import com.example.dz.presentation.auth.new_password.NewPasswordViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -96,6 +98,16 @@ class PasswordResetTest {
         resetPassword = ResetPasswordUseCase(repository),
     )
 
+    /** Records every effect this view model emits, so a test can assert that none arrived. */
+    private fun TestScope.collectEffects(
+        viewModel: ForgotPasswordViewModel,
+    ): List<ForgotPasswordEffect> {
+        val received = mutableListOf<ForgotPasswordEffect>()
+        backgroundScope.launch { viewModel.effects.collect { received += it } }
+        testScheduler.runCurrent()
+        return received
+    }
+
     private fun ForgotPasswordViewModel.request(email: String) {
         onEvent(ForgotPasswordEvent.EmailChanged(email))
         onEvent(ForgotPasswordEvent.SendLinkClicked)
@@ -111,16 +123,31 @@ class PasswordResetTest {
 
     @OptIn(ExperimentalCoroutinesApi::class)
     @Test
-    fun `asking for a code reaches the server and confirms in place`() = runTest(dispatcher) {
+    fun `asking for a code goes straight to the code screen`() = runTest(dispatcher) {
         val repository = RecordingAuthRepository()
         val viewModel = forgotViewModel(repository)
 
         viewModel.request("ada@example.com")
-        testScheduler.advanceUntilIdle()
+        val effect = viewModel.effects.first()
+
+        // No confirmation step in between: the code screen names the address itself, so stopping
+        // here to say the same thing only cost a tap.
+        assertEquals("ada@example.com", repository.requestedFor)
+        assertEquals(ForgotPasswordEffect.NavigateToVerification("ada@example.com"), effect)
+        assertNull(viewModel.uiState.value.errorMessage)
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `the address is trimmed before it is mailed and carried`() = runTest(dispatcher) {
+        val repository = RecordingAuthRepository()
+        val viewModel = forgotViewModel(repository)
+
+        viewModel.request("  ada@example.com  ")
+        val effect = viewModel.effects.first()
 
         assertEquals("ada@example.com", repository.requestedFor)
-        assertEquals("ada@example.com", viewModel.uiState.value.sentTo)
-        assertNull(viewModel.uiState.value.errorMessage)
+        assertEquals(ForgotPasswordEffect.NavigateToVerification("ada@example.com"), effect)
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -128,6 +155,7 @@ class PasswordResetTest {
     fun `a malformed address never reaches the server`() = runTest(dispatcher) {
         val repository = RecordingAuthRepository()
         val viewModel = forgotViewModel(repository)
+        val effects = collectEffects(viewModel)
 
         viewModel.request("not-an-address")
         testScheduler.advanceUntilIdle()
@@ -136,53 +164,27 @@ class PasswordResetTest {
         // of waiting to be told what the shape already says.
         assertNull(repository.requestedFor)
         assertNotNull(viewModel.uiState.value.emailError)
-        assertNull(viewModel.uiState.value.sentTo, "nothing was sent, so nothing is confirmed")
+        assertTrue(effects.isEmpty(), "nothing was sent, so there is nothing to move on to")
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
     @Test
-    fun `a failed request is not dressed up as a sent code`() = runTest(dispatcher) {
+    fun `a failed request does not move on as though a code was sent`() = runTest(dispatcher) {
         val repository = RecordingAuthRepository(
             requestResult = AppResult.Error(AppError.Network)
         )
         val viewModel = forgotViewModel(repository)
+        val effects = collectEffects(viewModel)
 
         viewModel.request("ada@example.com")
         testScheduler.advanceUntilIdle()
 
+        // Now that success leaves the screen, the failure has to be visible here — it is the
+        // only thing that tells the reader no code is coming.
         val state = viewModel.uiState.value
-        assertNull(state.sentTo, "a code that was never sent must not be confirmed")
         assertNotNull(state.errorMessage)
         assertFalse(state.isLoading)
-    }
-
-    @OptIn(ExperimentalCoroutinesApi::class)
-    @Test
-    fun `editing the address withdraws the confirmation`() = runTest(dispatcher) {
-        val repository = RecordingAuthRepository()
-        val viewModel = forgotViewModel(repository)
-        viewModel.request("ada@example.com")
-        testScheduler.advanceUntilIdle()
-
-        viewModel.onEvent(ForgotPasswordEvent.EmailChanged("ada@example.co"))
-
-        // The code went to the address that was there before, so the confirmation no longer
-        // describes anything true.
-        assertNull(viewModel.uiState.value.sentTo)
-    }
-
-    @OptIn(ExperimentalCoroutinesApi::class)
-    @Test
-    fun `moving on to the code screen carries the address that was mailed`() = runTest(dispatcher) {
-        val repository = RecordingAuthRepository()
-        val viewModel = forgotViewModel(repository)
-        viewModel.request("  ada@example.com  ")
-        testScheduler.advanceUntilIdle()
-
-        viewModel.onEvent(ForgotPasswordEvent.ContinueClicked)
-        val effect = viewModel.effects.first()
-
-        assertEquals(ForgotPasswordEffect.NavigateToVerification("ada@example.com"), effect)
+        assertTrue(effects.isEmpty(), "a code that was never sent must not open the code screen")
     }
 
     // ── Spending it ──────────────────────────────────────────────────────────

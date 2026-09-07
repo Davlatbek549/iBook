@@ -43,10 +43,8 @@ import dz.shared.generated.resources.Res
 import dz.shared.generated.resources.auth_back
 import dz.shared.generated.resources.auth_back_to_sign_in
 import dz.shared.generated.resources.auth_email_placeholder
-import dz.shared.generated.resources.auth_enter_code
 import dz.shared.generated.resources.auth_forgot_copy
 import dz.shared.generated.resources.auth_forgot_title
-import dz.shared.generated.resources.auth_reset_sent
 import dz.shared.generated.resources.auth_send_reset
 import dz.shared.generated.resources.auth_sending_reset
 import org.jetbrains.compose.resources.stringResource
@@ -55,8 +53,10 @@ import org.jetbrains.compose.resources.stringResource
  * Recovery start, per `#scr-forgot-password`: 22dp between sections, an 88dp sage roundel above
  * the title, then one field and one action.
  *
- * The screen confirms in place rather than navigating on tap, so a mistyped address can be fixed
- * without going back — the button becomes the way forward once a code has been asked for.
+ * One field and one action: asking for a code carries the reader straight to typing it, rather
+ * than confirming here and waiting for a second tap. What the code screen shows — the address,
+ * and the promise that says nothing about whether it is registered — is what used to be shown
+ * here, so nothing is lost by not stopping.
  */
 @Composable
 fun ForgotPasswordScreen(
@@ -65,7 +65,6 @@ fun ForgotPasswordScreen(
 ) {
     val body = organicBodyFontFamily()
     val focusManager = LocalFocusManager.current
-    val sentTo = uiState.sentTo
 
     Column(
         modifier = Modifier
@@ -131,30 +130,20 @@ fun ForgotPasswordScreen(
 
         OrganicButton(
             text = stringResource(
-                when {
-                    uiState.isLoading -> Res.string.auth_sending_reset
-                    sentTo != null -> Res.string.auth_enter_code
-                    else -> Res.string.auth_send_reset
-                }
+                if (uiState.isLoading) Res.string.auth_sending_reset
+                else Res.string.auth_send_reset
             ),
-            onClick = {
-                onEvent(
-                    if (sentTo != null) ForgotPasswordEvent.ContinueClicked
-                    else ForgotPasswordEvent.SendLinkClicked
-                )
-            },
+            onClick = { onEvent(ForgotPasswordEvent.SendLinkClicked) },
             isBusy = uiState.isLoading
         )
 
-        if (sentTo != null) {
+        uiState.errorMessage?.let { message ->
             Text(
-                // Deliberately non-committal: saying whether the address is registered would
-                // turn this screen into a way to test which emails have accounts.
-                text = stringResource(Res.string.auth_reset_sent, sentTo),
+                text = message,
                 fontFamily = body,
                 fontSize = 13.sp,
-                lineHeight = 20.sp,
-                color = OrganicColors.neutral700
+                lineHeight = 19.sp,
+                color = OrganicColors.danger
             )
         }
 
