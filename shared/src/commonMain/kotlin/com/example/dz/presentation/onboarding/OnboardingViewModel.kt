@@ -8,10 +8,10 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 
 /**
- * Owns only the *terminal* onboarding actions (Skip / Start). Which page is
- * currently showing is intentionally NOT duplicated here — the pager's own
- * `currentPage` (see [OnboardingScreen]) is the single source of truth for
- * that, per the design spec.
+ * Owns only the *terminal* onboarding action (Start). Which page is currently
+ * showing is intentionally NOT duplicated here — the pager's own `currentPage`
+ * (see [OnboardingScreen]) is the single source of truth for that, per the
+ * design spec.
  */
 class OnboardingViewModel(
     private val localDataSource: LocalDataSource,
@@ -22,7 +22,6 @@ class OnboardingViewModel(
 
     fun onEvent(event: OnboardingEvent) {
         when (event) {
-            OnboardingEvent.SkipClicked,
             OnboardingEvent.StartClicked -> {
                 localDataSource.setOnboardingCompleted(true)
                 emitEffect(OnboardingEffect.NavigateToSignUp)

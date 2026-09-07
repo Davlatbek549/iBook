@@ -39,6 +39,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.dz.designsystem.components.organic.rememberEntranceProgress
+import com.example.dz.designsystem.components.organic.rememberSettleProgress
 import com.example.dz.designsystem.theme.OrganicColors
 import com.example.dz.designsystem.theme.organicBodyFontFamily
 import com.example.dz.designsystem.theme.organicHeadingFontFamily
@@ -85,44 +87,11 @@ fun SplashScreen() {
     }
 }
 
-/**
- * Progress for one entrance, from 0 before it starts to 1 once it has settled. [delayMillis]
- * staggers this element behind the ones before it.
- */
-@Composable
-private fun entranceProgress(delayMillis: Int, durationMillis: Int = 440): State<Float> {
-    val progress = remember { Animatable(0f) }
-    LaunchedEffect(Unit) {
-        progress.animateTo(
-            targetValue = 1f,
-            animationSpec = tween(durationMillis, delayMillis, FastOutSlowInEasing),
-        )
-    }
-    return progress.asState()
-}
-
-/**
- * Same idea for a spine, but on a spring: it carries a shade past its resting place and settles
- * back, which is what makes the book read as *placed* rather than faded in.
- */
-@Composable
-private fun spineProgress(delayMillis: Int): State<Float> {
-    val progress = remember { Animatable(0f) }
-    LaunchedEffect(Unit) {
-        delay(delayMillis.toLong())
-        progress.animateTo(
-            targetValue = 1f,
-            animationSpec = spring(dampingRatio = 0.7f, stiffness = Spring.StiffnessMediumLow),
-        )
-    }
-    return progress.asState()
-}
-
 @Composable
 private fun BrandBlock(modifier: Modifier = Modifier) {
-    val mark by entranceProgress(delayMillis = 0, durationMillis = 380)
-    val wordmark by entranceProgress(delayMillis = 100)
-    val subtitle by entranceProgress(delayMillis = 220)
+    val mark by rememberEntranceProgress(delayMillis = 0, durationMillis = 380)
+    val wordmark by rememberEntranceProgress(delayMillis = 100)
+    val subtitle by rememberEntranceProgress(delayMillis = 220)
 
     Column(modifier = modifier) {
         // The "d" mark — a filled accent circle with the wordmark's first letter.
@@ -178,14 +147,28 @@ private fun BrandBlock(modifier: Modifier = Modifier) {
     }
 }
 
+/**
+ * How far a tilted spine reaches past the row's own edges, and so how much room the clip frame
+ * has to leave it. Comfortably over the worst case: the tallest tilted spine is 158dp at 5°,
+ * which swings its corner about 7dp wide and 2dp low.
+ */
+private val SPINE_TILT_MARGIN = 16.dp
+private val SPINE_TILT_DROP = 6.dp
+
 /** How far apart the spines start, so they land one after another rather than together. */
 private const val SPINE_STAGGER_MILLIS = 80
 private const val FIRST_SPINE_DELAY_MILLIS = 320
 
 /**
  * Decorative bookshelf: five spines of varying height/tilt resting on a shelf line. The row is
- * clipped to its own bounds, so a spine still below its resting place is hidden behind the shelf
- * and appears to be slotted in. Not interactive — no click handling anywhere in this subtree.
+ * clipped, so a spine still below its resting place is hidden behind the shelf and appears to be
+ * slotted in. Not interactive — no click handling anywhere in this subtree.
+ *
+ * The clip sits on a frame around the row rather than on the row itself. A tilt rotates a spine
+ * inside its own layout bounds, which pushes its outer corners past them — clipping at the row's
+ * edge sheared those corners flat and left the end books looking trimmed down their sides. The
+ * margin below is only what a tilt reaches past the baseline; a rising spine is a whole height
+ * down, so it is still hidden.
  */
 @Composable
 private fun BookshelfIllustration(modifier: Modifier = Modifier) {
@@ -204,35 +187,51 @@ private fun BookshelfIllustration(modifier: Modifier = Modifier) {
         Spine(36.dp, 158.dp, 5f, Brush.linearGradient(listOf(OrganicColors.accent2_700, OrganicColors.accent2_700))),
     )
 
-    val shelf by entranceProgress(delayMillis = 160, durationMillis = 460)
+    val shelf by rememberEntranceProgress(delayMillis = 160, durationMillis = 460)
 
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Row(
-            modifier = Modifier.clipToBounds(),
-            horizontalArrangement = Arrangement.spacedBy(9.dp, Alignment.CenterHorizontally),
-            verticalAlignment = Alignment.Bottom
-        ) {
-            spines.forEachIndexed { index, spine ->
-                val rise by spineProgress(FIRST_SPINE_DELAY_MILLIS + index * SPINE_STAGGER_MILLIS)
+        Box(modifier = Modifier.clipToBounds()) {
+            Row(
+                modifier = Modifier.padding(
+                    start = SPINE_TILT_MARGIN,
+                    end = SPINE_TILT_MARGIN,
+                    bottom = SPINE_TILT_DROP,
+                ),
+                horizontalArrangement = Arrangement.spacedBy(9.dp, Alignment.CenterHorizontally),
+                verticalAlignment = Alignment.Bottom
+            ) {
+                spines.forEachIndexed { index, spine ->
+                    val rise by rememberSettleProgress(
+                        delayMillis = FIRST_SPINE_DELAY_MILLIS + index * SPINE_STAGGER_MILLIS
+                    )
 
-                Box(
-                    modifier = Modifier
-                        .width(spine.width)
-                        .height(spine.height)
-                        .graphicsLayer {
-                            alpha = rise.coerceIn(0f, 1f)
-                            translationY = (1f - rise) * spine.height.toPx()
-                            rotationZ = spine.rotation * rise.coerceIn(0f, 1f)
-                        }
-                        .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp, bottomStart = 4.dp, bottomEnd = 4.dp))
-                        .background(spine.brush)
-                )
+                    Box(
+                        modifier = Modifier
+                            .width(spine.width)
+                            .height(spine.height)
+                            .graphicsLayer {
+                                alpha = rise.coerceIn(0f, 1f)
+                                translationY = (1f - rise) * spine.height.toPx()
+                                rotationZ = spine.rotation * rise.coerceIn(0f, 1f)
+                            }
+                            .clip(
+                                RoundedCornerShape(
+                                    topStart = 8.dp,
+                                    topEnd = 8.dp,
+                                    bottomStart = 4.dp,
+                                    bottomEnd = 4.dp,
+                                )
+                            )
+                            .background(spine.brush)
+                    )
+                }
             }
         }
-        Spacer(modifier = Modifier.height(10.dp))
+        // The row already carries SPINE_TILT_DROP under the books, so this is the rest of the gap.
+        Spacer(modifier = Modifier.height(10.dp - SPINE_TILT_DROP))
         Box(
             modifier = Modifier
                 .graphicsLayer {
