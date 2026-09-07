@@ -227,7 +227,7 @@ val coreModule = module {
     factory { SignUpViewModel(get(), get()) }
     factory { ForgotPasswordViewModel(get()) }
     factory { (email: String, purpose: VerificationPurpose) ->
-        VerificationViewModel(email, purpose, get(), get(), get())
+        VerificationViewModel(email, purpose, get(), get(), get(), get(), get())
     }
     factory { (email: String, code: String) -> NewPasswordViewModel(email, code, get()) }
     factory { HomeViewModel(get(), get()) }

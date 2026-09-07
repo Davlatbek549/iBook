@@ -25,7 +25,7 @@ private const val SPLASH_MINIMUM_MILLIS = 1600L
  *
  * - a restored, verified session → Home;
  * - a restored session whose address was never proved → the code screen;
- * - no session → onboarding, or straight past it to sign-up if it has already been seen
+ * - no session → onboarding, or straight past it to sign-in if it has already been seen
  *   (see [LocalDataSource.isOnboardingCompleted]).
  */
 class SplashViewModel(
@@ -65,7 +65,7 @@ class SplashViewModel(
 
     private fun firstRunDestination(): SplashEffect =
         if (localDataSource.isOnboardingCompleted()) {
-            SplashEffect.NavigateToSignUp
+            SplashEffect.NavigateToLogin
         } else {
             SplashEffect.NavigateToOnboarding
         }

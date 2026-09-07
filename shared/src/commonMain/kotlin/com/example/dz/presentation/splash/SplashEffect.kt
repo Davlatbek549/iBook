@@ -13,6 +13,12 @@ sealed interface SplashEffect {
     /** Onboarding hasn't been completed (or skipped) yet — start the three beats. */
     data object NavigateToOnboarding : SplashEffect
 
-    /** Onboarding was already completed/skipped in a previous session — go straight on. */
-    data object NavigateToSignUp : SplashEffect
+    /**
+     * Onboarding was already completed/skipped in a previous session — go straight to sign-in.
+     *
+     * Sign-in rather than sign-up: someone who has been here before and holds no session has
+     * almost certainly signed out of an account they still own, and handing them a registration
+     * form asks them to make a second one. This matches where signing out leaves them.
+     */
+    data object NavigateToLogin : SplashEffect
 }

@@ -146,6 +146,7 @@ import com.example.dz.presentation.auth.new_password.NewPasswordEffect
 import com.example.dz.presentation.auth.new_password.NewPasswordScreen
 import com.example.dz.presentation.auth.new_password.NewPasswordViewModel
 import com.example.dz.presentation.auth.verification.VerificationEffect
+import com.example.dz.presentation.auth.verification.VerificationEvent
 import com.example.dz.presentation.auth.verification.VerificationPurpose
 import com.example.dz.presentation.auth.verification.VerificationScreen
 import com.example.dz.presentation.auth.verification.VerificationViewModel
@@ -280,7 +281,7 @@ fun DZNavGraph() {
                             SplashEffect.NavigateToOnboarding -> navController.navigate(Routes.ONBOARDING) {
                                 popUpTo(Routes.SPLASH) { inclusive = true }
                             }
-                            SplashEffect.NavigateToSignUp -> navController.navigate(Routes.SIGN_UP) {
+                            SplashEffect.NavigateToLogin -> navController.navigate(Routes.LOGIN) {
                                 popUpTo(Routes.SPLASH) { inclusive = true }
                             }
                             is SplashEffect.NavigateToVerification -> navController.navigate(
@@ -404,7 +405,20 @@ fun DZNavGraph() {
                                 navController.navigate(
                                     Routes.newPassword(effect.email, effect.code)
                                 )
-                            VerificationEffect.NavigateBack -> navController.popBackStack()
+                            // Nothing to pop means the splash opened this screen directly, on a
+                            // relaunch that found an unverified session. Backing out of that is
+                            // giving the session up, which only the view model can do — so it is
+                            // handed back rather than left as a button that does nothing.
+                            VerificationEffect.NavigateBack ->
+                                if (navController.previousBackStackEntry != null) {
+                                    navController.popBackStack()
+                                } else {
+                                    verificationViewModel.onEvent(VerificationEvent.AbandonSession)
+                                }
+                            VerificationEffect.NavigateToLogin ->
+                                navController.navigate(Routes.LOGIN) {
+                                    popUpTo(0) { inclusive = true }
+                                }
                         }
                     }
                 }

@@ -55,7 +55,13 @@ class NewPasswordViewModel(
                 }
             NewPasswordEvent.SaveClicked -> save()
             NewPasswordEvent.SignInClicked -> emitEffect(NewPasswordEffect.NavigateToLogin)
-            NewPasswordEvent.BackClicked -> emitEffect(NewPasswordEffect.NavigateBack)
+            // Once the password has changed there is nothing behind this screen worth returning
+            // to: the code that got here has been spent, and the screen that collected it can
+            // only refuse. Back therefore means the same as the button — on to sign-in.
+            NewPasswordEvent.BackClicked -> emitEffect(
+                if (_uiState.value.isSaved) NewPasswordEffect.NavigateToLogin
+                else NewPasswordEffect.NavigateBack
+            )
         }
     }
 

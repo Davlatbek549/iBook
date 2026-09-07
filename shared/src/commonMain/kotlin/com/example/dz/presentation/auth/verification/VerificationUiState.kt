@@ -1,5 +1,7 @@
 package com.example.dz.presentation.auth.verification
 
+import com.example.dz.core.auth.MailedCodeKind
+
 /**
  * Six rather than four. This code guards the two most attacked doors in the app — taking over an
  * account by reset, and proving an address — and four digits is ten thousand guesses. Six is a
@@ -16,6 +18,13 @@ enum class VerificationPurpose {
     /** Inside a password reset — a good code leads to choosing the new password. */
     ResetPassword,
 }
+
+/** Which of the server's two codes this flow is waiting on, and so whose cooldown applies. */
+val VerificationPurpose.mailedCodeKind: MailedCodeKind
+    get() = when (this) {
+        VerificationPurpose.VerifyEmail -> MailedCodeKind.EmailVerification
+        VerificationPurpose.ResetPassword -> MailedCodeKind.PasswordReset
+    }
 
 data class VerificationUiState(
     /** Blank when the caller had no address to pass; the copy falls back to "your email address". */

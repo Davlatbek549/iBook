@@ -10,4 +10,7 @@ sealed interface VerificationEffect {
      */
     data class NavigateToNewPassword(val email: String, val code: String) : VerificationEffect
     data object NavigateBack : VerificationEffect
+
+    /** The unverified session has been given up; sign-in is the only place left to go. */
+    data object NavigateToLogin : VerificationEffect
 }

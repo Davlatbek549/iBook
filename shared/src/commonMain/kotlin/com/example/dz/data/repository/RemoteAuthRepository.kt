@@ -1,7 +1,9 @@
 package com.example.dz.data.repository
 
+import com.example.dz.core.auth.MailedCodeKind
 import com.example.dz.core.error.AppError
 import com.example.dz.core.result.AppResult
+import com.example.dz.core.time.currentEpochMillis
 import com.example.dz.data.local.LocalDataSource
 import com.example.dz.data.remote.api.AuthApi
 import com.example.dz.data.remote.dto.auth.AuthResponseDto
@@ -35,6 +37,9 @@ class RemoteAuthRepository(
     override suspend fun signUp(name: String, email: String, password: String): AppResult<User> =
         runRemote { api.signUp(SignUpRequestDto(name = name, email = email, password = password)) }
             .persistSession()
+            // Signing up mails a code, so the cooldown starts here rather than on the code screen
+            // — which may not be built until a later launch.
+            .also { if (it is AppResult.Success) recordCodeSent(MailedCodeKind.EmailVerification) }
 
     override suspend fun signInWithGoogle(idToken: String): AppResult<User> =
         runRemote { api.signInWithGoogle(GoogleSignInRequestDto(idToken = idToken)) }
@@ -48,9 +53,11 @@ class RemoteAuthRepository(
 
     override suspend fun resendVerificationCode(email: String): AppResult<Unit> =
         runRemote { api.resendVerification(ResendVerificationRequestDto(email = email)) }
+            .also { if (it is AppResult.Success) recordCodeSent(MailedCodeKind.EmailVerification) }
 
     override suspend fun requestPasswordReset(email: String): AppResult<Unit> =
         runRemote { api.forgotPassword(ForgotPasswordRequestDto(email = email)) }
+            .also { if (it is AppResult.Success) recordCodeSent(MailedCodeKind.PasswordReset) }
 
     override suspend fun resetPassword(
         email: String,
@@ -88,6 +95,15 @@ class RemoteAuthRepository(
                 emailVerified = local.isEmailVerified(),
             )
         )
+    }
+
+    /**
+     * Stamps the moment a code was put in the post, so the resend countdown can be worked out
+     * from it on a later launch. Only successes are recorded: a request that failed sent nothing,
+     * and owes the reader no wait.
+     */
+    private fun recordCodeSent(kind: MailedCodeKind) {
+        local.saveSetting(kind.lastSentSettingKey, currentEpochMillis().toString())
     }
 
     private fun AppResult<AuthResponseDto>.persistSession(): AppResult<User> = when (this) {

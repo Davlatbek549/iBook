@@ -97,14 +97,14 @@ class SessionRestoreTest {
     }
 
     @Test
-    fun `onboarding is not shown twice`() = runTest {
+    fun `onboarding is not shown twice, and a returning reader gets sign-in`() = runTest {
         val local = FakeLocalDataSource().apply { setOnboardingCompleted(true) }
         val viewModel = SplashViewModel(
             GetCurrentUserUseCase(FakeAuthRepository(currentUser = null)),
             local,
         )
 
-        assertEquals(SplashEffect.NavigateToSignUp, viewModel.effects.first())
+        assertEquals(SplashEffect.NavigateToLogin, viewModel.effects.first())
     }
 
     @Test

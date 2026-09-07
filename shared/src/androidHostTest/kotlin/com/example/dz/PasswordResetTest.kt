@@ -286,4 +286,31 @@ class PasswordResetTest {
         assertTrue(viewModel.uiState.value.isSaved)
         assertNull(viewModel.uiState.value.errorMessage)
     }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `back leads to sign-in once the password has changed`() = runTest(dispatcher) {
+        val repository = RecordingAuthRepository()
+        val viewModel = newPasswordViewModel(repository)
+        viewModel.choose("a-long-enough-password")
+        testScheduler.advanceUntilIdle()
+
+        viewModel.onEvent(NewPasswordEvent.BackClicked)
+
+        // Popping would land on the code screen holding a code this reset has already spent —
+        // the dead end the success path clears the stack to avoid.
+        assertEquals(NewPasswordEffect.NavigateToLogin, viewModel.effects.first())
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `back still returns to the code screen before the password has changed`() =
+        runTest(dispatcher) {
+            val viewModel = newPasswordViewModel(RecordingAuthRepository())
+
+            viewModel.onEvent(NewPasswordEvent.BackClicked)
+
+            // Nothing has been spent yet, so a mistyped code is still worth going back to fix.
+            assertEquals(NewPasswordEffect.NavigateBack, viewModel.effects.first())
+        }
 }

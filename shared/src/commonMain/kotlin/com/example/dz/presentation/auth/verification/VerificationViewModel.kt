@@ -3,6 +3,9 @@ package com.example.dz.presentation.auth.verification
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.dz.core.result.AppResult
+import com.example.dz.core.time.currentEpochMillis
+import com.example.dz.data.local.LocalDataSource
+import com.example.dz.domain.usecase.auth.LogoutUseCase
 import com.example.dz.domain.usecase.auth.RequestPasswordResetUseCase
 import com.example.dz.domain.usecase.auth.ResendVerificationCodeUseCase
 import com.example.dz.domain.usecase.auth.VerifyEmailUseCase
@@ -32,6 +35,8 @@ class VerificationViewModel(
     private val verifyEmail: VerifyEmailUseCase,
     private val resendCode: ResendVerificationCodeUseCase,
     private val requestPasswordReset: RequestPasswordResetUseCase,
+    private val logout: LogoutUseCase,
+    private val local: LocalDataSource,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(VerificationUiState(email = email, purpose = purpose))
@@ -43,7 +48,10 @@ class VerificationViewModel(
     private var timerJob: Job? = null
 
     init {
-        startResendTimer()
+        // Picked up from when a code was last actually sent, not from now. Reached on a relaunch
+        // the last code may be hours old and long expired, and a fresh countdown would make the
+        // reader wait again before they could ask for the one they need.
+        startResendTimer(remainingCooldownSeconds())
     }
 
     fun onEvent(event: VerificationEvent) {
@@ -52,6 +60,7 @@ class VerificationViewModel(
             VerificationEvent.VerifyClicked -> verify()
             VerificationEvent.ResendClicked -> resend()
             VerificationEvent.BackClicked -> emitEffect(VerificationEffect.NavigateBack)
+            VerificationEvent.AbandonSession -> abandonSession()
         }
     }
 
@@ -121,13 +130,49 @@ class VerificationViewModel(
                     errorMessage = (result as? AppResult.Error)?.error?.toPresentationMessage(),
                 )
             }
-            startResendTimer()
+            startResendTimer(VERIFICATION_RESEND_SECONDS)
         }
     }
 
-    private fun startResendTimer() {
+    /**
+     * Gives up the unverified session and leaves for sign-in.
+     *
+     * Reached only when there is nothing behind this screen, which is the state a relaunch on an
+     * unverified session arrives in. Clearing the session is what makes leaving stick: keeping it
+     * would land the very next launch back on this screen with no more way out than before.
+     */
+    private fun abandonSession() {
+        if (_uiState.value.isLoading) return
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            logout()
+            _uiState.update { it.copy(isLoading = false) }
+            emitEffect(VerificationEffect.NavigateToLogin)
+        }
+    }
+
+    /**
+     * What is left of the cooldown owed for the last code of this kind, or zero when none was
+     * sent, the stamp is unreadable, or it is already older than the wait.
+     */
+    private fun remainingCooldownSeconds(): Int {
+        val sentAt = local.getSetting(_uiState.value.purpose.mailedCodeKind.lastSentSettingKey)
+            .toLongOrNull()
+            ?: return 0
+        val elapsed = (currentEpochMillis() - sentAt) / 1000
+        // A clock that has moved backwards since the send — a timezone fix, a manual change —
+        // makes elapsed negative. Treated as no wait rather than an enormous one.
+        if (elapsed < 0) return 0
+        return (VERIFICATION_RESEND_SECONDS - elapsed)
+            .coerceIn(0, VERIFICATION_RESEND_SECONDS.toLong())
+            .toInt()
+    }
+
+    private fun startResendTimer(secondsLeft: Int) {
         timerJob?.cancel()
-        _uiState.update { it.copy(secondsLeft = VERIFICATION_RESEND_SECONDS) }
+        _uiState.update { it.copy(secondsLeft = secondsLeft) }
+        if (secondsLeft <= 0) return
         timerJob = viewModelScope.launch {
             while (_uiState.value.secondsLeft > 0) {
                 delay(1000)
