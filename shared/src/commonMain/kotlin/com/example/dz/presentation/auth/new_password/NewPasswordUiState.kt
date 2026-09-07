@@ -10,9 +10,9 @@ data class NewPasswordUiState(
     /** Sits under the confirmation box — both rules it can break belong to that field. */
     val confirmationError: String? = null,
     /**
-     * Set once the server has taken the new password. The screen confirms in place rather than
-     * navigating on success, matching the Forgot password screen: the reader is told what
-     * happened before they are moved, and the button becomes the way on.
+     * Set once the server has taken the new password. The screen leaves for sign-in immediately
+     * afterwards, so this is not a state the reader sits in — it is what stops a second save
+     * being sent in the frame before the screen goes.
      */
     val isSaved: Boolean = false,
 )

@@ -31,6 +31,8 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavBackStackEntry
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -281,7 +283,7 @@ fun DZNavGraph() {
                             SplashEffect.NavigateToOnboarding -> navController.navigate(Routes.ONBOARDING) {
                                 popUpTo(Routes.SPLASH) { inclusive = true }
                             }
-                            SplashEffect.NavigateToLogin -> navController.navigate(Routes.LOGIN) {
+                            SplashEffect.NavigateToLogin -> navController.navigate(Routes.login()) {
                                 popUpTo(Routes.SPLASH) { inclusive = true }
                             }
                             is SplashEffect.NavigateToVerification -> navController.navigate(
@@ -312,8 +314,18 @@ fun DZNavGraph() {
                 OnboardingScreen(onEvent = onboardingViewModel::onEvent)
             }
 
-            composable(Routes.LOGIN) {
-                val loginViewModel = koinViewModel<LoginViewModel>()
+            composable(
+                Routes.LOGIN,
+                // Declared with defaults so that navigating with neither still matches this
+                // destination — signing out and a session-less splash both do.
+                arguments = listOf(
+                    navArgument("email") { type = NavType.StringType; defaultValue = "" },
+                    navArgument("reset") { type = NavType.BoolType; defaultValue = false },
+                ),
+            ) { backStackEntry ->
+                val email = backStackEntry.stringArgument("email", "")
+                val passwordJustReset = backStackEntry.booleanArgument("reset", false)
+                val loginViewModel = koinLoginViewModel(email, passwordJustReset)
                 val uiState by loginViewModel.uiState.collectAsStateWithLifecycle()
 
                 LaunchedEffect(loginViewModel) {
@@ -322,8 +334,8 @@ fun DZNavGraph() {
                             LoginEffect.NavigateToHome -> navController.navigate(Routes.HOME) {
                                 popUpTo(Routes.LOGIN) { inclusive = true }
                             }
-                            LoginEffect.NavigateToForgotPassword ->
-                                navController.navigate(Routes.FORGOT_PASSWORD)
+                            is LoginEffect.NavigateToForgotPassword ->
+                                navController.navigate(Routes.forgotPassword(effect.email))
                             LoginEffect.NavigateToSignUp -> navController.navigate(Routes.SIGN_UP) {
                                 popUpTo(Routes.LOGIN) { inclusive = true }
                             }
@@ -351,7 +363,7 @@ fun DZNavGraph() {
                                 navController.navigate(
                                     Routes.verification(VerificationPurpose.VerifyEmail, effect.email)
                                 )
-                            SignUpEffect.NavigateToLogin -> navController.navigate(Routes.LOGIN) {
+                            SignUpEffect.NavigateToLogin -> navController.navigate(Routes.login()) {
                                 popUpTo(Routes.SIGN_UP) { inclusive = true }
                             }
                         }
@@ -364,8 +376,14 @@ fun DZNavGraph() {
                 )
             }
 
-            composable(Routes.FORGOT_PASSWORD) {
-                val forgotPasswordViewModel = koinViewModel<ForgotPasswordViewModel>()
+            composable(
+                Routes.FORGOT_PASSWORD,
+                arguments = listOf(
+                    navArgument("email") { type = NavType.StringType; defaultValue = "" },
+                ),
+            ) { backStackEntry ->
+                val forgotPasswordViewModel =
+                    koinForgotPasswordViewModel(backStackEntry.stringArgument("email", ""))
                 val uiState by forgotPasswordViewModel.uiState.collectAsStateWithLifecycle()
 
                 LaunchedEffect(forgotPasswordViewModel) {
@@ -416,7 +434,7 @@ fun DZNavGraph() {
                                     verificationViewModel.onEvent(VerificationEvent.AbandonSession)
                                 }
                             VerificationEffect.NavigateToLogin ->
-                                navController.navigate(Routes.LOGIN) {
+                                navController.navigate(Routes.login()) {
                                     popUpTo(0) { inclusive = true }
                                 }
                         }
@@ -440,8 +458,12 @@ fun DZNavGraph() {
                         when (effect) {
                             // A reset issues no session, so this goes to sign-in, not Home. The
                             // whole reset stack goes with it: back into a spent code is a dead end.
-                            NewPasswordEffect.NavigateToLogin ->
-                                navController.navigate(Routes.LOGIN) {
+                            // The address travels along, so the reader signs in without retyping
+                            // the one they have just proved they own.
+                            is NewPasswordEffect.NavigateToLogin ->
+                                navController.navigate(
+                                    Routes.login(effect.email, passwordJustReset = true)
+                                ) {
                                     popUpTo(0) { inclusive = true }
                                 }
                             NewPasswordEffect.NavigateBack -> navController.popBackStack()
@@ -907,7 +929,7 @@ fun DZNavGraph() {
                             SettingsEffect.NavigateToEditProfile -> navController.navigate(Routes.purchaseDetails("history"))
                             // Clear the whole stack: every screen behind this one belongs to
                             // the session that was just signed out.
-                            SettingsEffect.NavigateToLogin -> navController.navigate(Routes.LOGIN) {
+                            SettingsEffect.NavigateToLogin -> navController.navigate(Routes.login()) {
                                 popUpTo(0) { inclusive = true }
                             }
                         }
@@ -1120,10 +1142,29 @@ private fun routeKey(value: String): String =
 private fun NavBackStackEntry.stringArgument(key: String, defaultValue: String): String =
     arguments?.read { getStringOrNull(key) } ?: defaultValue
 
+private fun NavBackStackEntry.booleanArgument(key: String, defaultValue: Boolean): Boolean =
+    arguments?.read { if (contains(key)) getBoolean(key) else defaultValue } ?: defaultValue
+
 @Composable
 private inline fun <reified VM : ViewModel> koinViewModel(): VM {
     val koin = remember { KoinPlatform.getKoin() }
     return viewModel { koin.get<VM>() }
+}
+
+@Composable
+private fun koinLoginViewModel(email: String, passwordJustReset: Boolean): LoginViewModel {
+    val koin = remember { KoinPlatform.getKoin() }
+    return viewModel(key = "login-$email-$passwordJustReset") {
+        koin.get<LoginViewModel> { parametersOf(email, passwordJustReset) }
+    }
+}
+
+@Composable
+private fun koinForgotPasswordViewModel(email: String): ForgotPasswordViewModel {
+    val koin = remember { KoinPlatform.getKoin() }
+    return viewModel(key = "forgot-password-$email") {
+        koin.get<ForgotPasswordViewModel> { parametersOf(email) }
+    }
 }
 
 @Composable

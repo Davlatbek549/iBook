@@ -32,6 +32,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.withStyle
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -55,6 +57,7 @@ import dz.shared.generated.resources.auth_login_subtitle
 import dz.shared.generated.resources.auth_login_title
 import dz.shared.generated.resources.auth_new_here
 import dz.shared.generated.resources.auth_or
+import dz.shared.generated.resources.auth_password_changed
 import dz.shared.generated.resources.auth_password_label
 import dz.shared.generated.resources.auth_password_placeholder
 import dz.shared.generated.resources.auth_show
@@ -106,6 +109,23 @@ fun LoginScreen(
                 OrganicTitle(text = stringResource(Res.string.auth_login_title))
                 OrganicSubtitle(
                     text = stringResource(Res.string.auth_login_subtitle)
+                )
+            }
+
+            if (uiState.passwordJustReset) {
+                // A reset ends here rather than on Home, because the server issues no session
+                // for one. Said plainly, or arriving at a sign-in screen reads as a failure.
+                Text(
+                    text = stringResource(Res.string.auth_password_changed),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(OrganicColors.accent2_200)
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                    fontFamily = body,
+                    fontSize = 13.sp,
+                    lineHeight = 20.sp,
+                    color = OrganicColors.accent2_900
                 )
             }
 

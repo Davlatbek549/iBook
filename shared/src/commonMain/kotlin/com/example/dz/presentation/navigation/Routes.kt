@@ -1,15 +1,22 @@
 package com.example.dz.presentation.navigation
 
 import com.example.dz.presentation.auth.verification.VerificationPurpose
+import io.ktor.http.encodeURLParameter
 import io.ktor.http.encodeURLPathPart
 
 object Routes {
     // Auth
     const val SPLASH = "splash"
     const val ONBOARDING = "onboarding"
-    const val LOGIN = "login"
+    /**
+     * Both arguments are optional, so that arriving with nothing to say still matches: signing
+     * out, or a splash that found no session, navigates with [login] and no arguments at all.
+     */
+    const val LOGIN = "login?email={email}&reset={reset}"
     const val SIGN_UP = "sign_up"
-    const val FORGOT_PASSWORD = "forgot_password"
+
+    /** Carries whatever address the sign-in screen already had, so it is not typed twice. */
+    const val FORGOT_PASSWORD = "forgot_password?email={email}"
 
     /**
      * Code entry is reached from sign-up and from a password reset, and ends somewhere different
@@ -67,6 +74,18 @@ object Routes {
     const val INVITE_FRIENDS = "invite_friends"
 
     // Helpers to build routes with arguments
+    /**
+     * [email] prefills the address box. [passwordJustReset] says the reader has arrived straight
+     * from finishing a reset, which is the one case where landing on sign-in needs explaining.
+     *
+     * Query rather than path, because both are genuinely optional here — an address is only
+     * known when a screen had one to pass on.
+     */
+    fun login(email: String = "", passwordJustReset: Boolean = false) =
+        "login?email=${email.encodeURLParameter()}&reset=$passwordJustReset"
+
+    fun forgotPassword(email: String = "") =
+        "forgot_password?email=${email.encodeURLParameter()}"
     /**
      * [email] is percent-encoded: an address is user input, and Navigation splits the route on
      * the same characters an address is allowed to contain.

@@ -6,6 +6,6 @@ sealed interface NewPasswordEffect {
      * existed, so the only honest place to go is the sign-in screen — with the password the
      * reader just chose.
      */
-    data object NavigateToLogin : NewPasswordEffect
+    data class NavigateToLogin(val email: String) : NewPasswordEffect
     data object NavigateBack : NewPasswordEffect
 }

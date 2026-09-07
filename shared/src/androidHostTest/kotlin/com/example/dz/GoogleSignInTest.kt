@@ -83,7 +83,10 @@ class GoogleSignInTest {
     }
 
     private fun loginViewModel(repository: RecordingAuthRepository) =
-        LoginViewModel(LoginUseCase(repository), SignInWithGoogleUseCase(repository))
+        LoginViewModel(
+            login = LoginUseCase(repository),
+            signInWithGoogle = SignInWithGoogleUseCase(repository),
+        )
 
     /**
      * Consent as a reader now gives it. The box cannot be ticked outright any more, so both

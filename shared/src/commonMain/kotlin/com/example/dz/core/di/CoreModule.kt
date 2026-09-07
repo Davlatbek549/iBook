@@ -223,9 +223,11 @@ val coreModule = module {
     factory { GetPurchaseDetailsUseCase(get()) }
 
     // Presentation MVI stores
-    factory { LoginViewModel(get(), get()) }
+    factory { (email: String, passwordJustReset: Boolean) ->
+        LoginViewModel(email, passwordJustReset, get(), get())
+    }
     factory { SignUpViewModel(get(), get()) }
-    factory { ForgotPasswordViewModel(get()) }
+    factory { (email: String) -> ForgotPasswordViewModel(email, get()) }
     factory { (email: String, purpose: VerificationPurpose) ->
         VerificationViewModel(email, purpose, get(), get(), get(), get(), get())
     }

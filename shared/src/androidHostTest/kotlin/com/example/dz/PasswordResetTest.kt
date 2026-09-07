@@ -4,9 +4,14 @@ import com.example.dz.core.error.AppError
 import com.example.dz.core.result.AppResult
 import com.example.dz.domain.model.User
 import com.example.dz.domain.repository.AuthRepository
+import com.example.dz.domain.usecase.auth.LoginUseCase
 import com.example.dz.domain.usecase.auth.RequestPasswordResetUseCase
+import com.example.dz.domain.usecase.auth.SignInWithGoogleUseCase
 import com.example.dz.domain.usecase.auth.ResetPasswordUseCase
 import com.example.dz.presentation.auth.forgot_password.ForgotPasswordEffect
+import com.example.dz.presentation.auth.login.LoginEffect
+import com.example.dz.presentation.auth.login.LoginEvent
+import com.example.dz.presentation.auth.login.LoginViewModel
 import com.example.dz.presentation.auth.forgot_password.ForgotPasswordEvent
 import com.example.dz.presentation.auth.forgot_password.ForgotPasswordViewModel
 import com.example.dz.presentation.auth.new_password.NewPasswordEffect
@@ -87,7 +92,7 @@ class PasswordResetTest {
     }
 
     private fun forgotViewModel(repository: RecordingAuthRepository) =
-        ForgotPasswordViewModel(RequestPasswordResetUseCase(repository))
+        ForgotPasswordViewModel(requestPasswordReset = RequestPasswordResetUseCase(repository))
 
     private fun newPasswordViewModel(
         repository: RecordingAuthRepository,
@@ -117,6 +122,67 @@ class PasswordResetTest {
         onEvent(NewPasswordEvent.PasswordChanged(password))
         onEvent(NewPasswordEvent.ConfirmationChanged(confirmation))
         onEvent(NewPasswordEvent.SaveClicked)
+    }
+
+    // ── Carrying the address ─────────────────────────────────────────────────
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `the sign-in screen hands its address to the recovery screen`() = runTest(dispatcher) {
+        val viewModel = LoginViewModel(
+            login = LoginUseCase(RecordingAuthRepository()),
+            signInWithGoogle = SignInWithGoogleUseCase(RecordingAuthRepository()),
+        )
+
+        viewModel.onEvent(LoginEvent.EmailChanged("  ada@example.com  "))
+        viewModel.onEvent(LoginEvent.ForgotPasswordClicked)
+
+        // Someone reaches for "Forgot password" having already typed who they are; asking again
+        // on the next screen is asking twice.
+        assertEquals(
+            LoginEffect.NavigateToForgotPassword("ada@example.com"),
+            viewModel.effects.first(),
+        )
+    }
+
+    @Test
+    fun `the recovery screen opens on the address it was handed`() {
+        val viewModel = ForgotPasswordViewModel(
+            email = "ada@example.com",
+            requestPasswordReset = RequestPasswordResetUseCase(RecordingAuthRepository()),
+        )
+
+        assertEquals("ada@example.com", viewModel.uiState.value.email)
+    }
+
+    @Test
+    fun `a finished reset opens sign-in on the address it just proved`() {
+        val viewModel = LoginViewModel(
+            email = "ada@example.com",
+            passwordJustReset = true,
+            login = LoginUseCase(RecordingAuthRepository()),
+            signInWithGoogle = SignInWithGoogleUseCase(RecordingAuthRepository()),
+        )
+
+        // Arriving at a sign-in screen straight after a reset reads as a failure unless the
+        // screen says otherwise, so it says so — and fills in the address either way.
+        assertEquals("ada@example.com", viewModel.uiState.value.email)
+        assertTrue(viewModel.uiState.value.passwordJustReset)
+    }
+
+    @Test
+    fun `editing the address puts the reset notice away`() {
+        val viewModel = LoginViewModel(
+            email = "ada@example.com",
+            passwordJustReset = true,
+            login = LoginUseCase(RecordingAuthRepository()),
+            signInWithGoogle = SignInWithGoogleUseCase(RecordingAuthRepository()),
+        )
+
+        viewModel.onEvent(LoginEvent.EmailChanged("someone@example.com"))
+
+        // The notice described the address that arrived with it.
+        assertFalse(viewModel.uiState.value.passwordJustReset)
     }
 
     // ── Asking for a code ────────────────────────────────────────────────────
@@ -211,15 +277,15 @@ class PasswordResetTest {
         runTest(dispatcher) {
             val repository = RecordingAuthRepository()
             val viewModel = newPasswordViewModel(repository)
-            viewModel.choose("a-long-enough-password")
-            testScheduler.advanceUntilIdle()
 
-            viewModel.onEvent(NewPasswordEvent.SignInClicked)
+            viewModel.choose("a-long-enough-password")
             val effect = viewModel.effects.first()
 
             // The server issues no session for a reset and revokes the ones that existed, so
-            // opening Home would be a signed-in shell with no session behind it.
-            assertEquals(NewPasswordEffect.NavigateToLogin, effect)
+            // opening Home would be a signed-in shell with no session behind it. Saving leaves
+            // on its own: there is nothing further to do here, and a screen that just sits there
+            // reads as a save that did not work.
+            assertEquals(NewPasswordEffect.NavigateToLogin("ada@example.com"), effect)
         }
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -291,18 +357,26 @@ class PasswordResetTest {
 
     @OptIn(ExperimentalCoroutinesApi::class)
     @Test
-    fun `back leads to sign-in once the password has changed`() = runTest(dispatcher) {
-        val repository = RecordingAuthRepository()
-        val viewModel = newPasswordViewModel(repository)
-        viewModel.choose("a-long-enough-password")
-        testScheduler.advanceUntilIdle()
+    fun `back leads to sign-in in the frame after the password has changed`() =
+        runTest(dispatcher) {
+            val viewModel = newPasswordViewModel(RecordingAuthRepository())
 
-        viewModel.onEvent(NewPasswordEvent.BackClicked)
+            viewModel.choose("a-long-enough-password")
+            // The save's own departure, taken first so the next await sees only back's.
+            assertEquals(
+                NewPasswordEffect.NavigateToLogin("ada@example.com"),
+                viewModel.effects.first(),
+            )
 
-        // Popping would land on the code screen holding a code this reset has already spent —
-        // the dead end the success path clears the stack to avoid.
-        assertEquals(NewPasswordEffect.NavigateToLogin, viewModel.effects.first())
-    }
+            viewModel.onEvent(NewPasswordEvent.BackClicked)
+
+            // Saving leaves on its own, but back is still live for the frame in between, and
+            // popping there would land on a code screen holding a code that has been spent.
+            assertEquals(
+                NewPasswordEffect.NavigateToLogin("ada@example.com"),
+                viewModel.effects.first(),
+            )
+        }
 
     @OptIn(ExperimentalCoroutinesApi::class)
     @Test

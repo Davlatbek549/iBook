@@ -107,7 +107,6 @@
     <string name="auth_confirm_password_placeholder">Confirm new password</string>
     <string name="auth_save_and_sign_in">Save password</string>
     <string name="auth_password_changed">Password changed. Sign in with your new one.</string>
-    <string name="auth_go_to_sign_in">Go to sign in</string>
     <string name="auth_saving">Saving&#8230;</string>
     <string name="auth_wrong_address">Wrong address?</string>
     <string name="auth_change_it">Change it</string>

@@ -15,10 +15,14 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class LoginViewModel(
+    email: String = "",
+    passwordJustReset: Boolean = false,
     private val login: LoginUseCase,
     private val signInWithGoogle: SignInWithGoogleUseCase
 ) : ViewModel() {
-    private val _uiState = MutableStateFlow(LoginUiState())
+    private val _uiState = MutableStateFlow(
+        LoginUiState(email = email, passwordJustReset = passwordJustReset)
+    )
     val uiState = _uiState.asStateFlow()
 
     private val _effects = MutableSharedFlow<LoginEffect>()
@@ -28,14 +32,22 @@ class LoginViewModel(
         when (event) {
             is LoginEvent.EmailChanged ->
                 _uiState.update {
-                    it.copy(email = event.email, errorMessage = null, emailError = null)
+                    // Editing the address ends the reset notice: it described the address that
+                    // was there when the reader arrived.
+                    it.copy(
+                        email = event.email,
+                        errorMessage = null,
+                        emailError = null,
+                        passwordJustReset = false,
+                    )
                 }
             is LoginEvent.PasswordChanged ->
                 _uiState.update {
                     it.copy(password = event.password, errorMessage = null, passwordError = null)
                 }
             LoginEvent.SignInClicked -> signIn()
-            LoginEvent.ForgotPasswordClicked -> emitEffect(LoginEffect.NavigateToForgotPassword)
+            LoginEvent.ForgotPasswordClicked ->
+                emitEffect(LoginEffect.NavigateToForgotPassword(_uiState.value.email.trim()))
             LoginEvent.SignUpClicked -> emitEffect(LoginEffect.NavigateToSignUp)
             // The picker itself is launched by the screen, which is where the platform
             // handle lives; the view model only owns the busy flag around it.

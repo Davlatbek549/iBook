@@ -22,6 +22,10 @@ import kotlinx.coroutines.launch
  *
  * This is also where a wrong code surfaces. The step before carries it without checking, so the
  * refusal for a bad code and the refusal for an expired one both arrive at this screen.
+ *
+ * A change that lands leaves for sign-in at once rather than confirming here and waiting to be
+ * dismissed — there is nothing left to do on this screen, and the address travels with it so the
+ * reader signs in without typing what they have just proved they own.
  */
 class NewPasswordViewModel(
     email: String = "",
@@ -54,13 +58,14 @@ class NewPasswordViewModel(
                     )
                 }
             NewPasswordEvent.SaveClicked -> save()
-            NewPasswordEvent.SignInClicked -> emitEffect(NewPasswordEffect.NavigateToLogin)
-            // Once the password has changed there is nothing behind this screen worth returning
-            // to: the code that got here has been spent, and the screen that collected it can
-            // only refuse. Back therefore means the same as the button — on to sign-in.
+            // Saving leaves for sign-in on its own, but there is a frame between the change
+            // landing and the screen going. Back in that frame must not return to a code screen
+            // holding a code this reset has already spent.
             NewPasswordEvent.BackClicked -> emitEffect(
-                if (_uiState.value.isSaved) NewPasswordEffect.NavigateToLogin
-                else NewPasswordEffect.NavigateBack
+                with(_uiState.value) {
+                    if (isSaved) NewPasswordEffect.NavigateToLogin(email)
+                    else NewPasswordEffect.NavigateBack
+                }
             )
         }
     }
@@ -81,8 +86,10 @@ class NewPasswordViewModel(
                 it.copy(isLoading = true, errorMessage = null, confirmationError = null)
             }
             when (val result = resetPassword(state.email, code, state.password)) {
-                is AppResult.Success ->
+                is AppResult.Success -> {
                     _uiState.update { it.copy(isLoading = false, isSaved = true) }
+                    emitEffect(NewPasswordEffect.NavigateToLogin(state.email))
+                }
                 is AppResult.Error ->
                     _uiState.update {
                         it.copy(

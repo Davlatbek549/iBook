@@ -27,9 +27,10 @@ import kotlinx.coroutines.launch
  * code screen, which is where the reader now waits.
  */
 class ForgotPasswordViewModel(
+    email: String = "",
     private val requestPasswordReset: RequestPasswordResetUseCase,
 ) : ViewModel() {
-    private val _uiState = MutableStateFlow(ForgotPasswordUiState())
+    private val _uiState = MutableStateFlow(ForgotPasswordUiState(email = email))
     val uiState = _uiState.asStateFlow()
 
     private val _effects = MutableSharedFlow<ForgotPasswordEffect>()
