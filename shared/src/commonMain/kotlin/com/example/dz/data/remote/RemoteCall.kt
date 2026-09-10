@@ -8,6 +8,7 @@ import io.ktor.client.plugins.HttpRequestTimeoutException
 import io.ktor.client.plugins.ResponseException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlin.coroutines.cancellation.CancellationException
 
 /**
  * Thrown by auth backends when the server rejects the request for a reason the UI should
@@ -44,6 +45,12 @@ suspend fun <T> runRemote(block: suspend () -> T): AppResult<T> =
         AppResult.Error(AppError.Timeout)
     } catch (error: SocketTimeoutException) {
         AppResult.Error(AppError.Timeout)
+    } catch (error: CancellationException) {
+        // A cancelled call has not failed, and must not be reported as though it had. Caught by
+        // the clause below, a search replaced mid-flight came back as a network error for the
+        // screen to show — and the cancelled coroutine carried on as if nothing had stopped it.
+        // Ktor's own timeouts are IO exceptions, handled above, so none of them land here.
+        throw error
     } catch (error: Throwable) {
         AppResult.Error(AppError.Network)
     }
