@@ -91,6 +91,12 @@ data class UserDto(
     val name: String,
     val email: String? = null,
     val avatarUrl: String? = null,
-    /** Defaulted so a response from an older server still parses, as an unverified account. */
-    val emailVerified: Boolean = false
+    /**
+     * Absent means verified, not unverified. dz-server began sending this field in the same change
+     * that began refusing unverified accounts, so a response without it comes from a server that
+     * does not gate on verification at all. Defaulting to false made every account on such a
+     * server look unverified, and the splash then sent every one of them to a code screen on every
+     * launch — a trap with no way out on a server that cannot check the code.
+     */
+    val emailVerified: Boolean = true
 )

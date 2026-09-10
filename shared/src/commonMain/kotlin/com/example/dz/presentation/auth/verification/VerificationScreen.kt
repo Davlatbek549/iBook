@@ -32,6 +32,7 @@ import dz.shared.generated.resources.Res
 import dz.shared.generated.resources.auth_back
 import dz.shared.generated.resources.auth_nothing_arrived
 import dz.shared.generated.resources.auth_resend_code
+import dz.shared.generated.resources.auth_sending_code
 import dz.shared.generated.resources.auth_resend_in
 import dz.shared.generated.resources.auth_verification_copy_prefix
 import dz.shared.generated.resources.auth_verification_copy_no_email
@@ -141,7 +142,9 @@ fun VerificationScreen(
             text = buildAnnotatedString {
                 append(stringResource(Res.string.auth_nothing_arrived))
                 append(" ")
-                if (uiState.canResend) {
+                if (uiState.isSendingCode) {
+                    append(stringResource(Res.string.auth_sending_code))
+                } else if (uiState.canResend) {
                     withStyle(
                         SpanStyle(color = OrganicColors.accent700, fontWeight = FontWeight.SemiBold)
                     ) {
@@ -157,7 +160,9 @@ fun VerificationScreen(
                 }
             },
             modifier = Modifier
-                .clickable(enabled = uiState.canResend) { onEvent(VerificationEvent.ResendClicked) }
+                .clickable(enabled = uiState.canResend && !uiState.isSendingCode) {
+                    onEvent(VerificationEvent.ResendClicked)
+                }
                 .padding(vertical = 4.dp),
             fontFamily = body,
             fontSize = 14.sp,

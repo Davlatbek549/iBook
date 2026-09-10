@@ -3,6 +3,7 @@ package com.example.dz.presentation.auth.login
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.dz.core.result.AppResult
+import com.example.dz.domain.model.User
 import com.example.dz.domain.usecase.auth.LoginUseCase
 import com.example.dz.domain.usecase.auth.SignInWithGoogleUseCase
 import com.example.dz.presentation.mvi.toPresentationMessage
@@ -79,7 +80,7 @@ class LoginViewModel(
             when (val result = login(state.email.trim(), state.password)) {
                 is AppResult.Success -> {
                     _uiState.update { it.copy(isLoading = false) }
-                    emitEffect(LoginEffect.NavigateToHome)
+                    emitEffect(destinationFor(result.data, fallbackEmail = state.email.trim()))
                 }
                 is AppResult.Error ->
                     _uiState.update {
@@ -95,7 +96,7 @@ class LoginViewModel(
             when (val result = signInWithGoogle(idToken)) {
                 is AppResult.Success -> {
                     _uiState.update { it.copy(isLoading = false) }
-                    emitEffect(LoginEffect.NavigateToHome)
+                    emitEffect(destinationFor(result.data, fallbackEmail = ""))
                 }
                 is AppResult.Error ->
                     _uiState.update {
@@ -104,6 +105,15 @@ class LoginViewModel(
             }
         }
     }
+
+    /**
+     * Where a new session opens — the same rule the splash applies to a restored one. Sign-in used
+     * to open Home unconditionally, so an unverified account was let in once and only met the code
+     * screen on the next launch, which looked like the splash had gone wrong.
+     */
+    private fun destinationFor(user: User, fallbackEmail: String): LoginEffect =
+        if (user.emailVerified) LoginEffect.NavigateToHome
+        else LoginEffect.NavigateToVerification(user.email?.takeIf { it.isNotBlank() } ?: fallbackEmail)
 
     private fun emitEffect(effect: LoginEffect) {
         viewModelScope.launch {

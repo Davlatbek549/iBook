@@ -13,10 +13,12 @@ import com.example.dz.domain.usecase.auth.ResendVerificationCodeUseCase
 import com.example.dz.domain.usecase.auth.VerifyEmailUseCase
 import com.example.dz.presentation.auth.verification.VerificationEffect
 import com.example.dz.presentation.auth.verification.VerificationEvent
+import com.example.dz.presentation.auth.verification.VERIFICATION_CODE_LIFETIME_SECONDS
 import com.example.dz.presentation.auth.verification.VERIFICATION_RESEND_SECONDS
 import com.example.dz.presentation.auth.verification.VerificationPurpose
 import com.example.dz.presentation.auth.verification.mailedCodeKind
 import com.example.dz.presentation.auth.verification.VerificationViewModel
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -28,6 +30,7 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -48,6 +51,8 @@ class EmailVerificationTest {
     private class RecordingAuthRepository(
         private val verifyResult: AppResult<Unit> = AppResult.Success(Unit),
         private val resendResult: AppResult<Unit> = AppResult.Success(Unit),
+        /** When set, a send waits on it — so a test can look at the screen mid-send. */
+        private val sendGate: CompletableDeferred<Unit>? = null,
     ) : AuthRepository {
         var verifiedWith: Pair<String, String>? = null
             private set
@@ -63,6 +68,7 @@ class EmailVerificationTest {
 
         override suspend fun resendVerificationCode(email: String): AppResult<Unit> {
             resendCalls++
+            sendGate?.await()
             return resendResult
         }
 
@@ -248,17 +254,93 @@ class EmailVerificationTest {
 
     @OptIn(ExperimentalCoroutinesApi::class)
     @Test
-    fun `a reset cooldown does not gate a confirmation code`() = runTest(dispatcher) {
-        // The two codes are separate on the server, so their waits are separate here too.
+    fun `a reset code does not count as a confirmation code`() = runTest(dispatcher) {
+        // The two codes are separate on the server, so a fresh reset code leaves this screen with
+        // nothing to type — and it sends a confirmation code of its own.
+        val repository = RecordingAuthRepository()
         val local = FakeLocalDataSource().apply {
             saveSetting(
                 MailedCodeKind.PasswordReset.lastSentSettingKey,
                 currentEpochMillis().toString(),
             )
         }
-        val viewModel = viewModel(RecordingAuthRepository(), local = local)
+        viewModel(repository, local = local)
+        testScheduler.runCurrent()
 
-        assertTrue(viewModel.uiState.value.canResend, "no confirmation code has been sent")
+        assertEquals(1, repository.resendCalls)
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `arriving with no code sends one`() = runTest(dispatcher) {
+        // Where signing in to an account that predates verification lands: it was never sent a
+        // code, and the screen saying one is on its way would otherwise be untrue.
+        val repository = RecordingAuthRepository()
+        val viewModel = viewModel(repository, local = FakeLocalDataSource())
+        testScheduler.runCurrent()
+
+        assertEquals(1, repository.resendCalls, "the screen promises a code; one has to go out")
+        assertEquals(
+            VERIFICATION_RESEND_SECONDS,
+            viewModel.uiState.value.secondsLeft,
+            "and the cooldown starts from that send",
+        )
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `an expired code is replaced on arrival`() = runTest(dispatcher) {
+        val repository = RecordingAuthRepository()
+        val local = FakeLocalDataSource().apply {
+            saveSetting(
+                MailedCodeKind.EmailVerification.lastSentSettingKey,
+                (currentEpochMillis() - (VERIFICATION_CODE_LIFETIME_SECONDS + 60) * 1000L).toString(),
+            )
+        }
+        viewModel(repository, local = local)
+        testScheduler.runCurrent()
+
+        assertEquals(1, repository.resendCalls, "the last code has expired; there is nothing to type")
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `a live code is not sent again on arrival`() = runTest(dispatcher) {
+        // Straight after sign-up, which has just mailed one: a second would only confuse.
+        val repository = RecordingAuthRepository()
+        viewModel(repository, local = localWithFreshCode(MailedCodeKind.EmailVerification))
+        testScheduler.runCurrent()
+
+        assertEquals(0, repository.resendCalls)
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `a reset code screen never sends on its own`() = runTest(dispatcher) {
+        // Only reached from the forgot-password screen, which has just sent the code.
+        val repository = RecordingAuthRepository()
+        viewModel(repository, purpose = VerificationPurpose.ResetPassword, local = FakeLocalDataSource())
+        testScheduler.runCurrent()
+
+        assertEquals(0, repository.resetRequests)
+        assertEquals(0, repository.resendCalls)
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `a code being sent does not read as one being checked`() = runTest(dispatcher) {
+        // The send can run as the screen opens, before anything is typed — against a server that
+        // may be waking for up to a minute. "Verifying…" on the button then would be untrue.
+        val gate = CompletableDeferred<Unit>()
+        val viewModel = viewModel(RecordingAuthRepository(sendGate = gate), local = FakeLocalDataSource())
+        testScheduler.runCurrent()
+
+        assertTrue(viewModel.uiState.value.isSendingCode)
+        assertFalse(viewModel.uiState.value.isLoading, "nothing is being verified")
+
+        gate.complete(Unit)
+        testScheduler.runCurrent()
+        assertFalse(viewModel.uiState.value.isSendingCode)
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)

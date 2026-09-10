@@ -79,6 +79,8 @@ kotlin {
         getByName("androidHostTest").dependencies {
             implementation(libs.sqldelight.sqlite.driver)
             implementation(libs.ktor.client.mock)
+            // MapSettings: an in-memory store for testing the real LocalDataSourceImpl end to end.
+            implementation(libs.multiplatform.settings.test)
             // ViewModels run on Dispatchers.Main, which has no implementation on a JVM test JVM;
             // Dispatchers.setMain from here gives them one.
             implementation(libs.kotlinx.coroutines.test)

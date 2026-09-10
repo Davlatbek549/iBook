@@ -8,7 +8,18 @@ import com.example.dz.core.auth.MailedCodeKind
  * million, which the server's attempt cap turns into a hopeless proposition.
  */
 const val VERIFICATION_CODE_LENGTH = 6
-const val VERIFICATION_RESEND_SECONDS = 45
+
+/**
+ * How long a reader must wait between asking for codes. Mirrors `resendCooldown` in dz-server: the
+ * countdown used to end at 45 seconds, and a resend between then and a minute was refused.
+ */
+const val VERIFICATION_RESEND_SECONDS = 60
+
+/**
+ * How long a mailed code stands. Mirrors `ttl` in dz-server. A code screen reached with no code
+ * younger than this has nothing to type, so it sends one — see [VerificationViewModel].
+ */
+const val VERIFICATION_CODE_LIFETIME_SECONDS = 15 * 60
 
 /** Which flow sent the reader here; decides where a correct code lets them out. */
 enum class VerificationPurpose {
@@ -32,7 +43,14 @@ data class VerificationUiState(
     val purpose: VerificationPurpose = VerificationPurpose.VerifyEmail,
     val code: String = "",
     val secondsLeft: Int = VERIFICATION_RESEND_SECONDS,
+    /** A code is being checked. */
     val isLoading: Boolean = false,
+    /**
+     * A code is being sent. Kept apart from [isLoading] because they read differently: this can
+     * run the moment the screen opens, before anything has been typed, and a Verify button saying
+     * "Verifying…" then would be describing something that is not happening.
+     */
+    val isSendingCode: Boolean = false,
     val errorMessage: String? = null,
 ) {
     val canResend: Boolean get() = secondsLeft == 0

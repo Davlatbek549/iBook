@@ -48,10 +48,19 @@ class VerificationViewModel(
     private var timerJob: Job? = null
 
     init {
-        // Picked up from when a code was last actually sent, not from now. Reached on a relaunch
-        // the last code may be hours old and long expired, and a fresh countdown would make the
-        // reader wait again before they could ask for the one they need.
-        startResendTimer(remainingCooldownSeconds())
+        val sinceLastSend = secondsSinceLastSend()
+        if (purpose == VerificationPurpose.VerifyEmail && !codeIsLive(sinceLastSend)) {
+            // Nothing live to type. The account may never have been sent a code at all — every
+            // account made before verification existed was stored unverified, and signing in
+            // with one lands here — or the last code has expired. The screen says a code is on
+            // its way, so one has to be.
+            sendCode()
+        } else {
+            // Picked up from when a code was last actually sent, not from now. Reached on a
+            // relaunch the countdown may already have run out, and restarting it would make the
+            // reader wait again before they could ask for the one they need.
+            startResendTimer(remainingCooldownSeconds(sinceLastSend))
+        }
     }
 
     fun onEvent(event: VerificationEvent) {
@@ -116,17 +125,25 @@ class VerificationViewModel(
      */
     private fun resend() {
         val state = _uiState.value
-        if (!state.canResend || state.isLoading) return
+        if (!state.canResend || state.isLoading || state.isSendingCode) return
+        sendCode()
+    }
 
+    /**
+     * Mails a new code of this screen's kind. The countdown restarts on the way out whatever the
+     * outcome, so a refusal cannot leave the link live and invite a send the server would refuse.
+     */
+    private fun sendCode() {
+        val state = _uiState.value
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null, code = "") }
+            _uiState.update { it.copy(isSendingCode = true, errorMessage = null, code = "") }
             val result = when (state.purpose) {
                 VerificationPurpose.VerifyEmail -> resendCode(state.email)
                 VerificationPurpose.ResetPassword -> requestPasswordReset(state.email)
             }
             _uiState.update {
                 it.copy(
-                    isLoading = false,
+                    isSendingCode = false,
                     errorMessage = (result as? AppResult.Error)?.error?.toPresentationMessage(),
                 )
             }
@@ -153,18 +170,24 @@ class VerificationViewModel(
     }
 
     /**
-     * What is left of the cooldown owed for the last code of this kind, or zero when none was
-     * sent, the stamp is unreadable, or it is already older than the wait.
+     * Seconds since this device last sent a code of this kind, or null when it never did or the
+     * stamp is unreadable. A clock that has moved backwards since — a timezone fix, a manual
+     * change — gives a negative age, and is treated as unknown rather than as a send in the future.
      */
-    private fun remainingCooldownSeconds(): Int {
+    private fun secondsSinceLastSend(): Long? {
         val sentAt = local.getSetting(_uiState.value.purpose.mailedCodeKind.lastSentSettingKey)
             .toLongOrNull()
-            ?: return 0
-        val elapsed = (currentEpochMillis() - sentAt) / 1000
-        // A clock that has moved backwards since the send — a timezone fix, a manual change —
-        // makes elapsed negative. Treated as no wait rather than an enormous one.
-        if (elapsed < 0) return 0
-        return (VERIFICATION_RESEND_SECONDS - elapsed)
+            ?: return null
+        return ((currentEpochMillis() - sentAt) / 1000).takeIf { it >= 0 }
+    }
+
+    private fun codeIsLive(sinceLastSend: Long?): Boolean =
+        sinceLastSend != null && sinceLastSend < VERIFICATION_CODE_LIFETIME_SECONDS
+
+    /** What is left of the cooldown owed for the last code, or zero when none is owed. */
+    private fun remainingCooldownSeconds(sinceLastSend: Long?): Int {
+        if (sinceLastSend == null) return 0
+        return (VERIFICATION_RESEND_SECONDS - sinceLastSend)
             .coerceIn(0, VERIFICATION_RESEND_SECONDS.toLong())
             .toInt()
     }

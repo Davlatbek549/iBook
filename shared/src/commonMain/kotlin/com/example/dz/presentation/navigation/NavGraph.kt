@@ -334,6 +334,11 @@ fun DZNavGraph() {
                             LoginEffect.NavigateToHome -> navController.navigate(Routes.HOME) {
                                 popUpTo(Routes.LOGIN) { inclusive = true }
                             }
+                            // Sign-in stays underneath, so backing out leads somewhere useful:
+                            // back to signing in, perhaps as someone else.
+                            is LoginEffect.NavigateToVerification -> navController.navigate(
+                                Routes.verification(VerificationPurpose.VerifyEmail, effect.email)
+                            )
                             is LoginEffect.NavigateToForgotPassword ->
                                 navController.navigate(Routes.forgotPassword(effect.email))
                             LoginEffect.NavigateToSignUp -> navController.navigate(Routes.SIGN_UP) {

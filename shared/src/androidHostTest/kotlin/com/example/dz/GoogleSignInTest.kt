@@ -43,8 +43,13 @@ class GoogleSignInTest {
     fun removeMainDispatcher() = Dispatchers.resetMain()
 
     private class RecordingAuthRepository(
+        // Verified, as dz-server returns a Google account: Google vouches for the address, and the
+        // server records that. Sign-in now checks the flag, so a fixture that left it false
+        // described an account no Google sign-in produces.
         private val result: AppResult<User> =
-            AppResult.Success(User(id = "u-1", name = "Ada", email = "ada@example.com"))
+            AppResult.Success(
+                User(id = "u-1", name = "Ada", email = "ada@example.com", emailVerified = true)
+            )
     ) : AuthRepository {
         var googleCalls = 0
             private set

@@ -158,7 +158,13 @@ class SignUpViewModel(
             when (val result = signInWithGoogle(idToken)) {
                 is AppResult.Success -> {
                     _uiState.update { it.copy(isLoading = false) }
-                    emitEffect(SignUpEffect.NavigateToHome)
+                    // Google nearly always vouches for the address, but when it does not, the
+                    // account is as unverified as any other and goes where they all go.
+                    val user = result.data
+                    emitEffect(
+                        if (user.emailVerified) SignUpEffect.NavigateToHome
+                        else SignUpEffect.NavigateToVerification(user.email.orEmpty())
+                    )
                 }
                 is AppResult.Error ->
                     _uiState.update {

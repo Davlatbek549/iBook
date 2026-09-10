@@ -89,6 +89,7 @@
     <string name="auth_verifying">Verifying&#8230;</string>
     <string name="auth_nothing_arrived">Nothing arrived?</string>
     <string name="auth_resend_code">Resend code</string>
+    <string name="auth_sending_code">Sending a new code&#8230;</string>
     <string name="auth_toggle_password">Show or hide password</string>
     <string name="auth_sending_reset">Sending&#8230;</string>
     <string name="auth_terms_prefix">By continuing you agree to DZ&#8217;s </string>
