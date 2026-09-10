@@ -43,7 +43,15 @@ android {
     }
     buildTypes {
         getByName("release") {
-            isMinifyEnabled = false
+            // R8 is where Compose gets much of its release-build speed: it inlines and strips the
+            // debug-time checks Compose leaves in unoptimised code. Off, a release build runs
+            // closer to a debug one.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
     compileOptions {
