@@ -20,6 +20,10 @@ ktor = "3.5.0"
 material3 = "1.11.0-alpha07"
 navigation = "2.9.0-beta01"
 koin = "4.0.0"
+# 3.4.0 rather than the latest: it is the newest release built against Kotlin 2.3 and an older
+# Compose than ours. 3.5+ is built with Kotlin 2.4, which the Kotlin 2.3 compiler cannot consume
+# on iOS without upgrading the whole toolchain first.
+coil = "3.4.0"
 multiplatformSettings = "1.2.0"
 sqldelight = "2.3.2"
 
@@ -54,6 +58,8 @@ compose-components-resources = { module = "org.jetbrains.compose.components:comp
 compose-uiToolingPreview = { module = "org.jetbrains.compose.ui:ui-tooling-preview", version.ref = "composeMultiplatform" }
 navigation-compose = { module = "org.jetbrains.androidx.navigation:navigation-compose", version.ref = "navigation" }
 koin-core = { group = "io.insert-koin", name = "koin-core", version.ref = "koin" }
+coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
+coil-network-ktor3 = { module = "io.coil-kt.coil3:coil-network-ktor3", version.ref = "coil" }
 koin-android = { group = "io.insert-koin", name = "koin-android", version.ref = "koin" }
 multiplatform-settings = { group = "com.russhwolf", name = "multiplatform-settings-no-arg", version.ref = "multiplatformSettings" }
 sqldelight-runtime = { module = "app.cash.sqldelight:runtime", version.ref = "sqldelight" }
