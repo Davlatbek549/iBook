@@ -5,6 +5,9 @@ import com.example.dz.core.result.AppResult
 import com.example.dz.domain.model.BookContent
 import com.example.dz.domain.repository.BookRepository
 import com.example.dz.domain.repository.DownloadRepository
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
  * Loads a readable, paginated book body for [bookId], local-first.
@@ -15,16 +18,21 @@ import com.example.dz.domain.repository.DownloadRepository
  * when the book has no readable text, and propagates any network error from the underlying calls.
  *
  * [downloadRepository] is optional: when absent, content is always loaded from the network.
+ *
+ * Cleaning and paginating run on [textWork], never on the caller's thread. A Gutenberg novel is
+ * hundreds of kilobytes to a megabyte of text, scanned by three regexes and split into pages —
+ * done on the main thread, that was the screen freezing between tapping "Read" and seeing a page.
  */
 class GetBookContentUseCase(
     private val repository: BookRepository,
     private val downloadRepository: DownloadRepository? = null,
-    private val paginator: BookPaginator = BookPaginator()
+    private val paginator: BookPaginator = BookPaginator(),
+    private val textWork: CoroutineDispatcher = Dispatchers.Default,
 ) {
     suspend operator fun invoke(bookId: String): AppResult<BookContent> {
         // Local-first: serve downloaded content without touching the network.
         downloadRepository?.getDownloadedContent(bookId)?.let { downloaded ->
-            val localPages = paginator.paginate(cleanBookText(downloaded.text))
+            val localPages = paginate(downloaded.text)
             if (localPages.isNotEmpty()) {
                 return AppResult.Success(
                     BookContent(bookId = bookId, title = downloaded.title, pages = localPages)
@@ -44,13 +52,16 @@ class GetBookContentUseCase(
             is AppResult.Error -> return text
         }
 
-        val pages = paginator.paginate(cleanBookText(rawText))
+        val pages = paginate(rawText)
         if (pages.isEmpty()) return AppResult.Error(AppError.NotFound)
 
         return AppResult.Success(
             BookContent(bookId = book.id, title = book.title, pages = pages)
         )
     }
+
+    private suspend fun paginate(raw: String): List<String> =
+        withContext(textWork) { paginator.paginate(cleanBookText(raw)) }
 }
 
 /**

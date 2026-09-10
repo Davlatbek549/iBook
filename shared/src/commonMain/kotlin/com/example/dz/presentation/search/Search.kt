@@ -11,8 +11,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import com.example.dz.presentation.common.uniqueLazyKeys
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -90,9 +94,11 @@ fun SearchScreen(
             .fillMaxSize()
             .background(colors.paper)
             .statusBarsPadding()
-            .verticalScroll(rememberScrollState())
-            .padding(bottom = 96.dp)
     ) {
+        // Pinned above the list rather than scrolling with it. A lazy list disposes what scrolls
+        // out of view, and a focused field disposed that way loses focus without reliably saying
+        // so — the nav graph hides the bottom bar while this field is focused, and would be left
+        // hiding it.
         Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 6.dp)) {
             Text(
                 text = stringResource(Res.string.search_title),
@@ -116,60 +122,74 @@ fun SearchScreen(
             )
         }
 
-        if (recentSearches.isNotEmpty()) {
-            Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 24.dp)) {
-                InkLabel(text = stringResource(Res.string.search_recent), colors = colors)
-                Column(modifier = Modifier.padding(top = 6.dp)) {
-                    recentSearches.forEachIndexed { i, recent ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    onEvent(SearchEvent.QueryChanged(recent))
-                                    onEvent(SearchEvent.SearchClicked)
+        // Lazy, so a long page of results composes only the rows on screen — and only those rows
+        // start loading their covers, instead of every result's cover being fetched at once.
+        LazyColumn(
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+            contentPadding = PaddingValues(bottom = 96.dp)
+        ) {
+            if (recentSearches.isNotEmpty()) {
+                item(key = "recent", contentType = "recent") {
+                    Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 24.dp)) {
+                        InkLabel(text = stringResource(Res.string.search_recent), colors = colors)
+                        Column(modifier = Modifier.padding(top = 6.dp)) {
+                            recentSearches.forEachIndexed { i, recent ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            onEvent(SearchEvent.QueryChanged(recent))
+                                            onEvent(SearchEvent.SearchClicked)
+                                        }
+                                        .padding(vertical = 11.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = InkIcons.Search,
+                                        contentDescription = null,
+                                        tint = colors.muted,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Text(
+                                        text = recent,
+                                        modifier = Modifier.weight(1f),
+                                        fontFamily = bodyFont,
+                                        fontSize = 13.5.sp,
+                                        color = colors.inkSoft
+                                    )
+                                    Icon(
+                                        imageVector = InkIcons.Close,
+                                        contentDescription = null,
+                                        tint = colors.muted,
+                                        modifier = Modifier
+                                            .size(11.dp)
+                                            .clickable { recentSearches.remove(recent) }
+                                    )
                                 }
-                                .padding(vertical = 11.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Icon(
-                                imageVector = InkIcons.Search,
-                                contentDescription = null,
-                                tint = colors.muted,
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Text(
-                                text = recent,
-                                modifier = Modifier.weight(1f),
-                                fontFamily = bodyFont,
-                                fontSize = 13.5.sp,
-                                color = colors.inkSoft
-                            )
-                            Icon(
-                                imageVector = InkIcons.Close,
-                                contentDescription = null,
-                                tint = colors.muted,
-                                modifier = Modifier
-                                    .size(11.dp)
-                                    .clickable { recentSearches.remove(recent) }
-                            )
-                        }
-                        if (i < recentSearches.size - 1) {
-                            HorizontalDivider(thickness = 1.dp, color = colors.line)
+                                if (i < recentSearches.size - 1) {
+                                    HorizontalDivider(thickness = 1.dp, color = colors.line)
+                                }
+                            }
                         }
                     }
                 }
             }
-        }
 
-        if (uiState.books.isNotEmpty()) {
-            Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 22.dp)) {
-                InkSectionTitle(
-                    text = "Results",
-                    colors = colors
-                )
-                Column(modifier = Modifier.padding(top = 4.dp)) {
-                    uiState.books.forEachIndexed { index, book ->
+            if (uiState.books.isNotEmpty()) {
+                val bookKeys = uiState.books.uniqueLazyKeys { it.id }
+                item(key = "results-title", contentType = "section-title") {
+                    Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 22.dp)) {
+                        InkSectionTitle(text = "Results", colors = colors)
+                        Spacer(modifier = Modifier.height(4.dp))
+                    }
+                }
+                itemsIndexed(
+                    items = uiState.books,
+                    key = { index, _ -> "book:" + bookKeys[index] },
+                    contentType = { _, _ -> "book" }
+                ) { index, book ->
+                    Box(modifier = Modifier.padding(horizontal = 22.dp)) {
                         SearchBookRow(
                             book = book,
                             cover = searchCoverFallbacks[index % searchCoverFallbacks.size],
@@ -183,32 +203,34 @@ fun SearchScreen(
                     }
                 }
             }
-        }
 
-        Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 22.dp)) {
-            InkSectionTitle(
-                text = stringResource(Res.string.search_browse_by_mood),
-                colors = colors
-            )
-            Column(
-                modifier = Modifier.padding(top = 14.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                displayCategories.chunked(2).forEachIndexed { rowIndex, rowCats ->
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        rowCats.forEachIndexed { colIndex, category ->
-                            val index = rowIndex * 2 + colIndex
-                            MoodCard(
-                                number = index + 1,
-                                name = category.name,
-                                highlighted = index % 3 == 0,
-                                onClick = {
-                                    onEvent(SearchEvent.CategoryClicked(category.id))
-                                    onCategoryClick(category.id)
-                                },
-                                modifier = Modifier.weight(1f),
-                                colors = colors
-                            )
+            item(key = "moods", contentType = "moods") {
+                Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 22.dp)) {
+                    InkSectionTitle(
+                        text = stringResource(Res.string.search_browse_by_mood),
+                        colors = colors
+                    )
+                    Column(
+                        modifier = Modifier.padding(top = 14.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        displayCategories.chunked(2).forEachIndexed { rowIndex, rowCats ->
+                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                rowCats.forEachIndexed { colIndex, category ->
+                                    val index = rowIndex * 2 + colIndex
+                                    MoodCard(
+                                        number = index + 1,
+                                        name = category.name,
+                                        highlighted = index % 3 == 0,
+                                        onClick = {
+                                            onEvent(SearchEvent.CategoryClicked(category.id))
+                                            onCategoryClick(category.id)
+                                        },
+                                        modifier = Modifier.weight(1f),
+                                        colors = colors
+                                    )
+                                }
+                            }
                         }
                     }
                 }

@@ -27,12 +27,20 @@ internal class FakeLocalDataSource : LocalDataSource {
         name: String,
         email: String,
         token: String,
-        refreshToken: String?
+        refreshToken: String?,
+        emailVerified: Boolean
     ) {
         saveTokens(token, refreshToken)
         values["userId"] = userId
         values["name"] = name
         values["email"] = email
+        values["emailVerified"] = emailVerified.toString()
+    }
+
+    override fun isEmailVerified(): Boolean = values["emailVerified"].toBoolean()
+
+    override fun setEmailVerified(verified: Boolean) {
+        values["emailVerified"] = verified.toString()
     }
 
     override fun isLoggedIn(): Boolean = !values["token"].isNullOrEmpty()
@@ -40,4 +48,10 @@ internal class FakeLocalDataSource : LocalDataSource {
     override fun getSetting(key: String, default: String): String = values[key] ?: default
     override fun saveSetting(key: String, value: String) { values[key] = value }
     override fun removeSetting(key: String) { values.remove(key) }
+
+    override fun isOnboardingCompleted(): Boolean = values["onboardingCompleted"].toBoolean()
+
+    override fun setOnboardingCompleted(completed: Boolean) {
+        values["onboardingCompleted"] = completed.toString()
+    }
 }

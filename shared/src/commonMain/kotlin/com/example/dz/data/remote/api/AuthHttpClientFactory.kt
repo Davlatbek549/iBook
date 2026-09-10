@@ -56,6 +56,7 @@ fun createAuthHttpClient(
 
     val configure: HttpClientConfig<*>.() -> Unit = {
         expectSuccess = true
+        installDefaultTimeouts()
         install(ContentNegotiation) { json(json) }
         defaultRequest {
             local.getToken()?.let { token ->

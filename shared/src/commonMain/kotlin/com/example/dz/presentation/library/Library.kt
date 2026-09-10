@@ -1,5 +1,10 @@
 package com.example.dz.presentation.library
 
+import com.example.dz.presentation.common.uniqueLazyKeys
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -15,9 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -155,82 +158,91 @@ fun LibraryScreen(
         stringResource(Res.string.library_tab_to_read),
         stringResource(Res.string.library_tab_finished)
     )
-    val displayReadingBooks = uiState.books
-        .mapIndexed { index, book -> book.toLibraryBook(index) }
-        .ifEmpty { readingBooks }
+    val displayReadingBooks = remember(uiState.books) {
+        uiState.books
+            .mapIndexed { index, book -> book.toLibraryBook(index) }
+            .ifEmpty { readingBooks }
+    }
     val tabBooks = when (selectedTab) {
         1 -> toReadBooks
         2 -> finishedBooks
         else -> displayReadingBooks
     }
+    val tabBookKeys = remember(tabBooks) { tabBooks.uniqueLazyKeys { it.id } }
 
-    Column(
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .background(colors.paper)
-            .statusBarsPadding()
-            .verticalScroll(rememberScrollState())
-            .padding(bottom = 96.dp)
+            .statusBarsPadding(),
+        contentPadding = PaddingValues(bottom = 96.dp)
     ) {
-        // header
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 22.dp, end = 22.dp, top = 6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = stringResource(Res.string.library_title),
-                modifier = Modifier.weight(1f),
-                fontFamily = displayFont,
-                fontWeight = FontWeight.Medium,
-                fontSize = 24.sp,
-                color = colors.ink
-            )
-            InkIconButton(icon = InkIcons.Grid, onClick = onSettingsClick, colors = colors)
-        }
-
-        // tabs
-        Box(modifier = Modifier.fillMaxWidth().padding(top = 20.dp)) {
-            HorizontalDivider(
-                modifier = Modifier.align(Alignment.BottomCenter),
-                thickness = 1.dp,
-                color = colors.line
-            )
+        item(key = "header") {
+            // header
             Row(
-                modifier = Modifier.padding(horizontal = 22.dp),
-                horizontalArrangement = Arrangement.spacedBy(22.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 22.dp, end = 22.dp, top = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                tabs.forEachIndexed { i, tab ->
-                    val selected = i == selectedTab
-                    Column(
-                        modifier = Modifier
-                            .width(IntrinsicSize.Max)
-                            .clickable { selectedTab = i },
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = tab,
-                            modifier = Modifier.padding(bottom = 11.dp),
-                            fontFamily = bodyFont,
-                            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                            fontSize = 13.5.sp,
-                            color = if (selected) colors.ink else colors.muted
-                        )
-                        Box(
+                Text(
+                    text = stringResource(Res.string.library_title),
+                    modifier = Modifier.weight(1f),
+                    fontFamily = displayFont,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 24.sp,
+                    color = colors.ink
+                )
+                InkIconButton(icon = InkIcons.Grid, onClick = onSettingsClick, colors = colors)
+            }
+        }
+        item(key = "tabs") {
+            // tabs
+            Box(modifier = Modifier.fillMaxWidth().padding(top = 20.dp)) {
+                HorizontalDivider(
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                    thickness = 1.dp,
+                    color = colors.line
+                )
+                Row(
+                    modifier = Modifier.padding(horizontal = 22.dp),
+                    horizontalArrangement = Arrangement.spacedBy(22.dp)
+                ) {
+                    tabs.forEachIndexed { i, tab ->
+                        val selected = i == selectedTab
+                        Column(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .height(2.dp)
-                                .background(if (selected) colors.accent else androidx.compose.ui.graphics.Color.Transparent)
-                        )
+                                .width(IntrinsicSize.Max)
+                                .clickable { selectedTab = i },
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = tab,
+                                modifier = Modifier.padding(bottom = 11.dp),
+                                fontFamily = bodyFont,
+                                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                                fontSize = 13.5.sp,
+                                color = if (selected) colors.ink else colors.muted
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(2.dp)
+                                    .background(if (selected) colors.accent else androidx.compose.ui.graphics.Color.Transparent)
+                            )
+                        }
                     }
                 }
             }
         }
-
-        // book rows
-        Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 6.dp)) {
-            tabBooks.forEachIndexed { i, book ->
+        // book rows — the whole shelf, lazy so only what is on screen is built
+        item(key = "rows-top") { Spacer(modifier = Modifier.height(6.dp)) }
+        itemsIndexed(
+            items = tabBooks,
+            key = { index, _ -> "book:$selectedTab:" + tabBookKeys[index] },
+            contentType = { _, _ -> "book" }
+        ) { i, book ->
+            Box(modifier = Modifier.padding(horizontal = 22.dp)) {
                 InkBookRow(
                     cover = book.coverRes,
                     coverUrl = book.coverUrl,
@@ -287,62 +299,64 @@ fun LibraryScreen(
                 )
             }
         }
-
-        // collections
-        Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 20.dp)) {
-            InkSectionTitle(
-                text = stringResource(Res.string.library_collections),
-                action = stringResource(Res.string.home_see_all),
-                onActionClick = onSettingsClick,
-                colors = colors
-            )
-            Row(
-                modifier = Modifier.padding(top = 14.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                collections.forEachIndexed { i, collection ->
-                    CollectionCard(
-                        collection = collection,
-                        bookCount = collectionSizes[i],
-                        onClick = onSettingsClick,
-                        modifier = Modifier.weight(1f),
-                        colors = colors
-                    )
+        item(key = "collections") {
+            // collections
+            Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 20.dp)) {
+                InkSectionTitle(
+                    text = stringResource(Res.string.library_collections),
+                    action = stringResource(Res.string.home_see_all),
+                    onActionClick = onSettingsClick,
+                    colors = colors
+                )
+                Row(
+                    modifier = Modifier.padding(top = 14.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    collections.forEachIndexed { i, collection ->
+                        CollectionCard(
+                            collection = collection,
+                            bookCount = collectionSizes[i],
+                            onClick = onSettingsClick,
+                            modifier = Modifier.weight(1f),
+                            colors = colors
+                        )
+                    }
                 }
             }
         }
-
-        // reading goal banner
-        Row(
-            modifier = Modifier
-                .padding(start = 22.dp, end = 22.dp, top = 20.dp)
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(InkShape.radius))
-                .background(colors.alt)
-                .clickable(onClick = onGoalClick)
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Icon(
-                imageVector = InkIcons.Stats,
-                contentDescription = null,
-                tint = colors.accent,
-                modifier = Modifier.size(18.dp)
-            )
-            Text(
-                text = buildAnnotatedString {
-                    append("You’ve read ")
-                    withStyle(SpanStyle(color = colors.ink, fontWeight = FontWeight.SemiBold)) {
-                        append("26 min")
-                    }
-                    append(" today — 4 min to your goal.")
-                },
-                fontFamily = bodyFont,
-                fontSize = 12.5.sp,
-                lineHeight = 17.5.sp,
-                color = colors.inkSoft
-            )
+        item(key = "goal") {
+            // reading goal banner
+            Row(
+                modifier = Modifier
+                    .padding(start = 22.dp, end = 22.dp, top = 20.dp)
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(InkShape.radius))
+                    .background(colors.alt)
+                    .clickable(onClick = onGoalClick)
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Icon(
+                    imageVector = InkIcons.Stats,
+                    contentDescription = null,
+                    tint = colors.accent,
+                    modifier = Modifier.size(18.dp)
+                )
+                Text(
+                    text = buildAnnotatedString {
+                        append("You’ve read ")
+                        withStyle(SpanStyle(color = colors.ink, fontWeight = FontWeight.SemiBold)) {
+                            append("26 min")
+                        }
+                        append(" today — 4 min to your goal.")
+                    },
+                    fontFamily = bodyFont,
+                    fontSize = 12.5.sp,
+                    lineHeight = 17.5.sp,
+                    color = colors.inkSoft
+                )
+            }
         }
     }
 }

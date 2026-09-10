@@ -5,7 +5,6 @@ import com.example.dz.data.local.LibraryLocalDataSource
 import com.example.dz.data.local.LocalDataSource
 import com.example.dz.data.local.LocalDataSourceImpl
 import com.example.dz.data.local.db.createDatabase
-import com.example.dz.data.local.file.FileStorage
 import com.example.dz.data.remote.api.ApiConfig
 import com.example.dz.data.remote.api.AuthApi
 import com.example.dz.data.remote.api.GutendexApi
@@ -40,7 +39,12 @@ import com.example.dz.domain.repository.UserRepository
 import com.example.dz.domain.usecase.auth.GetCurrentUserUseCase
 import com.example.dz.domain.usecase.auth.LoginUseCase
 import com.example.dz.domain.usecase.auth.LogoutUseCase
+import com.example.dz.domain.usecase.auth.SignInWithGoogleUseCase
+import com.example.dz.domain.usecase.auth.RequestPasswordResetUseCase
+import com.example.dz.domain.usecase.auth.ResendVerificationCodeUseCase
+import com.example.dz.domain.usecase.auth.ResetPasswordUseCase
 import com.example.dz.domain.usecase.auth.SignUpUseCase
+import com.example.dz.domain.usecase.auth.VerifyEmailUseCase
 import com.example.dz.domain.usecase.book.BookPaginator
 import com.example.dz.domain.usecase.book.GetBookContentUseCase
 import com.example.dz.domain.usecase.book.GetBookDetailsUseCase
@@ -76,6 +80,8 @@ import com.example.dz.domain.usecase.user.UpdateProfileUseCase
 import com.example.dz.presentation.auth.forgot_password.ForgotPasswordViewModel
 import com.example.dz.presentation.auth.login.LoginViewModel
 import com.example.dz.presentation.auth.sign_up.SignUpViewModel
+import com.example.dz.presentation.auth.new_password.NewPasswordViewModel
+import com.example.dz.presentation.auth.verification.VerificationPurpose
 import com.example.dz.presentation.auth.verification.VerificationViewModel
 import com.example.dz.presentation.book.author_detail.AuthorDetailViewModel
 import com.example.dz.presentation.book.category_detail.CategoryDetailViewModel
@@ -88,9 +94,8 @@ import com.example.dz.presentation.goal.GoalViewModel
 import com.example.dz.presentation.home.HomeViewModel
 import com.example.dz.presentation.membership.MembershipViewModel
 import com.example.dz.presentation.notifications.NotificationsViewModel
-import com.example.dz.presentation.onboarding.onboarding_one.OnboardingOneViewModel
-import com.example.dz.presentation.onboarding.onboarding_three.OnboardingThreeViewModel
-import com.example.dz.presentation.onboarding.onboarding_two.OnboardingTwoViewModel
+import com.example.dz.presentation.onboarding.OnboardingViewModel
+import com.example.dz.presentation.splash.SplashViewModel
 import com.example.dz.presentation.payment.payment_failed.PaymentFailedViewModel
 import com.example.dz.presentation.payment.payment_methods.PaymentMethodsViewModel
 import com.example.dz.presentation.payment.payment_success.PaymentSuccessViewModel
@@ -101,7 +106,6 @@ import com.example.dz.presentation.premium_membership.PremiumMembershipViewModel
 import com.example.dz.presentation.profile.ProfileViewModel
 import com.example.dz.presentation.reading.ReadingViewModel
 import com.example.dz.presentation.settings.SettingsViewModel
-import com.example.dz.presentation.splash.SplashViewModel
 import com.example.dz.presentation.social.chat.ChatViewModel
 import com.example.dz.presentation.social.friend_detail.FriendDetailViewModel
 import com.example.dz.presentation.social.friends.FriendListViewModel
@@ -170,6 +174,11 @@ val coreModule = module {
     // Domain use cases
     factory { LoginUseCase(get()) }
     factory { SignUpUseCase(get()) }
+    factory { SignInWithGoogleUseCase(get()) }
+    factory { VerifyEmailUseCase(get()) }
+    factory { ResendVerificationCodeUseCase(get()) }
+    factory { RequestPasswordResetUseCase(get()) }
+    factory { ResetPasswordUseCase(get()) }
     factory { LogoutUseCase(get()) }
     factory { GetCurrentUserUseCase(get()) }
     factory { GetProfileUseCase(get()) }
@@ -214,10 +223,15 @@ val coreModule = module {
     factory { GetPurchaseDetailsUseCase(get()) }
 
     // Presentation MVI stores
-    factory { LoginViewModel(get()) }
-    factory { SignUpViewModel(get()) }
-    factory { ForgotPasswordViewModel() }
-    factory { VerificationViewModel() }
+    factory { (email: String, passwordJustReset: Boolean) ->
+        LoginViewModel(email, passwordJustReset, get(), get())
+    }
+    factory { SignUpViewModel(get(), get()) }
+    factory { (email: String) -> ForgotPasswordViewModel(email, get()) }
+    factory { (email: String, purpose: VerificationPurpose) ->
+        VerificationViewModel(email, purpose, get(), get(), get(), get(), get())
+    }
+    factory { (email: String, code: String) -> NewPasswordViewModel(email, code, get()) }
     factory { HomeViewModel(get(), get()) }
     factory { LibraryViewModel(get(), get(), get()) }
     factory { SearchViewModel(get(), get()) }
@@ -238,9 +252,8 @@ val coreModule = module {
 
     factory { NotificationsViewModel(get(), get()) }
 
-    factory { OnboardingOneViewModel() }
-    factory { OnboardingTwoViewModel() }
-    factory { OnboardingThreeViewModel() }
+    factory { SplashViewModel(get(), get()) }
+    factory { OnboardingViewModel(get()) }
 
     factory { (bookId: String) -> PurchaseDetailsViewModel(bookId, get()) }
     factory { (bookId: String) -> PurchaseReceiptViewModel(bookId, get()) }
@@ -252,7 +265,6 @@ val coreModule = module {
     factory { ProfileViewModel(get()) }
     factory { (bookId: String) -> ReadingViewModel(bookId, get(), get(), get(), get(), get()) }
     factory { SettingsViewModel(get()) }
-    factory { SplashViewModel(get()) }
 
     factory { FriendListViewModel(get()) }
     factory { (friendId: String) -> FriendDetailViewModel(friendId, get()) }

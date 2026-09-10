@@ -8,7 +8,9 @@ private object Keys {
     const val USER_ID = "user_id"
     const val USER_EMAIL = "user_email"
     const val USER_NAME = "user_name"
+    const val EMAIL_VERIFIED = "email_verified"
     const val LOGGED_IN = "is_logged_in"
+    const val ONBOARDING_COMPLETED = "onboarding_completed"
 }
 
 class LocalDataSourceImpl(private val settings: Settings) : LocalDataSource {
@@ -37,13 +39,21 @@ class LocalDataSourceImpl(private val settings: Settings) : LocalDataSource {
         name: String,
         email: String,
         token: String,
-        refreshToken: String?
+        refreshToken: String?,
+        emailVerified: Boolean
     ) {
         saveTokens(token, refreshToken)
         settings.putString(Keys.USER_ID, userId)
         settings.putString(Keys.USER_EMAIL, email)
         settings.putString(Keys.USER_NAME, name)
+        settings.putBoolean(Keys.EMAIL_VERIFIED, emailVerified)
         settings.putBoolean(Keys.LOGGED_IN, true)
+    }
+
+    override fun isEmailVerified(): Boolean = settings.getBoolean(Keys.EMAIL_VERIFIED, false)
+
+    override fun setEmailVerified(verified: Boolean) {
+        settings.putBoolean(Keys.EMAIL_VERIFIED, verified)
     }
 
     override fun isLoggedIn(): Boolean = settings.getBoolean(Keys.LOGGED_IN, false)
@@ -53,6 +63,7 @@ class LocalDataSourceImpl(private val settings: Settings) : LocalDataSource {
         settings.remove(Keys.REFRESH_TOKEN)
         settings.remove(Keys.USER_ID)
         settings.remove(Keys.USER_EMAIL)
+        settings.remove(Keys.EMAIL_VERIFIED)
         settings.remove(Keys.USER_NAME)
         settings.putBoolean(Keys.LOGGED_IN, false)
     }
@@ -66,5 +77,12 @@ class LocalDataSourceImpl(private val settings: Settings) : LocalDataSource {
 
     override fun removeSetting(key: String) {
         settings.remove(key)
+    }
+
+    override fun isOnboardingCompleted(): Boolean =
+        settings.getBoolean(Keys.ONBOARDING_COMPLETED, false)
+
+    override fun setOnboardingCompleted(completed: Boolean) {
+        settings.putBoolean(Keys.ONBOARDING_COMPLETED, completed)
     }
 }

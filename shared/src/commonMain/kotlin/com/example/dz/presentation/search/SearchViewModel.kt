@@ -6,12 +6,20 @@ import com.example.dz.core.result.AppResult
 import com.example.dz.domain.usecase.book.GetCategoriesUseCase
 import com.example.dz.domain.usecase.book.SearchBooksUseCase
 import com.example.dz.presentation.mvi.toPresentationMessage
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+
+/**
+ * How long typing has to pause before a search goes out. Long enough that a word typed at speed
+ * costs one request rather than one per letter; short enough not to feel like waiting.
+ */
+private const val SEARCH_DEBOUNCE_MILLIS = 300L
 
 class SearchViewModel(
     private val getCategories: GetCategoriesUseCase,
@@ -23,6 +31,9 @@ class SearchViewModel(
     private val _effects = MutableSharedFlow<SearchEffect>()
     val effects = _effects.asSharedFlow()
 
+    /** The search for what is in the box now. Anything older is cancelled when this is replaced. */
+    private var searchJob: Job? = null
+
     init {
         loadCategories()
     }
@@ -32,6 +43,8 @@ class SearchViewModel(
             is SearchEvent.QueryChanged -> {
                 _uiState.update { it.copy(query = event.value) }
                 if (event.value.isBlank()) {
+                    // Cleared box: an answer still on its way would put results back under it.
+                    searchJob?.cancel()
                     _uiState.update { it.copy(books = emptyList(), errorMessage = null) }
                 }
             }
@@ -55,11 +68,21 @@ class SearchViewModel(
         }
     }
 
+    /**
+     * Searches for what is in the box, after a pause in typing, replacing any search still running.
+     *
+     * The field calls this on every keystroke. Each call used to start its own search and none was
+     * ever stopped, so whichever answer arrived last won — a slow answer for "dick" could land after
+     * the one for "dickens" and stay on screen under a box that said "dickens". Cancelling the
+     * previous search is what makes the current query the only one that can land.
+     */
     private fun search() {
         val query = _uiState.value.query.trim()
+        searchJob?.cancel()
         if (query.isBlank()) return
 
-        viewModelScope.launch {
+        searchJob = viewModelScope.launch {
+            delay(SEARCH_DEBOUNCE_MILLIS)
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             when (val result = searchBooks(query)) {
                 is AppResult.Success -> _uiState.update {

@@ -44,7 +44,8 @@ class SessionRefreshTest {
             name = "Ada Lovelace",
             email = "ada@example.com",
             token = "expired-token",
-            refreshToken = "refresh-1"
+            refreshToken = "refresh-1",
+            emailVerified = true
         )
     }
 

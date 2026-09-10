@@ -6,6 +6,10 @@ import com.example.dz.core.error.AppError
 internal fun AppError.toPresentationMessage(): String =
     when (this) {
         AppError.Network -> "Could not load data. Check your connection and try again."
+        // Deliberately does not blame the connection, and does not claim the request failed:
+        // the server may have finished the work after the app stopped waiting.
+        AppError.Timeout ->
+            "The server is taking longer than usual. Give it a moment and try again."
         AppError.NotFound -> "We could not find that item."
         AppError.Unauthorized -> "Please sign in to continue."
         is AppError.Unknown -> message ?: "Something went wrong."

@@ -32,7 +32,11 @@ class DzServerAuthApiTest {
     private val jsonHeaders =
         headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString())
 
-    /** `expiresIn` is on the wire but unread: the client renews reactively, on a 401. */
+    /**
+     * `expiresIn` is on the wire but unread: the client renews reactively, on a 401.
+     * `emailVerified` joined the wire when the server began refusing unverified accounts; the
+     * capture this was taken from predated it, so it was added to keep the contract current.
+     */
     private val sessionBody = """
         {
           "token":"eyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJkei1zZXJ2ZXIifQ.signature",
@@ -42,7 +46,8 @@ class DzServerAuthApiTest {
             "id":"5603bebc-4836-42c7-b30c-bbfc737b45ac",
             "name":"Ada Lovelace",
             "email":"ada@example.com",
-            "avatarUrl":null
+            "avatarUrl":null,
+            "emailVerified":true
           }
         }
     """.trimIndent()
@@ -80,6 +85,7 @@ class DzServerAuthApiTest {
         assertEquals("5603bebc-4836-42c7-b30c-bbfc737b45ac", result.data.id)
         assertEquals("Ada Lovelace", result.data.name)
         assertEquals("ada@example.com", result.data.email)
+        assertTrue(result.data.emailVerified, "the verified flag is where a session opens")
     }
 
     @Test

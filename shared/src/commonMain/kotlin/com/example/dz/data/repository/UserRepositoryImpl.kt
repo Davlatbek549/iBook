@@ -31,7 +31,9 @@ class UserRepositoryImpl(private val local: LocalDataSource) : UserRepository {
             name = profile.user.name,
             email = profile.user.email ?: "",
             token = local.getToken() ?: "",
-            refreshToken = local.getRefreshToken()
+            refreshToken = local.getRefreshToken(),
+            // Carried over, not reset: editing a profile does not un-prove the address.
+            emailVerified = local.isEmailVerified()
         )
         local.saveSetting(KEY_BOOKS_READ, profile.booksRead.toString())
         local.saveSetting(KEY_FRIENDS_COUNT, profile.friendsCount.toString())

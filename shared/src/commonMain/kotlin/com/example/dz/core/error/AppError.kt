@@ -2,6 +2,14 @@ package com.example.dz.core.error
 
 sealed interface AppError {
     data object Network : AppError
+
+    /**
+     * The request ran out of time rather than failing. Distinct from [Network] because the
+     * connection is fine and the advice is different: waiting helps, checking the wifi does not.
+     * It also says nothing about whether the server did the work — a sign-up that times out may
+     * well have created the account.
+     */
+    data object Timeout : AppError
     data object NotFound : AppError
     data object Unauthorized : AppError
     data class Unknown(val message: String? = null) : AppError

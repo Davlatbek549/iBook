@@ -50,6 +50,24 @@ class SessionRestoreTest {
         override suspend fun signUp(name: String, email: String, password: String): AppResult<User> =
             AppResult.Error(AppError.Unauthorized)
 
+        override suspend fun signInWithGoogle(idToken: String): AppResult<User> =
+            AppResult.Error(AppError.Unauthorized)
+
+        override suspend fun verifyEmail(email: String, code: String): AppResult<Unit> =
+            AppResult.Success(Unit)
+
+        override suspend fun resendVerificationCode(email: String): AppResult<Unit> =
+            AppResult.Success(Unit)
+
+        override suspend fun requestPasswordReset(email: String): AppResult<Unit> =
+            AppResult.Success(Unit)
+
+        override suspend fun resetPassword(
+            email: String,
+            code: String,
+            newPassword: String,
+        ): AppResult<Unit> = AppResult.Success(Unit)
+
         override suspend fun logout(): AppResult<Unit> {
             logoutCalls++
             currentUser = null
@@ -62,23 +80,37 @@ class SessionRestoreTest {
 
     @Test
     fun `a stored session opens the app on home`() = runTest {
-        val repository = FakeAuthRepository(currentUser = User(id = "u-1", name = "Ada", email = "ada@example.com"))
-        val viewModel = SplashViewModel(GetCurrentUserUseCase(repository))
+        val repository = FakeAuthRepository(currentUser = User(id = "u-1", name = "Ada", email = "ada@example.com", emailVerified = true))
+        val viewModel = SplashViewModel(GetCurrentUserUseCase(repository), FakeLocalDataSource())
 
         assertEquals(SplashEffect.NavigateToHome, viewModel.effects.first())
     }
 
     @Test
     fun `no session falls through to onboarding`() = runTest {
-        val viewModel = SplashViewModel(GetCurrentUserUseCase(FakeAuthRepository(currentUser = null)))
+        val viewModel = SplashViewModel(
+            GetCurrentUserUseCase(FakeAuthRepository(currentUser = null)),
+            FakeLocalDataSource(),
+        )
 
         assertEquals(SplashEffect.NavigateToOnboarding, viewModel.effects.first())
     }
 
     @Test
+    fun `onboarding is not shown twice, and a returning reader gets sign-in`() = runTest {
+        val local = FakeLocalDataSource().apply { setOnboardingCompleted(true) }
+        val viewModel = SplashViewModel(
+            GetCurrentUserUseCase(FakeAuthRepository(currentUser = null)),
+            local,
+        )
+
+        assertEquals(SplashEffect.NavigateToLogin, viewModel.effects.first())
+    }
+
+    @Test
     fun `a broken session is not treated as a signed-in one`() = runTest {
         val repository = FakeAuthRepository(currentUserResult = AppResult.Error(AppError.Unauthorized))
-        val viewModel = SplashViewModel(GetCurrentUserUseCase(repository))
+        val viewModel = SplashViewModel(GetCurrentUserUseCase(repository), FakeLocalDataSource())
 
         assertEquals(SplashEffect.NavigateToOnboarding, viewModel.effects.first())
     }
