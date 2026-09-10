@@ -20,14 +20,14 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
@@ -91,13 +91,16 @@ fun OrganicSuccessOverlay(
         )
     }
 
-    val alpha by cardAlpha.asState()
-
+    // Every animated value below is read inside a draw or layer lambda, never in composition. Read
+    // in composition, each one recomposed the overlay on every frame it animated; read here, a
+    // frame only redraws.
     Box(
         modifier = modifier
             .fillMaxSize()
             // Same scrim as the legal sheet, so a covered screen always dims by the same amount.
-            .background(OrganicColors.neutral900.copy(alpha = 0.42f * alpha))
+            .drawBehind {
+                drawRect(OrganicColors.neutral900, alpha = 0.42f * cardAlpha.value)
+            }
             // The scrim swallows everything, drags included. The form underneath is still
             // mounted, and a stray tap landing in a field the reader can no longer see would
             // be a keyboard rising behind the confirmation.
@@ -113,7 +116,10 @@ fun OrganicSuccessOverlay(
         Column(
             modifier = Modifier
                 .padding(horizontal = 40.dp)
-                .scale(cardScale.value)
+                .graphicsLayer {
+                    scaleX = cardScale.value
+                    scaleY = cardScale.value
+                }
                 .shadow(elevation = 18.dp, shape = RoundedCornerShape(OrganicShape.radiusLg))
                 .clip(RoundedCornerShape(OrganicShape.radiusLg))
                 .background(OrganicColors.bg)
@@ -159,7 +165,10 @@ fun OrganicSuccessOverlay(
                         tint = OrganicColors.accent2_900,
                         modifier = Modifier
                             .size(38.dp)
-                            .scale(tickScale.value),
+                            .graphicsLayer {
+                                scaleX = tickScale.value
+                                scaleY = tickScale.value
+                            },
                     )
                 }
             }
