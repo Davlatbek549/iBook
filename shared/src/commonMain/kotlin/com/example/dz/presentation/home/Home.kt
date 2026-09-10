@@ -1,5 +1,11 @@
 package com.example.dz.presentation.home
 
+import com.example.dz.presentation.common.uniqueLazyKeys
+import androidx.compose.runtime.remember
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -20,7 +26,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -138,198 +143,212 @@ fun HomeScreen(
     val colors = inkColors()
     val displayFont = inkDisplayFontFamily()
     val bodyFont = inkBodyFontFamily()
-    val domainBooks = uiState.books.mapIndexed { index, book -> book.toHomeBook(index) }
+    val domainBooks = remember(uiState.books) {
+        uiState.books.mapIndexed { index, book -> book.toHomeBook(index) }
+    }
     val displayForYouBooks = domainBooks.ifEmpty { forYouBooks }
+    val forYouKeys = remember(displayForYouBooks) { displayForYouBooks.uniqueLazyKeys { it.id } }
     val displayTrendingBooks = domainBooks.drop(1).take(2).ifEmpty { trendingBooks }
     val displayContinueReadingBook = uiState.continueReading?.toHomeBook() ?: continueReadingBook
     val continueProgress = uiState.continueReading?.progressPercent ?: 62
 
-    Column(
+    // One lazy column for the screen, with the rail inside it lazy in the other direction.
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .background(colors.paper)
-            .statusBarsPadding()
-            .verticalScroll(rememberScrollState())
-            .padding(bottom = 96.dp)
+            .statusBarsPadding(),
+        contentPadding = PaddingValues(bottom = 96.dp)
     ) {
-        // header
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 22.dp, end = 22.dp, top = 6.dp, bottom = 18.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // profile avatar — opens the (pushed) Profile screen
-            Image(
-                painter = painterResource(Res.drawable.profile_1),
-                contentDescription = "Profile",
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(RoundedCornerShape(InkShape.radiusSm + 2.dp))
-                    .clickable(onClick = onProfileClick)
-            )
-            Column(modifier = Modifier.weight(1f).padding(start = 12.dp)) {
-                Text(
-                    text = stringResource(Res.string.home_greeting),
-                    fontFamily = bodyFont,
-                    fontSize = 12.sp,
-                    color = colors.muted
-                )
-                Text(
-                    text = "Amelia",
-                    modifier = Modifier.padding(top = 6.dp),
-                    fontFamily = displayFont,
-                    fontWeight = FontWeight.Medium,
-                    fontSize = 24.sp,
-                    color = colors.ink
-                )
-            }
-            InkIconButton(
-                icon = InkIcons.Search,
-                onClick = onViewAllCategoriesClick,
-                colors = colors
-            )
-        }
-
-        Column(modifier = Modifier.padding(horizontal = 22.dp)) {
-            InkLabel(text = stringResource(Res.string.home_continue_reading), colors = colors)
+        item(key = "header") {
+            // header
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 12.dp)
-                    .inkCard(colors)
-                    .clickable(onClick = onKeepReadingClick)
-                    .padding(14.dp),
-                horizontalArrangement = Arrangement.spacedBy(14.dp)
+                    .padding(start = 22.dp, end = 22.dp, top = 6.dp, bottom = 18.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                RemoteBookCover(
-                    coverUrl = displayContinueReadingBook.coverUrl,
-                    fallback = displayContinueReadingBook.coverRes,
-                    contentDescription = null,
+                // profile avatar — opens the (pushed) Profile screen
+                Image(
+                    painter = painterResource(Res.drawable.profile_1),
+                    contentDescription = "Profile",
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
-                        .size(width = 52.dp, height = 76.dp)
-                        .shadow(6.dp, RoundedCornerShape(InkShape.cover), clip = true)
+                        .size(44.dp)
+                        .clip(RoundedCornerShape(InkShape.radiusSm + 2.dp))
+                        .clickable(onClick = onProfileClick)
                 )
-                Column(modifier = Modifier.weight(1f)) {
+                Column(modifier = Modifier.weight(1f).padding(start = 12.dp)) {
                     Text(
-                        text = displayContinueReadingBook.title,
-                        fontFamily = displayFont,
-                        fontWeight = FontWeight.Medium,
-                        fontSize = 16.sp,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        color = colors.ink
-                    )
-                    Text(
-                        text = displayContinueReadingBook.author,
-                        modifier = Modifier.padding(top = 3.dp),
+                        text = stringResource(Res.string.home_greeting),
                         fontFamily = bodyFont,
                         fontSize = 12.sp,
                         color = colors.muted
                     )
-                    Spacer(modifier = Modifier.weight(1f))
-                    InkProgressBar(
-                        progress = continueProgress / 100f,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = colors
-                    )
                     Text(
-                        text = buildAnnotatedString {
-                            withStyle(SpanStyle(color = colors.accent, fontWeight = FontWeight.SemiBold)) {
-                                append("$continueProgress%")
-                            }
-                            append(" · 18 min left")
-                        },
-                        modifier = Modifier.padding(top = 7.dp),
-                        fontFamily = bodyFont,
-                        fontSize = 11.sp,
-                        color = colors.muted
+                        text = "Amelia",
+                        modifier = Modifier.padding(top = 6.dp),
+                        fontFamily = displayFont,
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 24.sp,
+                        color = colors.ink
                     )
                 }
+                InkIconButton(
+                    icon = InkIcons.Search,
+                    onClick = onViewAllCategoriesClick,
+                    colors = colors
+                )
             }
-        }
 
-        // for you rail
-        Column(modifier = Modifier.padding(top = 26.dp)) {
-            InkSectionTitle(
-                text = stringResource(Res.string.home_for_you),
-                modifier = Modifier.padding(horizontal = 22.dp),
-                action = stringResource(Res.string.home_see_all),
-                onActionClick = onViewAllCategoriesClick,
-                colors = colors
-            )
-            Row(
-                modifier = Modifier
-                    .padding(top = 14.dp)
-                    .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 22.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                displayForYouBooks.forEach { book ->
-                    RailBookCard(book = book, onClick = { onBookClick(book) }, colors = colors)
-                }
-            }
-        }
-
-        // browse chips
-        Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 26.dp)) {
-            InkLabel(text = stringResource(Res.string.home_browse), colors = colors)
-            Row(
-                modifier = Modifier
-                    .padding(top = 12.dp)
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                browseGenres.forEachIndexed { i, genre ->
-                    Box(modifier = Modifier.clickable(onClick = onViewAllCategoriesClick)) {
-                        InkChip(text = genre, solid = i == 0, colors = colors)
+            Column(modifier = Modifier.padding(horizontal = 22.dp)) {
+                InkLabel(text = stringResource(Res.string.home_continue_reading), colors = colors)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 12.dp)
+                        .inkCard(colors)
+                        .clickable(onClick = onKeepReadingClick)
+                        .padding(14.dp),
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    RemoteBookCover(
+                        coverUrl = displayContinueReadingBook.coverUrl,
+                        fallback = displayContinueReadingBook.coverRes,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(width = 52.dp, height = 76.dp)
+                            .shadow(6.dp, RoundedCornerShape(InkShape.cover), clip = true)
+                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = displayContinueReadingBook.title,
+                            fontFamily = displayFont,
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 16.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            color = colors.ink
+                        )
+                        Text(
+                            text = displayContinueReadingBook.author,
+                            modifier = Modifier.padding(top = 3.dp),
+                            fontFamily = bodyFont,
+                            fontSize = 12.sp,
+                            color = colors.muted
+                        )
+                        Spacer(modifier = Modifier.weight(1f))
+                        InkProgressBar(
+                            progress = continueProgress / 100f,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = colors
+                        )
+                        Text(
+                            text = buildAnnotatedString {
+                                withStyle(SpanStyle(color = colors.accent, fontWeight = FontWeight.SemiBold)) {
+                                    append("$continueProgress%")
+                                }
+                                append(" · 18 min left")
+                            },
+                            modifier = Modifier.padding(top = 7.dp),
+                            fontFamily = bodyFont,
+                            fontSize = 11.sp,
+                            color = colors.muted
+                        )
                     }
                 }
             }
         }
-
-        // trending now
-        Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 26.dp)) {
-            Text(
-                text = stringResource(Res.string.home_trending),
-                fontFamily = displayFont,
-                fontWeight = FontWeight.Medium,
-                fontSize = 18.sp,
-                color = colors.ink
-            )
-            Spacer(modifier = Modifier.height(7.dp))
-            displayTrendingBooks.forEachIndexed { i, book ->
-                TrendingRow(
-                    book = book,
-                    showDivider = i > 0,
-                    onClick = { onBookClick(book) },
+        item(key = "for-you") {
+            // for you rail
+            Column(modifier = Modifier.padding(top = 26.dp)) {
+                InkSectionTitle(
+                    text = stringResource(Res.string.home_for_you),
+                    modifier = Modifier.padding(horizontal = 22.dp),
+                    action = stringResource(Res.string.home_see_all),
+                    onActionClick = onViewAllCategoriesClick,
                     colors = colors
                 )
+                // Lazy: the rail holds every home book, and only the few on screen should be built
+                // and fetch their covers.
+                LazyRow(
+                    modifier = Modifier.padding(top = 14.dp),
+                    contentPadding = PaddingValues(horizontal = 22.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    itemsIndexed(
+                        items = displayForYouBooks,
+                        key = { index, _ -> forYouKeys[index] },
+                        contentType = { _, _ -> "rail-book" }
+                    ) { _, book ->
+                        RailBookCard(book = book, onClick = { onBookClick(book) }, colors = colors)
+                    }
+                }
             }
         }
-
-        Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 24.dp)) {
-            InkLabel(text = stringResource(Res.string.home_from_your_circle), colors = colors)
-            Column(
-                modifier = Modifier.padding(top = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                CircleRow(
-                    avatar = Res.drawable.profile_2,
-                    name = "Patricia",
-                    activity = "is reading Olive, Again",
-                    online = true,
-                    colors = colors
+        item(key = "browse") {
+            // browse chips
+            Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 26.dp)) {
+                InkLabel(text = stringResource(Res.string.home_browse), colors = colors)
+                Row(
+                    modifier = Modifier
+                        .padding(top = 12.dp)
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    browseGenres.forEachIndexed { i, genre ->
+                        Box(modifier = Modifier.clickable(onClick = onViewAllCategoriesClick)) {
+                            InkChip(text = genre, solid = i == 0, colors = colors)
+                        }
+                    }
+                }
+            }
+        }
+        item(key = "trending") {
+            // trending now
+            Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 26.dp)) {
+                Text(
+                    text = stringResource(Res.string.home_trending),
+                    fontFamily = displayFont,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 18.sp,
+                    color = colors.ink
                 )
-                CircleRow(
-                    avatar = Res.drawable.profile_3,
-                    name = "Daniel",
-                    activity = "finished Bestiary",
-                    online = false,
-                    colors = colors
-                )
+                Spacer(modifier = Modifier.height(7.dp))
+                displayTrendingBooks.forEachIndexed { i, book ->
+                    TrendingRow(
+                        book = book,
+                        showDivider = i > 0,
+                        onClick = { onBookClick(book) },
+                        colors = colors
+                    )
+                }
+            }
+        }
+        item(key = "circle") {
+            // from your circle
+            Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 24.dp)) {
+                InkLabel(text = stringResource(Res.string.home_from_your_circle), colors = colors)
+                Column(
+                    modifier = Modifier.padding(top = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    CircleRow(
+                        avatar = Res.drawable.profile_2,
+                        name = "Patricia",
+                        activity = "is reading Olive, Again",
+                        online = true,
+                        colors = colors
+                    )
+                    CircleRow(
+                        avatar = Res.drawable.profile_3,
+                        name = "Daniel",
+                        activity = "finished Bestiary",
+                        online = false,
+                        colors = colors
+                    )
+                }
             }
         }
     }

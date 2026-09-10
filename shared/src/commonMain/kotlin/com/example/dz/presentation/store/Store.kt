@@ -1,5 +1,12 @@
 package com.example.dz.presentation.store
 
+import com.example.dz.presentation.common.uniqueLazyKeys
+import androidx.compose.runtime.remember
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -18,7 +25,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -112,194 +118,206 @@ fun StoreScreen(
     val colors = inkColors()
     val displayFont = inkDisplayFontFamily()
     val bodyFont = inkBodyFontFamily()
-    val domainBooks = uiState.featuredBooks.mapIndexed { index, book -> book.toStoreBook(index) }
+    val domainBooks = remember(uiState.featuredBooks) {
+        uiState.featuredBooks.mapIndexed { index, book -> book.toStoreBook(index) }
+    }
     val displayFeaturedBook = domainBooks.firstOrNull() ?: featuredBook
     val displayNewReleases = domainBooks.drop(1).take(3).ifEmpty { newReleases }
     val displayTopSellers = domainBooks.ifEmpty { topSellers }
+    val topSellerKeys = remember(displayTopSellers) { displayTopSellers.uniqueLazyKeys { it.id } }
 
-    Column(
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .background(colors.paper)
-            .statusBarsPadding()
-            .verticalScroll(rememberScrollState())
-            .padding(bottom = 96.dp)
+            .statusBarsPadding(),
+        contentPadding = PaddingValues(bottom = 96.dp)
     ) {
-        // header with credits pill
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 22.dp, end = 22.dp, top = 6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = stringResource(Res.string.store_title),
-                modifier = Modifier.weight(1f),
-                fontFamily = displayFont,
-                fontWeight = FontWeight.Medium,
-                fontSize = 24.sp,
-                color = colors.ink
-            )
+        item(key = "header") {
+            // header with credits pill
             Row(
                 modifier = Modifier
-                    .height(32.dp)
-                    .clip(CircleShape)
-                    .border(1.dp, colors.line, CircleShape)
-                    .clickable(onClick = onViewMoreClick)
-                    .padding(horizontal = 13.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    .fillMaxWidth()
+                    .padding(start = 22.dp, end = 22.dp, top = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = InkIcons.Tag,
-                    contentDescription = null,
-                    tint = colors.accent,
-                    modifier = Modifier.size(14.dp)
-                )
                 Text(
-                    text = "240",
-                    fontFamily = bodyFont,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 12.sp,
-                    color = colors.ink
-                )
-            }
-        }
-
-        // featured: book of the week
-        Row(
-            modifier = Modifier
-                .padding(start = 22.dp, end = 22.dp, top = 18.dp)
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(InkShape.radius))
-                .background(colors.alt)
-                .clickable { onBookClick(displayFeaturedBook) }
-                .padding(18.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            RemoteBookCover(
-                coverUrl = displayFeaturedBook.coverUrl,
-                fallback = displayFeaturedBook.coverRes,
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .size(width = 84.dp, height = 124.dp)
-                    .shadow(12.dp, RoundedCornerShape(InkShape.cover), clip = true)
-            )
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = stringResource(Res.string.store_book_of_the_week).uppercase(),
-                    fontFamily = bodyFont,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 10.5.sp,
-                    letterSpacing = 1.5.sp,
-                    color = colors.accent
-                )
-                Text(
-                    text = displayFeaturedBook.title,
-                    modifier = Modifier.padding(top = 8.dp),
+                    text = stringResource(Res.string.store_title),
+                    modifier = Modifier.weight(1f),
                     fontFamily = displayFont,
                     fontWeight = FontWeight.Medium,
-                    fontSize = 19.sp,
-                    lineHeight = 23.sp,
+                    fontSize = 24.sp,
                     color = colors.ink
                 )
-                Text(
-                    text = displayFeaturedBook.author,
-                    modifier = Modifier.padding(top = 4.dp),
-                    fontFamily = bodyFont,
-                    fontSize = 12.sp,
-                    color = colors.muted
-                )
                 Row(
-                    modifier = Modifier.padding(top = 12.dp),
+                    modifier = Modifier
+                        .height(32.dp)
+                        .clip(CircleShape)
+                        .border(1.dp, colors.line, CircleShape)
+                        .clickable(onClick = onViewMoreClick)
+                        .padding(horizontal = 13.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    Icon(
+                        imageVector = InkIcons.Tag,
+                        contentDescription = null,
+                        tint = colors.accent,
+                        modifier = Modifier.size(14.dp)
+                    )
                     Text(
-                        text = "$${displayFeaturedBook.price}",
+                        text = "240",
+                        fontFamily = bodyFont,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 12.sp,
+                        color = colors.ink
+                    )
+                }
+            }
+        }
+        item(key = "featured") {
+            // featured: book of the week
+            Row(
+                modifier = Modifier
+                    .padding(start = 22.dp, end = 22.dp, top = 18.dp)
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(InkShape.radius))
+                    .background(colors.alt)
+                    .clickable { onBookClick(displayFeaturedBook) }
+                    .padding(18.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                RemoteBookCover(
+                    coverUrl = displayFeaturedBook.coverUrl,
+                    fallback = displayFeaturedBook.coverRes,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(width = 84.dp, height = 124.dp)
+                        .shadow(12.dp, RoundedCornerShape(InkShape.cover), clip = true)
+                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(Res.string.store_book_of_the_week).uppercase(),
+                        fontFamily = bodyFont,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 10.5.sp,
+                        letterSpacing = 1.5.sp,
+                        color = colors.accent
+                    )
+                    Text(
+                        text = displayFeaturedBook.title,
+                        modifier = Modifier.padding(top = 8.dp),
                         fontFamily = displayFont,
                         fontWeight = FontWeight.Medium,
-                        fontSize = 16.sp,
+                        fontSize = 19.sp,
+                        lineHeight = 23.sp,
                         color = colors.ink
                     )
                     Text(
-                        text = "$10.00",
-                        style = TextStyle(textDecoration = TextDecoration.LineThrough),
+                        text = displayFeaturedBook.author,
+                        modifier = Modifier.padding(top = 4.dp),
                         fontFamily = bodyFont,
                         fontSize = 12.sp,
                         color = colors.muted
                     )
-                    InkChip(text = "−30%", solid = true, colors = colors)
+                    Row(
+                        modifier = Modifier.padding(top = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Text(
+                            text = "$${displayFeaturedBook.price}",
+                            fontFamily = displayFont,
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 16.sp,
+                            color = colors.ink
+                        )
+                        Text(
+                            text = "$10.00",
+                            style = TextStyle(textDecoration = TextDecoration.LineThrough),
+                            fontFamily = bodyFont,
+                            fontSize = 12.sp,
+                            color = colors.muted
+                        )
+                        InkChip(text = "−30%", solid = true, colors = colors)
+                    }
                 }
             }
         }
-
-        // new releases rail
-        Column(modifier = Modifier.padding(top = 24.dp)) {
-            InkSectionTitle(
-                text = stringResource(Res.string.store_new_releases),
-                modifier = Modifier.padding(horizontal = 22.dp),
-                action = stringResource(Res.string.home_see_all),
-                onActionClick = { onCategoryClick("New releases") },
-                colors = colors
-            )
-            Row(
-                modifier = Modifier
-                    .padding(top = 14.dp)
-                    .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 22.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                displayNewReleases.forEach { book ->
-                    ReleaseCard(book = book, onClick = { onBookClick(book) }, colors = colors)
+        item(key = "new-releases") {
+            // new releases rail
+            Column(modifier = Modifier.padding(top = 24.dp)) {
+                InkSectionTitle(
+                    text = stringResource(Res.string.store_new_releases),
+                    modifier = Modifier.padding(horizontal = 22.dp),
+                    action = stringResource(Res.string.home_see_all),
+                    onActionClick = { onCategoryClick("New releases") },
+                    colors = colors
+                )
+                Row(
+                    modifier = Modifier
+                        .padding(top = 14.dp)
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = 22.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    displayNewReleases.forEach { book ->
+                        ReleaseCard(book = book, onClick = { onBookClick(book) }, colors = colors)
+                    }
                 }
             }
         }
-
-        // top sellers
-        Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 24.dp)) {
-            InkSectionTitle(
-                text = stringResource(Res.string.store_top_sellers),
-                colors = colors
-            )
-            Column(modifier = Modifier.padding(top = 4.dp)) {
-                displayTopSellers.forEachIndexed { i, book ->
-                    InkBookRow(
-                        cover = book.coverRes,
-                        coverUrl = book.coverUrl,
-                        title = book.title,
-                        author = book.author,
-                        modifier = Modifier.clickable { onBookClick(book) },
-                        showDivider = i > 0,
-                        meta = {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Stars(filled = 4, colors = colors)
-                                Text(
-                                    text = book.rating,
-                                    fontFamily = bodyFont,
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = 11.sp,
-                                    color = colors.inkSoft
-                                )
-                            }
-                        },
-                        trailing = {
+        // top sellers — the whole list, so it is the part that has to be lazy
+        item(key = "top-sellers-title", contentType = "section-title") {
+            Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 24.dp)) {
+                InkSectionTitle(
+                    text = stringResource(Res.string.store_top_sellers),
+                    colors = colors
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+            }
+        }
+        itemsIndexed(
+            items = displayTopSellers,
+            key = { index, _ -> "book:" + topSellerKeys[index] },
+            contentType = { _, _ -> "book" }
+        ) { i, book ->
+            Box(modifier = Modifier.padding(horizontal = 22.dp)) {
+                InkBookRow(
+                    cover = book.coverRes,
+                    coverUrl = book.coverUrl,
+                    title = book.title,
+                    author = book.author,
+                    modifier = Modifier.clickable { onBookClick(book) },
+                    showDivider = i > 0,
+                    meta = {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Stars(filled = 4, colors = colors)
                             Text(
-                                text = "$${book.price}",
-                                fontFamily = displayFont,
-                                fontWeight = FontWeight.Medium,
-                                fontSize = 15.sp,
-                                color = colors.ink
+                                text = book.rating,
+                                fontFamily = bodyFont,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 11.sp,
+                                color = colors.inkSoft
                             )
-                        },
-                        colors = colors
-                    )
-                }
+                        }
+                    },
+                    trailing = {
+                        Text(
+                            text = "$${book.price}",
+                            fontFamily = displayFont,
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 15.sp,
+                            color = colors.ink
+                        )
+                    },
+                    colors = colors
+                )
             }
         }
     }

@@ -1,5 +1,9 @@
 package com.example.dz.presentation.collections.details
 
+import com.example.dz.presentation.common.uniqueLazyKeys
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -15,9 +19,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -70,138 +72,148 @@ fun CollectionDetails(
     val displayFont = inkDisplayFontFamily()
     val bodyFont = inkBodyFontFamily()
 
-    Column(
+    val bookKeys = uiState.books.uniqueLazyKeys { it.id }
+
+    LazyColumn(
         modifier = modifier
             .fillMaxSize()
             .background(colors.paper)
-            .statusBarsPadding()
-            .verticalScroll(rememberScrollState())
-            .padding(bottom = 30.dp)
+            .statusBarsPadding(),
+        contentPadding = PaddingValues(bottom = 30.dp)
     ) {
-        // top bar
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 22.dp, end = 22.dp, top = 4.dp)
-        ) {
-            InkIconButton(icon = InkIcons.Back, onClick = { onEvent(CollectionDetailsEvent.BackClicked) }, colors = colors)
-            Spacer(modifier = Modifier.weight(1f))
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                InkIconButton(icon = InkIcons.Share, onClick = { onEvent(CollectionDetailsEvent.ShareClicked) }, colors = colors)
-                InkIconButton(icon = InkIcons.MoreVertical, onClick = { onEvent(CollectionDetailsEvent.EditClicked) }, colors = colors)
-            }
-        }
-
-        // header: fanned covers + name
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 22.dp, end = 22.dp, top = 18.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Box {
-                val stack = uiState.books.take(3)
-                // draw right-to-left so the leftmost cover sits on top, like the design
-                stack.indices.reversed().forEach { j ->
-                    RemoteBookCover(
-                        coverUrl = stack[j].coverUrl,
-                        fallback = stack[j].coverRes,
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .offset(x = (34 * j).dp)
-                            .size(width = 56.dp, height = 82.dp)
-                            .clip(RoundedCornerShape(InkShape.cover))
-                            .border(2.dp, colors.paper, RoundedCornerShape(InkShape.cover))
-                    )
-                }
-                // reserve the stack's visual footprint
-                Spacer(modifier = Modifier.size(width = (56 + 34 * (stack.size - 1)).coerceAtLeast(56).dp, height = 82.dp))
-            }
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = uiState.title,
-                    fontFamily = displayFont,
-                    fontWeight = FontWeight.Medium,
-                    fontSize = 24.sp,
-                    lineHeight = 27.sp,
-                    color = colors.ink
-                )
-                Text(
-                    text = "${uiState.bookCount} books · updated recently",
-                    modifier = Modifier.padding(top = 6.dp),
-                    fontFamily = bodyFont,
-                    fontSize = 12.sp,
-                    color = colors.muted
-                )
-            }
-        }
-
-        // description
-        if (uiState.description.isNotBlank()) {
-            Text(
-                text = uiState.description,
-                modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 14.dp),
-                fontFamily = displayFont,
-                fontStyle = FontStyle.Italic,
-                fontSize = 13.sp,
-                lineHeight = 21.5.sp,
-                color = colors.inkSoft
-            )
-        }
-
-        // actions
-        Row(
-            modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
+        item(key = "top-bar") {
+            // top bar
             Row(
                 modifier = Modifier
-                    .weight(1f)
-                    .height(44.dp)
-                    .clip(RoundedCornerShape(InkShape.radiusSm + 2.dp))
-                    .background(colors.accentSoft)
-                    .clickable { onEvent(CollectionDetailsEvent.AddBooksClicked) },
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(9.dp, Alignment.CenterHorizontally)
+                    .fillMaxWidth()
+                    .padding(start = 22.dp, end = 22.dp, top = 4.dp)
             ) {
-                Icon(
-                    imageVector = InkIcons.Plus,
-                    contentDescription = null,
-                    tint = colors.accent,
-                    modifier = Modifier.size(13.dp)
-                )
-                Text(
-                    text = stringResource(Res.string.coll_add_books),
-                    fontFamily = bodyFont,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 13.sp,
-                    color = colors.accent
-                )
+                InkIconButton(icon = InkIcons.Back, onClick = { onEvent(CollectionDetailsEvent.BackClicked) }, colors = colors)
+                Spacer(modifier = Modifier.weight(1f))
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    InkIconButton(icon = InkIcons.Share, onClick = { onEvent(CollectionDetailsEvent.ShareClicked) }, colors = colors)
+                    InkIconButton(icon = InkIcons.MoreVertical, onClick = { onEvent(CollectionDetailsEvent.EditClicked) }, colors = colors)
+                }
             }
-            Box(
+        }
+        item(key = "header") {
+            // header: fanned covers + name
+            Row(
                 modifier = Modifier
-                    .weight(1f)
-                    .height(44.dp)
-                    .clip(RoundedCornerShape(InkShape.radiusSm + 2.dp))
-                    .border(1.dp, colors.line, RoundedCornerShape(InkShape.radiusSm + 2.dp))
-                    .clickable { onEvent(CollectionDetailsEvent.EditClicked) },
-                contentAlignment = Alignment.Center
+                    .fillMaxWidth()
+                    .padding(start = 22.dp, end = 22.dp, top = 18.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                Box {
+                    val stack = uiState.books.take(3)
+                    // draw right-to-left so the leftmost cover sits on top, like the design
+                    stack.indices.reversed().forEach { j ->
+                        RemoteBookCover(
+                            coverUrl = stack[j].coverUrl,
+                            fallback = stack[j].coverRes,
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .offset(x = (34 * j).dp)
+                                .size(width = 56.dp, height = 82.dp)
+                                .clip(RoundedCornerShape(InkShape.cover))
+                                .border(2.dp, colors.paper, RoundedCornerShape(InkShape.cover))
+                        )
+                    }
+                    // reserve the stack's visual footprint
+                    Spacer(modifier = Modifier.size(width = (56 + 34 * (stack.size - 1)).coerceAtLeast(56).dp, height = 82.dp))
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = uiState.title,
+                        fontFamily = displayFont,
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 24.sp,
+                        lineHeight = 27.sp,
+                        color = colors.ink
+                    )
+                    Text(
+                        text = "${uiState.bookCount} books · updated recently",
+                        modifier = Modifier.padding(top = 6.dp),
+                        fontFamily = bodyFont,
+                        fontSize = 12.sp,
+                        color = colors.muted
+                    )
+                }
+            }
+        }
+        item(key = "description") {
+            // description
+            if (uiState.description.isNotBlank()) {
                 Text(
-                    text = stringResource(Res.string.coll_edit),
-                    fontFamily = bodyFont,
-                    fontWeight = FontWeight.SemiBold,
+                    text = uiState.description,
+                    modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 14.dp),
+                    fontFamily = displayFont,
+                    fontStyle = FontStyle.Italic,
                     fontSize = 13.sp,
-                    color = colors.ink
+                    lineHeight = 21.5.sp,
+                    color = colors.inkSoft
                 )
             }
         }
-
-        // book list
-        Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 18.dp)) {
-            uiState.books.forEachIndexed { i, book ->
+        item(key = "actions") {
+            // actions
+            Row(
+                modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(44.dp)
+                        .clip(RoundedCornerShape(InkShape.radiusSm + 2.dp))
+                        .background(colors.accentSoft)
+                        .clickable { onEvent(CollectionDetailsEvent.AddBooksClicked) },
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(9.dp, Alignment.CenterHorizontally)
+                ) {
+                    Icon(
+                        imageVector = InkIcons.Plus,
+                        contentDescription = null,
+                        tint = colors.accent,
+                        modifier = Modifier.size(13.dp)
+                    )
+                    Text(
+                        text = stringResource(Res.string.coll_add_books),
+                        fontFamily = bodyFont,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 13.sp,
+                        color = colors.accent
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(44.dp)
+                        .clip(RoundedCornerShape(InkShape.radiusSm + 2.dp))
+                        .border(1.dp, colors.line, RoundedCornerShape(InkShape.radiusSm + 2.dp))
+                        .clickable { onEvent(CollectionDetailsEvent.EditClicked) },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = stringResource(Res.string.coll_edit),
+                        fontFamily = bodyFont,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 13.sp,
+                        color = colors.ink
+                    )
+                }
+            }
+        }
+        // book list — lazy, so a large collection builds only the rows on screen
+        item(key = "list-top") { Spacer(modifier = Modifier.height(18.dp)) }
+        itemsIndexed(
+            items = uiState.books,
+            key = { index, _ -> "book:" + bookKeys[index] },
+            contentType = { _, _ -> "book" }
+        ) { i, book ->
+            Box(modifier = Modifier.padding(horizontal = 22.dp)) {
                 InkBookRow(
                     cover = book.coverRes,
                     coverUrl = book.coverUrl,

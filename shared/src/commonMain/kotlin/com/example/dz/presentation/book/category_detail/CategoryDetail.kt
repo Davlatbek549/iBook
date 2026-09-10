@@ -1,5 +1,10 @@
 package com.example.dz.presentation.book.category_detail
 
+import com.example.dz.presentation.common.uniqueLazyKeys
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -14,7 +19,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -71,92 +75,102 @@ fun CategoryDetailScreen(
     val displayFont = inkDisplayFontFamily()
     val bodyFont = inkBodyFontFamily()
 
-    Column(
+    val bookKeys = uiState.books.uniqueLazyKeys { it.id }
+
+    LazyColumn(
         modifier = modifier
             .fillMaxSize()
             .background(colors.paper)
-            .statusBarsPadding()
-            .verticalScroll(rememberScrollState())
-            .padding(bottom = 30.dp)
+            .statusBarsPadding(),
+        contentPadding = PaddingValues(bottom = 30.dp)
     ) {
-        // top bar
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 22.dp, end = 22.dp, top = 4.dp)
-        ) {
-            InkIconButton(icon = InkIcons.Back, onClick = { onEvent(CategoryDetailEvent.BackClicked) }, colors = colors)
-            Spacer(modifier = Modifier.weight(1f))
-            InkIconButton(icon = InkIcons.Search, onClick = { onEvent(CategoryDetailEvent.SearchClicked) }, colors = colors)
-        }
-
-        // header
-        Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 20.dp)) {
-            Text(
-                text = "Category 01",
-                fontFamily = displayFont,
-                fontStyle = FontStyle.Italic,
-                fontSize = 12.sp,
-                color = colors.accent
-            )
-            Text(
-                text = uiState.title,
-                modifier = Modifier.padding(top = 10.dp),
-                fontFamily = displayFont,
-                fontWeight = FontWeight.Medium,
-                fontSize = 30.sp,
-                lineHeight = 33.sp,
-                color = colors.ink
-            )
-            Text(
-                text = uiState.description,
-                modifier = Modifier.padding(top = 10.dp),
-                fontFamily = bodyFont,
-                fontSize = 13.sp,
-                lineHeight = 21.sp,
-                color = colors.muted
-            )
-        }
-
-        // filter chips
-        Row(
-            modifier = Modifier
-                .padding(top = 18.dp)
-                .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 22.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            InkChip(text = stringResource(Res.string.category_chip_all), solid = true, colors = colors)
-            InkChip(text = stringResource(Res.string.category_chip_new), colors = colors)
-            InkChip(text = stringResource(Res.string.category_chip_award), colors = colors)
-            InkChip(text = stringResource(Res.string.category_chip_under), colors = colors)
-        }
-
-        // sort row
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 22.dp, end = 22.dp, top = 20.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
+        item(key = "top-bar") {
+            // top bar
+            Row(
                 modifier = Modifier
-                    .weight(1f)
-                    .clickable { onEvent(CategoryDetailEvent.SortClicked) }
+                    .fillMaxWidth()
+                    .padding(start = 22.dp, end = 22.dp, top = 4.dp)
             ) {
-                InkLabel(text = stringResource(Res.string.category_sorted_by), colors = colors)
+                InkIconButton(icon = InkIcons.Back, onClick = { onEvent(CategoryDetailEvent.BackClicked) }, colors = colors)
+                Spacer(modifier = Modifier.weight(1f))
+                InkIconButton(icon = InkIcons.Search, onClick = { onEvent(CategoryDetailEvent.SearchClicked) }, colors = colors)
             }
-            Icon(
-                imageVector = InkIcons.ChevronDown,
-                contentDescription = null,
-                tint = colors.muted,
-                modifier = Modifier.size(14.dp)
-            )
         }
-
-        // book list
-        Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 4.dp)) {
-            uiState.books.forEachIndexed { i, book ->
+        item(key = "header") {
+            // header
+            Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 20.dp)) {
+                Text(
+                    text = "Category 01",
+                    fontFamily = displayFont,
+                    fontStyle = FontStyle.Italic,
+                    fontSize = 12.sp,
+                    color = colors.accent
+                )
+                Text(
+                    text = uiState.title,
+                    modifier = Modifier.padding(top = 10.dp),
+                    fontFamily = displayFont,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 30.sp,
+                    lineHeight = 33.sp,
+                    color = colors.ink
+                )
+                Text(
+                    text = uiState.description,
+                    modifier = Modifier.padding(top = 10.dp),
+                    fontFamily = bodyFont,
+                    fontSize = 13.sp,
+                    lineHeight = 21.sp,
+                    color = colors.muted
+                )
+            }
+        }
+        item(key = "chips") {
+            // filter chips
+            Row(
+                modifier = Modifier
+                    .padding(top = 18.dp)
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = 22.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                InkChip(text = stringResource(Res.string.category_chip_all), solid = true, colors = colors)
+                InkChip(text = stringResource(Res.string.category_chip_new), colors = colors)
+                InkChip(text = stringResource(Res.string.category_chip_award), colors = colors)
+                InkChip(text = stringResource(Res.string.category_chip_under), colors = colors)
+            }
+        }
+        item(key = "sort") {
+            // sort row
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 22.dp, end = 22.dp, top = 20.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable { onEvent(CategoryDetailEvent.SortClicked) }
+                ) {
+                    InkLabel(text = stringResource(Res.string.category_sorted_by), colors = colors)
+                }
+                Icon(
+                    imageVector = InkIcons.ChevronDown,
+                    contentDescription = null,
+                    tint = colors.muted,
+                    modifier = Modifier.size(14.dp)
+                )
+            }
+        }
+        // book list — lazy, so only the rows on screen are built and fetch their covers
+        item(key = "list-top") { Spacer(modifier = Modifier.height(4.dp)) }
+        itemsIndexed(
+            items = uiState.books,
+            key = { index, _ -> "book:" + bookKeys[index] },
+            contentType = { _, _ -> "book" }
+        ) { i, book ->
+            Box(modifier = Modifier.padding(horizontal = 22.dp)) {
                 InkBookRow(
                     cover = book.coverRes,
                     coverUrl = book.coverUrl,
