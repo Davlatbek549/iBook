@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.baselineprofile)
 }
 
 kotlin {
@@ -16,6 +17,10 @@ dependencies {
 
     implementation(libs.androidx.activity.compose)
     implementation(libs.koin.android)
+    // Installs the baseline profile on devices that did not get it from the Play Store at
+    // install time — sideloads, internal testing, and every build run from Android Studio.
+    implementation(libs.androidx.profileinstaller)
+    baselineProfile(projects.baselineprofile)
 
     implementation(libs.compose.runtime)
     implementation(libs.compose.foundation)

@@ -24,6 +24,10 @@ koin = "4.0.0"
 # Compose than ours. 3.5+ is built with Kotlin 2.4, which the Kotlin 2.3 compiler cannot consume
 # on iOS without upgrading the whole toolchain first.
 coil = "3.4.0"
+# 1.5.0 is the first release that supports AGP 9's new DSL without opting out of it.
+baselineprofile = "1.5.0"
+profileinstaller = "1.4.1"
+uiautomator = "2.4.0"
 multiplatformSettings = "1.2.0"
 sqldelight = "2.3.2"
 
@@ -59,6 +63,9 @@ compose-uiToolingPreview = { module = "org.jetbrains.compose.ui:ui-tooling-previ
 navigation-compose = { module = "org.jetbrains.androidx.navigation:navigation-compose", version.ref = "navigation" }
 koin-core = { group = "io.insert-koin", name = "koin-core", version.ref = "koin" }
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
+androidx-profileinstaller = { module = "androidx.profileinstaller:profileinstaller", version.ref = "profileinstaller" }
+androidx-benchmark-macro-junit4 = { module = "androidx.benchmark:benchmark-macro-junit4", version.ref = "baselineprofile" }
+androidx-uiautomator = { module = "androidx.test.uiautomator:uiautomator", version.ref = "uiautomator" }
 coil-network-ktor3 = { module = "io.coil-kt.coil3:coil-network-ktor3", version.ref = "coil" }
 koin-android = { group = "io.insert-koin", name = "koin-android", version.ref = "koin" }
 multiplatform-settings = { group = "com.russhwolf", name = "multiplatform-settings-no-arg", version.ref = "multiplatformSettings" }
@@ -69,6 +76,8 @@ sqldelight-sqlite-driver = { module = "app.cash.sqldelight:sqlite-driver", versi
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
+androidTest = { id = "com.android.test", version.ref = "agp" }
+baselineprofile = { id = "androidx.baselineprofile", version.ref = "baselineprofile" }
 androidMultiplatformLibrary = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
 composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "composeMultiplatform" }
 composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
