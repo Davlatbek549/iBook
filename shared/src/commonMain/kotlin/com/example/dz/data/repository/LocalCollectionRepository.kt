@@ -6,28 +6,39 @@ import com.example.dz.core.time.currentEpochMillis
 import com.example.dz.data.local.CollectionLocalDataSource
 import com.example.dz.domain.model.Collection
 import com.example.dz.domain.repository.CollectionRepository
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
+import kotlinx.coroutines.withContext
 
 /**
  * Collection persistence backed by the local SQLDelight database ([CollectionLocalDataSource]),
  * replacing the in-memory fake. Membership and metadata survive app restarts.
+ *
+ * Every query runs on [io], for the same reason as the library: the data source is synchronous
+ * and its callers sit on the main thread.
  */
 class LocalCollectionRepository(
-    private val collections: CollectionLocalDataSource
+    private val collections: CollectionLocalDataSource,
+    private val io: CoroutineDispatcher = Dispatchers.IO,
 ) : CollectionRepository {
 
-    override suspend fun getCollections(): AppResult<List<Collection>> =
+    override suspend fun getCollections(): AppResult<List<Collection>> = withContext(io) {
         AppResult.Success(collections.getCollections())
+    }
 
     override suspend fun getCollectionDetails(collectionId: String): AppResult<Collection> =
-        collections.getCollection(collectionId)
-            ?.let { AppResult.Success(it) }
-            ?: AppResult.Error(AppError.NotFound)
+        withContext(io) {
+            collections.getCollection(collectionId)
+                ?.let { AppResult.Success(it) }
+                ?: AppResult.Error(AppError.NotFound)
+        }
 
-    override suspend fun createCollection(title: String): AppResult<Collection> {
+    override suspend fun createCollection(title: String): AppResult<Collection> = withContext(io) {
         val slug = title.trim().lowercase().replace(" ", "-").ifBlank { "collection" }
         val collection = Collection(id = freeId(slug), title = title)
         collections.create(collection, createdAt = currentEpochMillis())
-        return AppResult.Success(collection)
+        AppResult.Success(collection)
     }
 
     /**
@@ -42,13 +53,14 @@ class LocalCollectionRepository(
         return "$slug-$suffix"
     }
 
-    override suspend fun updateCollection(collection: Collection): AppResult<Collection> {
-        collections.update(collection)
-        return AppResult.Success(collection)
-    }
+    override suspend fun updateCollection(collection: Collection): AppResult<Collection> =
+        withContext(io) {
+            collections.update(collection)
+            AppResult.Success(collection)
+        }
 
-    override suspend fun deleteCollection(collectionId: String): AppResult<Unit> {
+    override suspend fun deleteCollection(collectionId: String): AppResult<Unit> = withContext(io) {
         collections.delete(collectionId)
-        return AppResult.Success(Unit)
+        AppResult.Success(Unit)
     }
 }
