@@ -15,6 +15,7 @@ import com.example.dz.data.remote.dto.auth.VerifyEmailRequestDto
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.ResponseException
+import io.ktor.client.request.delete
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
@@ -29,6 +30,9 @@ interface AuthApi {
     suspend fun forgotPassword(request: ForgotPasswordRequestDto)
     suspend fun resetPassword(request: ResetPasswordRequestDto)
     suspend fun logout(request: LogoutRequestDto)
+
+    /** Deletes the signed-in account on the server, with everything it owns there. */
+    suspend fun deleteAccount()
 }
 
 /**
@@ -69,6 +73,10 @@ class KtorAuthApi(
                 setBody(request)
             }
         }
+    }
+
+    override suspend fun deleteAccount() {
+        withAuthErrors { client.delete("$baseUrl/users/me") }
     }
 
     override suspend fun verifyEmail(request: VerifyEmailRequestDto) {

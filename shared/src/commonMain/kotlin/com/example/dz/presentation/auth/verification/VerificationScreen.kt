@@ -76,7 +76,8 @@ fun VerificationScreen(
     ) {
         OrganicBackButton(
             onClick = { onEvent(VerificationEvent.BackClicked) },
-            contentDescription = stringResource(Res.string.auth_back)
+            contentDescription = stringResource(Res.string.auth_back),
+            isBusy = uiState.isLeaving
         )
 
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {

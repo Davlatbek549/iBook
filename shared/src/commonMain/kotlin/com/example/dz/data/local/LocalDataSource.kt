@@ -25,6 +25,12 @@ interface LocalDataSource {
     )
     fun isLoggedIn(): Boolean
     fun clearSession()
+
+    /**
+     * Removes everything this device holds for the signed-in account: the session and every
+     * per-account setting. Not what belongs to the device itself, such as having seen onboarding.
+     */
+    fun clearUserData()
     fun getSetting(key: String, default: String = ""): String
     fun saveSetting(key: String, value: String)
     fun removeSetting(key: String)

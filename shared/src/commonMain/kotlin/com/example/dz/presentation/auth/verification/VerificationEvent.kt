@@ -4,6 +4,10 @@ sealed interface VerificationEvent {
     data class CodeChanged(val code: String) : VerificationEvent
     data object VerifyClicked : VerificationEvent
     data object ResendClicked : VerificationEvent
+    /**
+     * The arrow on screen, and the system back gesture where the account was just made — the
+     * gesture must not skip the discard that the arrow goes through.
+     */
     data object BackClicked : VerificationEvent
 
     /**

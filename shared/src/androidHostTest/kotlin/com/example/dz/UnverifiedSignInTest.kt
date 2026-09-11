@@ -46,6 +46,7 @@ class UnverifiedSignInTest {
         override suspend fun requestPasswordReset(email: String): AppResult<Unit> = unused()
         override suspend fun resetPassword(email: String, code: String, newPassword: String): AppResult<Unit> = unused()
         override suspend fun logout(): AppResult<Unit> = unused()
+        override suspend fun deleteAccount(): AppResult<Unit> = unused()
         override suspend fun getCurrentUser(): AppResult<User?> = unused()
     }
 

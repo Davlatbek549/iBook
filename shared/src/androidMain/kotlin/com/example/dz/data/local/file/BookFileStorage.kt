@@ -23,6 +23,11 @@ actual class BookFileStorage(private val context: Context) : FileStorage {
 
     actual override fun exists(path: String): Boolean = File(path).exists()
 
+    actual override fun deleteAll(): Boolean {
+        val directory = File(context.filesDir, BOOKS_DIR)
+        return !directory.exists() || directory.deleteRecursively()
+    }
+
     private companion object {
         const val BOOKS_DIR = "books"
     }

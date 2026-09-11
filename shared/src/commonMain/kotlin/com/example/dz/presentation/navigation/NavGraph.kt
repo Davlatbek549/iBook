@@ -98,6 +98,7 @@ import com.example.dz.presentation.social.no_friends.NoFriendsViewModel
 import com.example.dz.presentation.notifications.NotificationsEffect
 import com.example.dz.presentation.notifications.NotificationsScreen
 import com.example.dz.presentation.notifications.NotificationsViewModel
+import com.example.dz.presentation.common.SystemBackHandler
 import com.example.dz.presentation.onboarding.OnboardingEffect
 import com.example.dz.presentation.onboarding.OnboardingScreen
 import com.example.dz.presentation.onboarding.OnboardingViewModel
@@ -366,7 +367,11 @@ fun DZNavGraph() {
                             }
                             is SignUpEffect.NavigateToVerification ->
                                 navController.navigate(
-                                    Routes.verification(VerificationPurpose.VerifyEmail, effect.email)
+                                    Routes.verification(
+                                        VerificationPurpose.VerifyEmail,
+                                        effect.email,
+                                        accountJustCreated = effect.accountJustCreated,
+                                    )
                                 )
                             SignUpEffect.NavigateToLogin -> navController.navigate(Routes.login()) {
                                 popUpTo(Routes.SIGN_UP) { inclusive = true }
@@ -409,14 +414,28 @@ fun DZNavGraph() {
                 )
             }
 
-            composable(Routes.VERIFICATION) { backStackEntry ->
+            composable(
+                Routes.VERIFICATION,
+                arguments = listOf(
+                    navArgument("created") { type = NavType.BoolType; defaultValue = false },
+                ),
+            ) { backStackEntry ->
                 val email = backStackEntry.stringArgument("email", "")
                 val purpose = backStackEntry.stringArgument(
                     "purpose",
                     VerificationPurpose.VerifyEmail.name
                 ).toVerificationPurpose()
-                val verificationViewModel = koinVerificationViewModel(email, purpose)
+                val accountJustCreated = backStackEntry.booleanArgument("created", false)
+                val verificationViewModel =
+                    koinVerificationViewModel(email, purpose, accountJustCreated)
                 val uiState by verificationViewModel.uiState.collectAsStateWithLifecycle()
+
+                // Backing out of a sign-up deletes the account the form just made, and the
+                // system's back has to go the same way as the arrow. Left to the nav host, it
+                // would pop the screen and leave the account behind.
+                SystemBackHandler(enabled = accountJustCreated) {
+                    verificationViewModel.onEvent(VerificationEvent.BackClicked)
+                }
 
                 LaunchedEffect(verificationViewModel) {
                     verificationViewModel.effects.collect { effect ->
@@ -1192,10 +1211,11 @@ private fun koinPrePurchaseViewModel(bookId: String): PrePurchaseViewModel {
 private fun koinVerificationViewModel(
     email: String,
     purpose: VerificationPurpose,
+    accountJustCreated: Boolean,
 ): VerificationViewModel {
     val koin = remember { KoinPlatform.getKoin() }
     return viewModel(key = "verification-${purpose.name}-$email") {
-        koin.get<VerificationViewModel> { parametersOf(email, purpose) }
+        koin.get<VerificationViewModel> { parametersOf(email, purpose, accountJustCreated) }
     }
 }
 

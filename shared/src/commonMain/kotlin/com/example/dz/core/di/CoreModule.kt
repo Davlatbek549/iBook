@@ -16,6 +16,7 @@ import com.example.dz.data.remote.api.createAuthHttpClient
 import com.example.dz.data.remote.api.createRemoteHttpClient
 import com.example.dz.data.repository.ChatRepositoryImpl
 import com.example.dz.data.repository.DownloadRepositoryImpl
+import com.example.dz.data.repository.LocalDeviceDataRepository
 import com.example.dz.data.repository.LocalCollectionRepository
 import com.example.dz.data.repository.LocalLibraryRepository
 import com.example.dz.data.repository.MembershipRepositoryImpl
@@ -29,6 +30,7 @@ import com.example.dz.domain.repository.AuthRepository
 import com.example.dz.domain.repository.BookRepository
 import com.example.dz.domain.repository.ChatRepository
 import com.example.dz.domain.repository.CollectionRepository
+import com.example.dz.domain.repository.DeviceDataRepository
 import com.example.dz.domain.repository.DownloadRepository
 import com.example.dz.domain.repository.LibraryRepository
 import com.example.dz.domain.repository.MembershipRepository
@@ -36,6 +38,8 @@ import com.example.dz.domain.repository.NotificationRepository
 import com.example.dz.domain.repository.PaymentRepository
 import com.example.dz.domain.repository.SocialRepository
 import com.example.dz.domain.repository.UserRepository
+import com.example.dz.domain.usecase.account.DeleteAccountUseCase
+import com.example.dz.domain.usecase.account.DiscardSignUpUseCase
 import com.example.dz.domain.usecase.auth.GetCurrentUserUseCase
 import com.example.dz.domain.usecase.auth.LoginUseCase
 import com.example.dz.domain.usecase.auth.LogoutUseCase
@@ -170,6 +174,7 @@ val coreModule = module {
 
     // ── Offline downloads (Phase 3) ──────────────────────────────────────────
     single<DownloadRepository> { DownloadRepositoryImpl(get(), get(), get()) }
+    single<DeviceDataRepository> { LocalDeviceDataRepository(get(), get(), get(), get()) }
 
     // Domain use cases
     factory { LoginUseCase(get()) }
@@ -180,6 +185,8 @@ val coreModule = module {
     factory { RequestPasswordResetUseCase(get()) }
     factory { ResetPasswordUseCase(get()) }
     factory { LogoutUseCase(get()) }
+    factory { DeleteAccountUseCase(get(), get()) }
+    factory { DiscardSignUpUseCase(get()) }
     factory { GetCurrentUserUseCase(get()) }
     factory { GetProfileUseCase(get()) }
     factory { UpdateProfileUseCase(get()) }
@@ -228,8 +235,8 @@ val coreModule = module {
     }
     factory { SignUpViewModel(get(), get()) }
     factory { (email: String) -> ForgotPasswordViewModel(email, get()) }
-    factory { (email: String, purpose: VerificationPurpose) ->
-        VerificationViewModel(email, purpose, get(), get(), get(), get(), get())
+    factory { (email: String, purpose: VerificationPurpose, accountJustCreated: Boolean) ->
+        VerificationViewModel(email, purpose, accountJustCreated, get(), get(), get(), get(), get(), get())
     }
     factory { (email: String, code: String) -> NewPasswordViewModel(email, code, get()) }
     factory { HomeViewModel(get(), get()) }
@@ -264,7 +271,7 @@ val coreModule = module {
 
     factory { ProfileViewModel(get()) }
     factory { (bookId: String) -> ReadingViewModel(bookId, get(), get(), get(), get(), get()) }
-    factory { SettingsViewModel(get()) }
+    factory { SettingsViewModel(get(), get()) }
 
     factory { FriendListViewModel(get()) }
     factory { (friendId: String) -> FriendDetailViewModel(friendId, get()) }

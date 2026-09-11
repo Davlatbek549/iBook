@@ -69,6 +69,11 @@ class LibraryLocalDataSource(database: DzDatabase) {
     fun remove(bookId: String) {
         queries.deleteById(bookId)
     }
+
+    /** Empties the library. The downloaded files themselves are the caller's to delete. */
+    fun removeAll() {
+        queries.deleteAll()
+    }
 }
 
 private fun Library_book.toLibraryBook(): LibraryBook =

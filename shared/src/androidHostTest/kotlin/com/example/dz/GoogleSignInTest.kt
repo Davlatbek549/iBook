@@ -84,6 +84,7 @@ class GoogleSignInTest {
         ): AppResult<Unit> = AppResult.Success(Unit)
 
         override suspend fun logout(): AppResult<Unit> = AppResult.Success(Unit)
+        override suspend fun deleteAccount(): AppResult<Unit> = AppResult.Success(Unit)
         override suspend fun getCurrentUser(): AppResult<User?> = AppResult.Success(null)
     }
 
@@ -202,9 +203,14 @@ class GoogleSignInTest {
 
         // The button is disabled in the UI, but the rule has to hold here too: signing up
         // through Google creates an account exactly as the form does.
+        viewModel.onEvent(SignUpEvent.GoogleClicked)
         viewModel.onEvent(SignUpEvent.GoogleTokenReceived("id-token-abc"))
         testScheduler.advanceUntilIdle()
         assertEquals(0, repository.googleCalls, "an unticked agreement must not create an account")
+        assertTrue(
+            !viewModel.uiState.value.isLoading,
+            "the tap started the spinner; turning the token away has to stop it",
+        )
 
         viewModel.acceptLegalDocuments()
         viewModel.onEvent(SignUpEvent.GoogleTokenReceived("id-token-abc"))

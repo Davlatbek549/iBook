@@ -4,6 +4,8 @@ import com.example.dz.core.error.AppError
 import com.example.dz.core.result.AppResult
 import com.example.dz.domain.model.User
 import com.example.dz.domain.repository.AuthRepository
+import com.example.dz.domain.repository.DeviceDataRepository
+import com.example.dz.domain.usecase.account.DeleteAccountUseCase
 import com.example.dz.domain.usecase.auth.GetCurrentUserUseCase
 import com.example.dz.domain.usecase.auth.LogoutUseCase
 import com.example.dz.presentation.settings.SettingsEffect
@@ -74,6 +76,11 @@ class SessionRestoreTest {
             return AppResult.Success(Unit)
         }
 
+        override suspend fun deleteAccount(): AppResult<Unit> {
+            currentUser = null
+            return AppResult.Success(Unit)
+        }
+
         override suspend fun getCurrentUser(): AppResult<User?> =
             currentUserResult ?: AppResult.Success(currentUser)
     }
@@ -118,7 +125,10 @@ class SessionRestoreTest {
     @Test
     fun `signing out clears the session and returns to login`() = runTest {
         val repository = FakeAuthRepository(currentUser = User(id = "u-1", name = "Ada"))
-        val viewModel = SettingsViewModel(LogoutUseCase(repository))
+        val viewModel = SettingsViewModel(
+            LogoutUseCase(repository),
+            DeleteAccountUseCase(repository, NothingOnDevice),
+        )
 
         viewModel.onEvent(SettingsEvent.SignOutClicked)
 
@@ -126,4 +136,8 @@ class SessionRestoreTest {
         assertEquals(1, repository.logoutCalls, "sign out must reach the repository, not just navigate")
         assertTrue(repository.getCurrentUser().let { it is AppResult.Success && it.data == null })
     }
+}
+
+private object NothingOnDevice : DeviceDataRepository {
+    override suspend fun eraseAccountData() = Unit
 }

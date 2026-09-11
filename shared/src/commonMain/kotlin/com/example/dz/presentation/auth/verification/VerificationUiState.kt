@@ -51,6 +51,12 @@ data class VerificationUiState(
      * "Verifying…" then would be describing something that is not happening.
      */
     val isSendingCode: Boolean = false,
+    /**
+     * On the way out: giving up the session, or taking back an account the sign-up form just
+     * made. Kept apart from [isLoading] for the same reason as [isSendingCode] — the Verify
+     * button would otherwise say "Verifying…" while the reader is leaving.
+     */
+    val isLeaving: Boolean = false,
     val errorMessage: String? = null,
 ) {
     val canResend: Boolean get() = secondsLeft == 0

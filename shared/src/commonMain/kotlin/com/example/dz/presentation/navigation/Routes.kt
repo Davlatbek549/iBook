@@ -21,8 +21,9 @@ object Routes {
     /**
      * Code entry is reached from sign-up and from a password reset, and ends somewhere different
      * in each — so the purpose travels in the route rather than being guessed at the far end.
+     * `created` marks an account the sign-up form has just made; see [verification].
      */
-    const val VERIFICATION = "verification/{purpose}/{email}"
+    const val VERIFICATION = "verification/{purpose}/{email}?created={created}"
     /**
      * The reset code rides along: it is spent by the call this screen makes, not by the code
      * screen that collected it.
@@ -89,9 +90,15 @@ object Routes {
     /**
      * [email] is percent-encoded: an address is user input, and Navigation splits the route on
      * the same characters an address is allowed to contain.
+     *
+     * [accountJustCreated] is for the sign-up form alone. It makes backing out of the code screen
+     * delete the account, which is only safe for one that did not exist until the form made it.
      */
-    fun verification(purpose: VerificationPurpose, email: String) =
-        "verification/${purpose.name}/${email.encodeURLPathPart()}"
+    fun verification(
+        purpose: VerificationPurpose,
+        email: String,
+        accountJustCreated: Boolean = false,
+    ) = "verification/${purpose.name}/${email.encodeURLPathPart()}?created=$accountJustCreated"
 
     fun newPassword(email: String, code: String) =
         "new_password/${email.encodeURLPathPart()}/${code.encodeURLPathPart()}"

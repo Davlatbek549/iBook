@@ -13,6 +13,22 @@ private object Keys {
     const val ONBOARDING_COMPLETED = "onboarding_completed"
 }
 
+/**
+ * Every key written on an account's behalf, by prefix: profile counters, the payment, social and
+ * notification stubs, and the code-send stamps. Erasing an account removes these and nothing more —
+ * on iOS the store is shared with the system, so clearing it wholesale would take keys that were
+ * never the app's. A new per-account key needs one of these prefixes, or a new entry here.
+ */
+private val USER_DATA_PREFIXES = listOf(
+    "profile_",
+    "selected_payment_method",
+    "purchase_status_",
+    "invited_",
+    "unread_",
+    "notif_read_",
+    "code_sent_at_",
+)
+
 class LocalDataSourceImpl(private val settings: Settings) : LocalDataSource {
 
     override fun getToken(): String? = settings.getStringOrNull(Keys.TOKEN)
@@ -66,6 +82,13 @@ class LocalDataSourceImpl(private val settings: Settings) : LocalDataSource {
         settings.remove(Keys.EMAIL_VERIFIED)
         settings.remove(Keys.USER_NAME)
         settings.putBoolean(Keys.LOGGED_IN, false)
+    }
+
+    override fun clearUserData() {
+        clearSession()
+        settings.keys
+            .filter { key -> USER_DATA_PREFIXES.any { key.startsWith(it) } }
+            .forEach(settings::remove)
     }
 
     override fun getSetting(key: String, default: String): String =

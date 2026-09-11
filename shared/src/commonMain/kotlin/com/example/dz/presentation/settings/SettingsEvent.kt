@@ -12,6 +12,9 @@ sealed interface SettingsEvent {
     data object TermsClicked : SettingsEvent
     data object PrivacyClicked : SettingsEvent
     data object SignOutClicked : SettingsEvent
+    data object DeleteAccountClicked : SettingsEvent
+    data object DeleteAccountConfirmed : SettingsEvent
+    data object DeleteAccountDismissed : SettingsEvent
     data class ReadingRemindersToggled(val enabled: Boolean) : SettingsEvent
     data class MessagesToggled(val enabled: Boolean) : SettingsEvent
     data class PriceDropsToggled(val enabled: Boolean) : SettingsEvent

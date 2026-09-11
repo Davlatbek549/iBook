@@ -89,22 +89,6 @@ class DownloadRepositoryTest {
     }
 }
 
-/** In-memory [FileStorage] keyed by a synthetic path. */
-private class FakeFileStorage : FileStorage {
-    val files = mutableMapOf<String, String>()
-    override fun save(bookId: String, text: String): String {
-        val path = "/mem/$bookId.txt"
-        files[path] = text
-        return path
-    }
-    override fun read(path: String): String? = files[path]
-    override fun delete(path: String): Boolean {
-        files.remove(path)
-        return true
-    }
-    override fun exists(path: String): Boolean = files.containsKey(path)
-}
-
 /** Minimal [BookRepository] returning a fixed book + text. */
 private class FakeBookRepository(private val book: Book?, private val text: String) : BookRepository {
     override suspend fun searchBooks(query: String): AppResult<List<Book>> = AppResult.Success(emptyList())

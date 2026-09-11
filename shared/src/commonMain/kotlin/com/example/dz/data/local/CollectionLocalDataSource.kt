@@ -65,6 +65,14 @@ class CollectionLocalDataSource(private val database: DzDatabase) {
         }
     }
 
+    /** Deletes every collection along with its book membership. */
+    fun deleteAll() {
+        database.transaction {
+            bookQueries.deleteAll()
+            collectionQueries.deleteAll()
+        }
+    }
+
     private fun replaceBooks(collectionId: String, books: List<Book>) {
         bookQueries.deleteByCollection(collectionId)
         books.forEach { book ->

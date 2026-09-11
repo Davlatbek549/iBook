@@ -45,6 +45,12 @@ internal class FakeLocalDataSource : LocalDataSource {
 
     override fun isLoggedIn(): Boolean = !values["token"].isNullOrEmpty()
     override fun clearSession() { values.clear() }
+
+    override fun clearUserData() {
+        val onboarded = values["onboardingCompleted"]
+        values.clear()
+        onboarded?.let { values["onboardingCompleted"] = it }
+    }
     override fun getSetting(key: String, default: String): String = values[key] ?: default
     override fun saveSetting(key: String, value: String) { values[key] = value }
     override fun removeSetting(key: String) { values.remove(key) }
