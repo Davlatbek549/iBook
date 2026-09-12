@@ -32,5 +32,11 @@ interface AuthRepository {
     suspend fun resetPassword(email: String, code: String, newPassword: String): AppResult<Unit>
 
     suspend fun logout(): AppResult<Unit>
+
+    /**
+     * Deletes the signed-in account on the server, and the session on this device with it. What
+     * else the device holds for the account is [DeviceDataRepository]'s to erase.
+     */
+    suspend fun deleteAccount(): AppResult<Unit>
     suspend fun getCurrentUser(): AppResult<User?>
 }

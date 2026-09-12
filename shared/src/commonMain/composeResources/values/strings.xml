@@ -296,6 +296,10 @@
     <string name="set_terms">Terms of service</string>
     <string name="set_privacy">Privacy policy</string>
     <string name="set_sign_out">Sign out</string>
+    <string name="set_delete_account">Delete account</string>
+    <string name="set_delete_title">Delete your account?</string>
+    <string name="set_delete_body">Your account and everything saved to it will be deleted. Your library, collections and downloaded books will be removed from this device too. This can’t be undone.</string>
+    <string name="set_delete_cancel">Keep my account</string>
     <string name="set_version">DZ for Android · 1.24.0</string>
     <string name="store_book_of_the_week">Book of the week</string>
     <string name="store_new_releases">New releases</string>

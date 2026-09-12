@@ -5,8 +5,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -18,25 +20,36 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.example.dz.designsystem.components.icons.InkIcons
+import com.example.dz.designsystem.components.ink.InkButton
 import com.example.dz.designsystem.components.ink.InkLabel
+import com.example.dz.designsystem.components.ink.InkSecondaryButton
 import com.example.dz.designsystem.components.ink.InkToggle
 import com.example.dz.designsystem.components.ink.InkTopBar
 import com.example.dz.designsystem.components.ink.inkCard
 import com.example.dz.designsystem.theme.InkColors
 import com.example.dz.designsystem.theme.inkBodyFontFamily
 import com.example.dz.designsystem.theme.inkColors
+import com.example.dz.designsystem.theme.inkDisplayFontFamily
 import dz.shared.generated.resources.Res
 import dz.shared.generated.resources.set_about
 import dz.shared.generated.resources.set_account
 import dz.shared.generated.resources.set_appearance
 import dz.shared.generated.resources.set_daily_goal
+import dz.shared.generated.resources.set_delete_account
+import dz.shared.generated.resources.set_delete_body
+import dz.shared.generated.resources.set_delete_cancel
+import dz.shared.generated.resources.set_delete_title
 import dz.shared.generated.resources.set_edit_profile
 import dz.shared.generated.resources.set_email
 import dz.shared.generated.resources.set_help
@@ -80,6 +93,8 @@ fun SettingsScreen(
             ValueRow(InkIcons.Email, stringResource(Res.string.set_email), uiState.email, { onEvent(SettingsEvent.EmailClicked) }, colors)
             RowDivider(colors)
             ChevronRow(InkIcons.Lock, stringResource(Res.string.set_password), { onEvent(SettingsEvent.PasswordClicked) }, colors)
+            RowDivider(colors)
+            BaseRow(InkIcons.Delete, stringResource(Res.string.set_delete_account), { onEvent(SettingsEvent.DeleteAccountClicked) }, colors, tint = colors.danger) {}
         }
 
         // Reading
@@ -125,6 +140,69 @@ fun SettingsScreen(
             )
         }
     }
+
+    if (uiState.isDeleteConfirmationVisible) {
+        DeleteAccountDialog(
+            isDeleting = uiState.isDeletingAccount,
+            error = uiState.deleteAccountError,
+            onConfirm = { onEvent(SettingsEvent.DeleteAccountConfirmed) },
+            onDismiss = { onEvent(SettingsEvent.DeleteAccountDismissed) },
+            colors = colors
+        )
+    }
+}
+
+/**
+ * Asks before anything is deleted. While the request is out, nothing dismisses it — not the
+ * back gesture, not a tap outside — so the reader cannot walk away unsure whether it happened.
+ */
+@Composable
+private fun DeleteAccountDialog(
+    isDeleting: Boolean,
+    error: String?,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+    colors: InkColors,
+) {
+    val bodyFont = inkBodyFontFamily()
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(dismissOnBackPress = !isDeleting, dismissOnClickOutside = !isDeleting)
+    ) {
+        Column(modifier = Modifier.fillMaxWidth().inkCard(colors).padding(22.dp)) {
+            Text(
+                text = stringResource(Res.string.set_delete_title),
+                fontFamily = inkDisplayFontFamily(), fontWeight = FontWeight.Medium, fontSize = 21.sp, color = colors.ink
+            )
+            Text(
+                text = stringResource(Res.string.set_delete_body),
+                modifier = Modifier.padding(top = 10.dp),
+                fontFamily = bodyFont, fontSize = 13.sp, lineHeight = 19.sp, color = colors.inkSoft
+            )
+            if (error != null) {
+                Text(
+                    text = error,
+                    modifier = Modifier.padding(top = 12.dp),
+                    fontFamily = bodyFont, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, lineHeight = 17.sp, color = colors.danger
+                )
+            }
+            Spacer(modifier = Modifier.height(22.dp))
+            // The primary button on a danger ground, so the one irreversible action here looks it.
+            InkButton(
+                text = stringResource(Res.string.set_delete_account),
+                onClick = onConfirm,
+                isBusy = isDeleting,
+                colors = colors.copy(accent = colors.danger)
+            )
+            InkSecondaryButton(
+                text = stringResource(Res.string.set_delete_cancel),
+                onClick = onDismiss,
+                modifier = Modifier.padding(top = 10.dp).alpha(if (isDeleting) 0.45f else 1f),
+                height = 48.dp,
+                colors = colors
+            )
+        }
+    }
 }
 
 @Composable
@@ -148,6 +226,8 @@ private fun BaseRow(
     title: String,
     onClick: () -> Unit,
     colors: InkColors,
+    /** Overrides the icon and title colour, for a row whose action is destructive. */
+    tint: Color? = null,
     trailing: @Composable () -> Unit,
 ) {
     Row(
@@ -155,8 +235,8 @@ private fun BaseRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(13.dp)
     ) {
-        Icon(icon, null, tint = colors.inkSoft, modifier = Modifier.size(16.dp))
-        Text(title, modifier = Modifier.weight(1f), fontFamily = inkBodyFontFamily(), fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = colors.ink)
+        Icon(icon, null, tint = tint ?: colors.inkSoft, modifier = Modifier.size(16.dp))
+        Text(title, modifier = Modifier.weight(1f), fontFamily = inkBodyFontFamily(), fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = tint ?: colors.ink)
         trailing()
     }
 }

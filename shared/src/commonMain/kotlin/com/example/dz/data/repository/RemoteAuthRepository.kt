@@ -83,6 +83,12 @@ class RemoteAuthRepository(
         return AppResult.Success(Unit)
     }
 
+    override suspend fun deleteAccount(): AppResult<Unit> =
+        runRemote { api.deleteAccount() }
+            // Only once the server has let go of it. A failed attempt leaves the reader signed in
+            // to an account that still exists, which is the truth, and lets them try again.
+            .also { if (it is AppResult.Success) local.clearSession() }
+
     override suspend fun getCurrentUser(): AppResult<User?> {
         if (!local.isLoggedIn()) return AppResult.Success(null)
         val userId = local.getUserId() ?: return AppResult.Success(null)

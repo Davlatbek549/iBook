@@ -1,9 +1,9 @@
-package com.example.dz.presentation.onboarding
+package com.example.dz.presentation.common
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 
 @Composable
-actual fun OnboardingBackHandler(enabled: Boolean, onBack: () -> Unit) {
+actual fun SystemBackHandler(enabled: Boolean, onBack: () -> Unit) {
     BackHandler(enabled = enabled, onBack = onBack)
 }

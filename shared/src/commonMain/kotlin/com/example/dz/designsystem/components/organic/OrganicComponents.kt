@@ -64,21 +64,34 @@ fun OrganicBackButton(
     onClick: () -> Unit,
     contentDescription: String?,
     modifier: Modifier = Modifier,
+    /**
+     * Leaving takes a round trip first. The arrow gives way to a spinner and stops taking taps,
+     * so a wait on the server does not read as a button that ignored the reader.
+     */
+    isBusy: Boolean = false,
 ) {
     Box(
         modifier = modifier
             .size(OrganicSize.backButton)
             .clip(CircleShape)
             .background(OrganicColors.neutral200)
-            .clickable(onClick = onClick),
+            .clickable(enabled = !isBusy, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
-        Icon(
-            imageVector = InkIcons.Back,
-            contentDescription = contentDescription,
-            tint = OrganicColors.neutral800,
-            modifier = Modifier.size(18.dp)
-        )
+        if (isBusy) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(16.dp),
+                color = OrganicColors.neutral800,
+                strokeWidth = 2.dp
+            )
+        } else {
+            Icon(
+                imageVector = InkIcons.Back,
+                contentDescription = contentDescription,
+                tint = OrganicColors.neutral800,
+                modifier = Modifier.size(18.dp)
+            )
+        }
     }
 }
 

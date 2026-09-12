@@ -134,7 +134,9 @@ class SignUpViewModel(
             when (val result = signUp(state.fullName.trim(), state.email.trim(), state.password)) {
                 is AppResult.Success -> {
                     _uiState.update { it.copy(isLoading = false) }
-                    emitEffect(SignUpEffect.NavigateToVerification(state.email.trim()))
+                    emitEffect(
+                        SignUpEffect.NavigateToVerification(state.email.trim(), accountJustCreated = true)
+                    )
                 }
                 is AppResult.Error ->
                     _uiState.update {
@@ -150,8 +152,12 @@ class SignUpViewModel(
      */
     private fun exchangeGoogleToken(idToken: String) {
         // The button is disabled until the terms are ticked, but the gate belongs here too:
-        // signing up through Google creates an account just as the form does.
-        if (!_uiState.value.termsAccepted) return
+        // signing up through Google creates an account just as the form does. The tap already
+        // set the spinner going, so turning back here has to stop it.
+        if (!_uiState.value.termsAccepted) {
+            _uiState.update { it.copy(isLoading = false) }
+            return
+        }
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
@@ -159,11 +165,16 @@ class SignUpViewModel(
                 is AppResult.Success -> {
                     _uiState.update { it.copy(isLoading = false) }
                     // Google nearly always vouches for the address, but when it does not, the
-                    // account is as unverified as any other and goes where they all go.
+                    // account is as unverified as any other and goes where they all go. It may
+                    // be one Google signed them in to rather than a new one, so backing out of
+                    // the code screen must not delete it.
                     val user = result.data
                     emitEffect(
                         if (user.emailVerified) SignUpEffect.NavigateToHome
-                        else SignUpEffect.NavigateToVerification(user.email.orEmpty())
+                        else SignUpEffect.NavigateToVerification(
+                            user.email.orEmpty(),
+                            accountJustCreated = false,
+                        )
                     )
                 }
                 is AppResult.Error ->

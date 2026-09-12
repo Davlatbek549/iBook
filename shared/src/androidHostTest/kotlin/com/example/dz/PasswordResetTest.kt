@@ -91,6 +91,7 @@ class PasswordResetTest {
         override suspend fun signInWithGoogle(idToken: String): AppResult<User> =
             AppResult.Error(AppError.Unauthorized)
         override suspend fun logout(): AppResult<Unit> = AppResult.Success(Unit)
+        override suspend fun deleteAccount(): AppResult<Unit> = AppResult.Success(Unit)
         override suspend fun getCurrentUser(): AppResult<User?> = AppResult.Success(null)
     }
 

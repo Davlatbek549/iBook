@@ -56,6 +56,7 @@ import com.example.dz.designsystem.theme.OrganicColors
 import com.example.dz.designsystem.theme.OrganicShape
 import com.example.dz.designsystem.theme.organicBodyFontFamily
 import com.example.dz.designsystem.theme.organicHeadingFontFamily
+import com.example.dz.presentation.common.SystemBackHandler
 import dz.shared.generated.resources.Res
 import dz.shared.generated.resources.onboarding_next
 import dz.shared.generated.resources.onboarding_page1_desc
@@ -101,7 +102,7 @@ fun OnboardingScreen(
 
     // Page 3 -> Page 2 -> Page 1 -> normal root back behavior (we simply let
     // the event fall through to the system/NavController when on page 0).
-    OnboardingBackHandler(enabled = pagerState.currentPage > 0) {
+    SystemBackHandler(enabled = pagerState.currentPage > 0) {
         scope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) }
     }
 

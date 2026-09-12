@@ -18,11 +18,15 @@ actual class BookFileStorage : FileStorage {
 
     private val fileManager = NSFileManager.defaultManager
 
-    private fun booksDirectory(): String {
+    private fun booksDirectoryPath(): String {
         val documents = NSSearchPathForDirectoriesInDomains(
             NSDocumentDirectory, NSUserDomainMask, true
         ).firstOrNull() as? String ?: ""
-        val directory = "$documents/$BOOKS_DIR"
+        return "$documents/$BOOKS_DIR"
+    }
+
+    private fun booksDirectory(): String {
+        val directory = booksDirectoryPath()
         fileManager.createDirectoryAtPath(directory, true, null, null)
         return directory
     }
@@ -47,6 +51,12 @@ actual class BookFileStorage : FileStorage {
 
     actual override fun exists(path: String): Boolean =
         fileManager.fileExistsAtPath(path)
+
+    actual override fun deleteAll(): Boolean {
+        val directory = booksDirectoryPath()
+        return !fileManager.fileExistsAtPath(directory) ||
+            fileManager.removeItemAtPath(directory, null)
+    }
 
     private companion object {
         const val BOOKS_DIR = "books"

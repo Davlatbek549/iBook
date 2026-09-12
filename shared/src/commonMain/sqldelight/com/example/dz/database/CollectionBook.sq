@@ -22,3 +22,6 @@ DELETE FROM collection_book WHERE collection_id = ?;
 
 deleteBook:
 DELETE FROM collection_book WHERE collection_id = ? AND book_id = ?;
+
+deleteAll:
+DELETE FROM collection_book;

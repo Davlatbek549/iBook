@@ -57,6 +57,7 @@ class UnverifiedRelaunchTest {
             newPassword: String,
         ): AppResult<Unit> = AppResult.Success(Unit)
         override suspend fun logout(): AppResult<Unit> = AppResult.Success(Unit)
+        override suspend fun deleteAccount(): AppResult<Unit> = AppResult.Success(Unit)
     }
 
     private fun splashFor(user: User?) =

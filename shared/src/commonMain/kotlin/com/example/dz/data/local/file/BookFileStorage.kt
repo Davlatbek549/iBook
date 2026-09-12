@@ -11,5 +11,6 @@ expect class BookFileStorage : FileStorage {
     override fun save(bookId: String, text: String): String
     override fun read(path: String): String?
     override fun delete(path: String): Boolean
+    override fun deleteAll(): Boolean
     override fun exists(path: String): Boolean
 }

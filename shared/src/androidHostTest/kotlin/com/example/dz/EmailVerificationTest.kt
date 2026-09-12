@@ -7,6 +7,7 @@ import com.example.dz.core.time.currentEpochMillis
 import com.example.dz.data.local.LocalDataSource
 import com.example.dz.domain.model.User
 import com.example.dz.domain.repository.AuthRepository
+import com.example.dz.domain.usecase.account.DiscardSignUpUseCase
 import com.example.dz.domain.usecase.auth.LogoutUseCase
 import com.example.dz.domain.usecase.auth.RequestPasswordResetUseCase
 import com.example.dz.domain.usecase.auth.ResendVerificationCodeUseCase
@@ -96,6 +97,13 @@ class EmailVerificationTest {
             logoutCalls++
             return AppResult.Success(Unit)
         }
+        var deleteCalls = 0
+            private set
+
+        override suspend fun deleteAccount(): AppResult<Unit> {
+            deleteCalls++
+            return AppResult.Success(Unit)
+        }
         override suspend fun getCurrentUser(): AppResult<User?> = AppResult.Success(null)
     }
 
@@ -118,6 +126,7 @@ class EmailVerificationTest {
         resendCode = ResendVerificationCodeUseCase(repository),
         requestPasswordReset = RequestPasswordResetUseCase(repository),
         logout = LogoutUseCase(repository),
+        discardSignUp = DiscardSignUpUseCase(repository),
         local = local,
     )
 
@@ -341,6 +350,22 @@ class EmailVerificationTest {
         gate.complete(Unit)
         testScheduler.runCurrent()
         assertFalse(viewModel.uiState.value.isSendingCode)
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `backing out of an account someone signed in to only goes back`() = runTest(dispatcher) {
+        // Signing in to an unverified account lands here too — and that account may be years
+        // old. Only one the sign-up form has just made may be taken back on the way out.
+        val repository = RecordingAuthRepository()
+        val viewModel = viewModel(repository)
+
+        viewModel.onEvent(VerificationEvent.BackClicked)
+        val effect = viewModel.effects.first()
+
+        assertEquals(VerificationEffect.NavigateBack, effect)
+        assertEquals(0, repository.deleteCalls, "an account that predates this screen must survive it")
+        assertEquals(0, repository.logoutCalls)
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)

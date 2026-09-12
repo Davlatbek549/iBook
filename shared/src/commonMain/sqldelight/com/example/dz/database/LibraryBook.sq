@@ -49,3 +49,6 @@ UPDATE library_book SET is_favorite = ? WHERE id = ?;
 
 deleteById:
 DELETE FROM library_book WHERE id = ?;
+
+deleteAll:
+DELETE FROM library_book;

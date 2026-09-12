@@ -16,4 +16,10 @@ interface FileStorage {
 
     /** Whether a file currently exists at [path]. */
     fun exists(path: String): Boolean
+
+    /**
+     * Deletes every saved book, including any the library no longer points at. Returns true if
+     * none remain afterward.
+     */
+    fun deleteAll(): Boolean
 }

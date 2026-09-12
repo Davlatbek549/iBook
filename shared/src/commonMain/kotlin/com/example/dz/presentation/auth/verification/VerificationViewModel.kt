@@ -2,9 +2,11 @@ package com.example.dz.presentation.auth.verification
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.dz.core.auth.MailedCodeKind
 import com.example.dz.core.result.AppResult
 import com.example.dz.core.time.currentEpochMillis
 import com.example.dz.data.local.LocalDataSource
+import com.example.dz.domain.usecase.account.DiscardSignUpUseCase
 import com.example.dz.domain.usecase.auth.LogoutUseCase
 import com.example.dz.domain.usecase.auth.RequestPasswordResetUseCase
 import com.example.dz.domain.usecase.auth.ResendVerificationCodeUseCase
@@ -32,10 +34,17 @@ import kotlinx.coroutines.launch
 class VerificationViewModel(
     email: String = "",
     purpose: VerificationPurpose = VerificationPurpose.VerifyEmail,
+    /**
+     * The sign-up form made this account a moment ago, so backing out takes it back — see
+     * [discardAndLeave]. Never set for an account someone signed in to: that one existed before
+     * this screen did, and may hold everything its owner has.
+     */
+    private val accountJustCreated: Boolean = false,
     private val verifyEmail: VerifyEmailUseCase,
     private val resendCode: ResendVerificationCodeUseCase,
     private val requestPasswordReset: RequestPasswordResetUseCase,
     private val logout: LogoutUseCase,
+    private val discardSignUp: DiscardSignUpUseCase,
     private val local: LocalDataSource,
 ) : ViewModel() {
 
@@ -68,7 +77,12 @@ class VerificationViewModel(
             is VerificationEvent.CodeChanged -> onCodeChanged(event.code)
             VerificationEvent.VerifyClicked -> verify()
             VerificationEvent.ResendClicked -> resend()
-            VerificationEvent.BackClicked -> emitEffect(VerificationEffect.NavigateBack)
+            VerificationEvent.BackClicked ->
+                if (accountJustCreated && _uiState.value.purpose == VerificationPurpose.VerifyEmail) {
+                    discardAndLeave()
+                } else {
+                    emitEffect(VerificationEffect.NavigateBack)
+                }
             VerificationEvent.AbandonSession -> abandonSession()
         }
     }
@@ -83,7 +97,9 @@ class VerificationViewModel(
 
     private fun verify() {
         val state = _uiState.value
-        if (state.isLoading || !state.isComplete) return
+        // Not while leaving: a code accepted mid-discard would open Home on an account that is
+        // about to stop existing.
+        if (state.isLoading || state.isLeaving || !state.isComplete) return
 
         when (state.purpose) {
             VerificationPurpose.VerifyEmail -> checkWithServer(state.email, state.code)
@@ -125,7 +141,7 @@ class VerificationViewModel(
      */
     private fun resend() {
         val state = _uiState.value
-        if (!state.canResend || state.isLoading || state.isSendingCode) return
+        if (!state.canResend || state.isLoading || state.isSendingCode || state.isLeaving) return
         sendCode()
     }
 
@@ -159,13 +175,36 @@ class VerificationViewModel(
      * would land the very next launch back on this screen with no more way out than before.
      */
     private fun abandonSession() {
-        if (_uiState.value.isLoading) return
+        if (_uiState.value.isLoading || _uiState.value.isLeaving) return
 
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+            _uiState.update { it.copy(isLeaving = true, errorMessage = null) }
             logout()
-            _uiState.update { it.copy(isLoading = false) }
+            _uiState.update { it.copy(isLeaving = false) }
             emitEffect(VerificationEffect.NavigateToLogin)
+        }
+    }
+
+    /**
+     * Takes back the account the sign-up form just made, then returns to the form — still filled
+     * in, so a mistyped address is one edit away from a sign-up that makes the only account,
+     * rather than a second one beside an abandoned first.
+     *
+     * The wait is bounded by [DiscardSignUpUseCase]. A server that does not answer in time keeps
+     * the account, unverified, but this device lets go of it all the same: the reader has walked
+     * away from it, and a session kept for it would bring the next launch back to this screen.
+     */
+    private fun discardAndLeave() {
+        if (_uiState.value.isLoading || _uiState.value.isLeaving) return
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLeaving = true, errorMessage = null) }
+            if (!discardSignUp()) local.clearSession()
+            // The code on its way went to the address being given up. Left on record, it would
+            // have the next code screen, whichever account that is for, think one was live.
+            local.removeSetting(MailedCodeKind.EmailVerification.lastSentSettingKey)
+            _uiState.update { it.copy(isLeaving = false) }
+            emitEffect(VerificationEffect.NavigateBack)
         }
     }
 
