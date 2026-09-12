@@ -460,9 +460,8 @@ fun DZNavGraph() {
                     homeViewModel.effects.collect { effect ->
                         when (effect) {
                             is HomeEffect.NavigateToBook -> navController.navigate(Routes.prePurchase(effect.bookId))
-                            is HomeEffect.NavigateToAuthor -> navController.navigate(Routes.authorDetail(effect.authorId))
                             is HomeEffect.NavigateToReading -> navController.navigate(Routes.reading(effect.bookId))
-                            HomeEffect.NavigateToNotifications -> navController.navigate(Routes.NOTIFICATIONS)
+                            HomeEffect.NavigateToFriends -> navController.navigate(Routes.FRIEND_LIST)
                             HomeEffect.NavigateToProfile -> navController.navigate(Routes.PROFILE_TAB)
                         }
                     }
@@ -471,15 +470,10 @@ fun DZNavGraph() {
                 HomeScreen(
                     uiState = uiState,
                     onKeepReadingClick = { homeViewModel.onEvent(HomeEvent.KeepReadingClicked) },
-                    onViewAllCategoriesClick = { navigateBottomTab(Routes.SEARCH) },
-                    onBookClick = { book ->
-                        homeViewModel.onEvent(HomeEvent.BookClicked(book.id))
-                    },
-                    onAuthorClick = { author ->
-                        homeViewModel.onEvent(HomeEvent.AuthorClicked(routeKey(author.name)))
-                    },
-                    onGoalsKeepReadingClick = { homeViewModel.onEvent(HomeEvent.GoalsKeepReadingClicked) },
-                    onNotificationsClick = { homeViewModel.onEvent(HomeEvent.NotificationsClicked) },
+                    onSearchClick = { navigateBottomTab(Routes.SEARCH) },
+                    onSeeAllClick = { navigateBottomTab(Routes.STORE) },
+                    onBookClick = { bookId -> homeViewModel.onEvent(HomeEvent.BookClicked(bookId)) },
+                    onPresenceClick = { homeViewModel.onEvent(HomeEvent.PresenceClicked) },
                     onProfileClick = { homeViewModel.onEvent(HomeEvent.ProfileClicked) }
                 )
             }
