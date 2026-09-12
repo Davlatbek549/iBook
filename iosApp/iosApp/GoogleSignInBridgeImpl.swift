@@ -14,8 +14,11 @@ import GoogleSignIn
 /// against Google's published keys before believing any of it.
 final class GoogleSignInBridgeImpl: NSObject, GoogleSignInBridge {
 
-    /// The **iOS** OAuth client id. Android's tokens carry the Web client in `aud`, iOS carries
-    /// this one — which is why the server accepts a set of audiences rather than a single value.
+    /// The **iOS** OAuth client id: it identifies this app to Google, and its reversed form is the
+    /// URL scheme in Info.plist that the sign-in sheet returns through.
+    ///
+    /// It is not what the token is issued for. dz-server accepts exactly one audience, the **Web**
+    /// client, so the token has to be minted for that — see `signIn`.
     private static let clientId =
         "169301208092-sj71d0poosh9h0sj1mp79h496h97g49l.apps.googleusercontent.com"
 
@@ -27,7 +30,16 @@ final class GoogleSignInBridgeImpl: NSObject, GoogleSignInBridge {
             return
         }
 
-        GIDSignIn.sharedInstance.configuration = GIDConfiguration(clientID: Self.clientId)
+        // Naming the Web client as the server makes GoogleSignIn send it to Google as the token's
+        // `audience`, so the ID token comes back issued for the Web client — the same thing
+        // Android's setServerClientId does. Without it the token was issued for the iOS client,
+        // and dz-server, which checks for the Web client alone, refused every one of them.
+        //
+        // The id comes from the shared module, so iOS and Android cannot drift apart on it.
+        GIDSignIn.sharedInstance.configuration = GIDConfiguration(
+            clientID: Self.clientId,
+            serverClientID: GoogleAuthConfig.shared.SERVER_CLIENT_ID
+        )
         GIDSignIn.sharedInstance.signIn(withPresenting: presenter) { result, error in
             if let error = error as NSError? {
                 // Dismissing the sheet is a choice, not a failure: both nil means cancelled.
