@@ -13,7 +13,13 @@ kotlin {
 
 android {
     namespace = "com.example.dz.baselineprofile"
-    compileSdk = libs.versions.android.compileSdk.get().toInt()
+    compileSdk {
+        // Haze 2.x requires 37.2; minor platform releases are addressed separately
+        // from the API level.
+        version = release(libs.versions.android.compileSdk.get().toInt()) {
+            minorApiLevel = libs.versions.android.compileSdkMinor.get().toInt()
+        }
+    }
 
     defaultConfig {
         // Generating a profile on a device that is not rooted needs Android 13 (API 33); 28 is

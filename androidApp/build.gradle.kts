@@ -32,7 +32,13 @@ dependencies {
 
 android {
     namespace = "com.example.dz"
-    compileSdk = libs.versions.android.compileSdk.get().toInt()
+    compileSdk {
+        // Haze 2.x requires 37.2; minor platform releases are addressed separately
+        // from the API level.
+        version = release(libs.versions.android.compileSdk.get().toInt()) {
+            minorApiLevel = libs.versions.android.compileSdkMinor.get().toInt()
+        }
+    }
 
     defaultConfig {
         applicationId = "com.example.dz"
