@@ -6,6 +6,7 @@ import com.example.dz.core.result.AppResult
 import com.example.dz.domain.model.Friend
 import com.example.dz.domain.usecase.book.GetCategoriesUseCase
 import com.example.dz.domain.usecase.book.GetHomeBooksUseCase
+import com.example.dz.domain.usecase.goal.GetReadingGoalUseCase
 import com.example.dz.domain.usecase.library.GetContinueReadingUseCase
 import com.example.dz.domain.usecase.library.GetLibraryBooksUseCase
 import com.example.dz.domain.usecase.social.GetFriendsUseCase
@@ -24,7 +25,8 @@ class HomeViewModel(
     private val getProfile: GetProfileUseCase,
     private val getFriends: GetFriendsUseCase,
     private val getLibraryBooks: GetLibraryBooksUseCase,
-    private val getCategories: GetCategoriesUseCase
+    private val getCategories: GetCategoriesUseCase,
+    private val getReadingGoal: GetReadingGoalUseCase
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(HomeUiState(isLoading = true))
     val uiState = _uiState.asStateFlow()
@@ -43,6 +45,8 @@ class HomeViewModel(
                 HomeEffect.NavigateToReading(_uiState.value.continueReading?.book?.id ?: DEFAULT_BOOK_ID)
             )
             HomeEvent.PresenceClicked -> emitEffect(HomeEffect.NavigateToFriends)
+            HomeEvent.GoalClicked -> emitEffect(HomeEffect.NavigateToGoal)
+            HomeEvent.Resumed -> refreshLocal()
             HomeEvent.ProfileClicked -> emitEffect(HomeEffect.NavigateToProfile)
         }
     }
@@ -57,6 +61,7 @@ class HomeViewModel(
             val friendsResult = getFriends()
             val libraryResult = getLibraryBooks()
             val categoriesResult = getCategories()
+            val goalResult = getReadingGoal()
 
             val books = (booksResult as? AppResult.Success)?.data.orEmpty()
             val continueReading = (continueReadingResult as? AppResult.Success)?.data
@@ -91,10 +96,35 @@ class HomeViewModel(
                     editorsPick = books.getOrNull(1) ?: books.firstOrNull(),
                     friendsReading = friends.filter { it.currentBook != null },
                     categories = (categoriesResult as? AppResult.Success)?.data.orEmpty(),
+                    goal = (goalResult as? AppResult.Success)?.data,
                     userName = userName,
                     presence = presenceOf(friends),
                     isLoading = false,
                     errorMessage = error
+                )
+            }
+        }
+    }
+
+    /**
+     * Re-reads what reading changes, without going back to the network.
+     *
+     * The view model outlives a trip into the reader, so `init` alone left Home showing the
+     * minutes it loaded on first open: read for ten minutes, come back, and the goal ring still
+     * said zero.
+     */
+    private fun refreshLocal() {
+        viewModelScope.launch {
+            val continueReading = (getContinueReading() as? AppResult.Success)?.data
+            val shelf = (getLibraryBooks() as? AppResult.Success)?.data
+                .orEmpty()
+                .filter { it.progressPercent in 1..99 && it.book.id != continueReading?.book?.id }
+
+            _uiState.update {
+                it.copy(
+                    continueReading = continueReading,
+                    shelf = shelf,
+                    goal = (getReadingGoal() as? AppResult.Success)?.data ?: it.goal
                 )
             }
         }

@@ -126,6 +126,13 @@
     <string name="home_friends_reading">Reading now</string>
     <string name="home_browse">Browse by genre</string>
     <string name="home_reading_a_book">Reading %1$s</string>
+    <string name="goal_of_minutes">of %1$d min</string>
+    <string name="goal_minutes_to_go">%1$d minutes to go</string>
+    <string name="goal_met">Today&#8217;s goal is done</string>
+    <string name="goal_met_body">%1$d minutes read. Keep the streak going tomorrow.</string>
+    <string name="goal_streak_days">%1$d-day streak.</string>
+    <string name="goal_start_reading">Start today with a few pages.</string>
+    <string name="goal_finish_it">Finish it</string>
     <string name="search_title">Search</string>
     <string name="search_placeholder">Books, authors, friends…</string>
     <string name="search_recent">Recent</string>

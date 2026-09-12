@@ -1,0 +1,11 @@
+-- v1 -> v2: reading sessions, so the daily goal and streak are measured rather than assumed.
+-- Existing installs already hold a library and collections; this only adds a table.
+CREATE TABLE reading_session (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    book_id TEXT NOT NULL,
+    day_key INTEGER NOT NULL,
+    started_at INTEGER NOT NULL,
+    seconds INTEGER NOT NULL
+);
+
+CREATE INDEX reading_session_day ON reading_session(day_key);

@@ -39,6 +39,7 @@ import com.example.dz.designsystem.components.organic.OrganicCard
 import com.example.dz.designsystem.components.organic.OrganicCircleIconButton
 import com.example.dz.designsystem.components.organic.OrganicCoverCard
 import com.example.dz.designsystem.components.organic.OrganicGenreTile
+import com.example.dz.designsystem.components.organic.OrganicGoalCard
 import com.example.dz.designsystem.components.organic.OrganicGenreTints
 import com.example.dz.designsystem.components.organic.OrganicHeroCard
 import com.example.dz.designsystem.components.organic.OrganicListRowCard
@@ -56,6 +57,13 @@ import com.example.dz.designsystem.theme.organicHeadingFontFamily
 import com.example.dz.domain.model.LibraryBook
 import com.example.dz.presentation.common.uniqueLazyKeys
 import dz.shared.generated.resources.Res
+import dz.shared.generated.resources.goal_finish_it
+import dz.shared.generated.resources.goal_met
+import dz.shared.generated.resources.goal_met_body
+import dz.shared.generated.resources.goal_minutes_to_go
+import dz.shared.generated.resources.goal_of_minutes
+import dz.shared.generated.resources.goal_start_reading
+import dz.shared.generated.resources.goal_streak_days
 import dz.shared.generated.resources.home_browse
 import dz.shared.generated.resources.home_editors_pick
 import dz.shared.generated.resources.home_friends_reading
@@ -89,6 +97,7 @@ fun HomeScreen(
     onSeeAllClick: () -> Unit = {},
     onBookClick: (String) -> Unit = {},
     onPresenceClick: () -> Unit = {},
+    onGoalClick: () -> Unit = {},
     onProfileClick: () -> Unit = {},
 ) {
     val picked = uiState.books
@@ -120,6 +129,38 @@ fun HomeScreen(
                         libraryBook = current,
                         modifier = Modifier.padding(horizontal = ORGANIC_GUTTER),
                         onClick = onKeepReadingClick,
+                    )
+                }
+            }
+
+            uiState.goal?.let { goal ->
+                item(key = "goal") {
+                    OrganicGoalCard(
+                        minutesToday = goal.minutesToday,
+                        targetMinutes = goal.targetMinutes,
+                        progress = goal.progress,
+                        title = if (goal.isMet) {
+                            stringResource(Res.string.goal_met)
+                        } else {
+                            stringResource(Res.string.goal_minutes_to_go, goal.minutesRemaining)
+                        },
+                        modifier = Modifier.padding(horizontal = ORGANIC_GUTTER),
+                        subtitle = when {
+                            goal.isMet -> stringResource(Res.string.goal_met_body, goal.minutesToday)
+                            goal.streakDays > 0 -> stringResource(Res.string.goal_streak_days, goal.streakDays)
+                            else -> stringResource(Res.string.goal_start_reading)
+                        },
+                        targetLabel = stringResource(Res.string.goal_of_minutes, goal.targetMinutes),
+                        // Nothing to finish if there is no book open, and nothing to nudge if the
+                        // goal is already met.
+                        actionLabel = if (!goal.isMet && uiState.continueReading != null) {
+                            stringResource(Res.string.goal_finish_it)
+                        } else {
+                            null
+                        },
+                        onActionClick = onKeepReadingClick,
+                        onClick = onGoalClick,
+                        ringSize = 116.dp,
                     )
                 }
             }

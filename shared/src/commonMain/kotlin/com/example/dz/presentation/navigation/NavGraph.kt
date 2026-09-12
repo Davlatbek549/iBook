@@ -14,6 +14,7 @@ import androidx.compose.ui.zIndex
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavBackStackEntry
@@ -462,9 +463,15 @@ fun DZNavGraph() {
                             is HomeEffect.NavigateToBook -> navController.navigate(Routes.prePurchase(effect.bookId))
                             is HomeEffect.NavigateToReading -> navController.navigate(Routes.reading(effect.bookId))
                             HomeEffect.NavigateToFriends -> navController.navigate(Routes.FRIEND_LIST)
+                            HomeEffect.NavigateToGoal -> navController.navigate(Routes.GOAL)
                             HomeEffect.NavigateToProfile -> navController.navigate(Routes.PROFILE_TAB)
                         }
                     }
+                }
+
+                LifecycleResumeEffect(homeViewModel) {
+                    homeViewModel.onEvent(HomeEvent.Resumed)
+                    onPauseOrDispose { }
                 }
 
                 HomeScreen(
@@ -474,6 +481,7 @@ fun DZNavGraph() {
                     onSeeAllClick = { navigateBottomTab(Routes.STORE) },
                     onBookClick = { bookId -> homeViewModel.onEvent(HomeEvent.BookClicked(bookId)) },
                     onPresenceClick = { homeViewModel.onEvent(HomeEvent.PresenceClicked) },
+                    onGoalClick = { homeViewModel.onEvent(HomeEvent.GoalClicked) },
                     onProfileClick = { homeViewModel.onEvent(HomeEvent.ProfileClicked) }
                 )
             }

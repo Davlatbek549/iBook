@@ -4,11 +4,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.dz.core.error.AppError
 import com.example.dz.core.result.AppResult
+import com.example.dz.core.time.currentEpochMillis
 import com.example.dz.domain.model.BookContent
 import com.example.dz.domain.repository.DownloadRepository
 import com.example.dz.domain.usecase.book.DeleteDownloadUseCase
 import com.example.dz.domain.usecase.book.DownloadBookUseCase
 import com.example.dz.domain.usecase.book.GetBookContentUseCase
+import com.example.dz.domain.usecase.goal.RecordReadingSessionUseCase
 import com.example.dz.domain.usecase.library.UpdateReadingProgressUseCase
 import com.example.dz.presentation.mvi.toPresentationMessage
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -16,6 +18,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class ReadingViewModel(
@@ -24,7 +27,8 @@ class ReadingViewModel(
     private val updateReadingProgress: UpdateReadingProgressUseCase,
     private val downloadBook: DownloadBookUseCase,
     private val deleteDownload: DeleteDownloadUseCase,
-    private val downloadRepository: DownloadRepository
+    private val downloadRepository: DownloadRepository,
+    private val recordReadingSession: RecordReadingSessionUseCase
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(ReadingUiState(bookId = bookId, isLoading = true))
     val uiState = _uiState.asStateFlow()
@@ -32,14 +36,22 @@ class ReadingViewModel(
     private val _effects = MutableSharedFlow<ReadingEffect>()
     val effects = _effects.asSharedFlow()
 
+    /** Start of the stretch of reading not yet written down. */
+    private var unrecordedSince = currentEpochMillis()
+
     init {
         load()
         refreshDownloadState()
+        trackReadingTime()
     }
 
     fun onEvent(event: ReadingEvent) {
         when (event) {
-            ReadingEvent.BackClicked -> emitEffect(ReadingEffect.NavigateBack)
+            ReadingEvent.BackClicked -> {
+                // Write down the part-minute before leaving; the ticker has the rest.
+                viewModelScope.launch { flushReadingTime() }
+                emitEffect(ReadingEffect.NavigateBack)
+            }
             ReadingEvent.MenuClicked -> emitEffect(ReadingEffect.NavigateToSettings)
             ReadingEvent.CommentsClicked -> emitEffect(ReadingEffect.NavigateToComments(bookId))
             ReadingEvent.BookmarkToggled -> _uiState.update { it.copy(bookmarked = !it.bookmarked) }
@@ -143,9 +155,43 @@ class ReadingViewModel(
         }
     }
 
+    /**
+     * Writes the reading down as it happens rather than once at the end.
+     *
+     * `onCleared` is not a safe place for this — `viewModelScope` is already cancelled by then, and
+     * a process killed with the book open would take the whole session with it. Flushing on a
+     * ticker costs one small insert a minute and loses at most the last minute.
+     *
+     * Known limitation: this counts time while the reader screen is the current destination, which
+     * includes time the app spends in the background with the book still open. Fixing that needs
+     * platform lifecycle observation rather than a timer.
+     */
+    private fun trackReadingTime() {
+        viewModelScope.launch {
+            while (true) {
+                delay(SESSION_FLUSH_MILLIS)
+                flushReadingTime()
+            }
+        }
+    }
+
+    private suspend fun flushReadingTime() {
+        val now = currentEpochMillis()
+        val seconds = (now - unrecordedSince) / MILLIS_PER_SECOND
+        if (seconds <= 0) return
+        unrecordedSince = now
+        recordReadingSession(bookId, seconds)
+    }
+
     private fun emitEffect(effect: ReadingEffect) {
         viewModelScope.launch {
             _effects.emit(effect)
         }
+    }
+
+    private companion object {
+        /** One small insert a minute; at most a minute is lost if the process dies. */
+        const val SESSION_FLUSH_MILLIS = 60_000L
+        const val MILLIS_PER_SECOND = 1_000L
     }
 }

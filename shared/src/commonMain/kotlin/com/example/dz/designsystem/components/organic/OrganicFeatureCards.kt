@@ -26,6 +26,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dz.designsystem.theme.OrganicColors
@@ -320,3 +321,106 @@ data class GenreTint(
     val text: Color,
     val subtitle: Color,
 )
+
+/**
+ * The daily reading goal: the sage card from the Reading goal screen, with its 132dp stroked ring.
+ *
+ * The ring reads minutes, not a percentage — the number a reader is chasing is "14 of 20 min", and
+ * a bare 70% tells them nothing about whether to open a book now.
+ */
+@Composable
+fun OrganicGoalCard(
+    minutesToday: Int,
+    targetMinutes: Int,
+    progress: Float,
+    title: String,
+    modifier: Modifier = Modifier,
+    subtitle: String? = null,
+    targetLabel: String,
+    actionLabel: String? = null,
+    onActionClick: (() -> Unit)? = null,
+    onClick: (() -> Unit)? = null,
+    /**
+     * The design draws 132dp on the Reading goal screen, where the card is the hero. Home gives it
+     * less room — on a 360dp phone a 132dp ring leaves 116dp for the text, which truncates "30
+     * minutes to go" — so callers can shrink the ring rather than the sentence.
+     */
+    ringSize: Dp = 132.dp,
+) {
+    OrganicCard(
+        modifier = modifier.fillMaxWidth(),
+        background = OrganicColors.accent2_200,
+        contentPadding = PaddingValues(22.dp),
+        onClick = onClick,
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(20.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            OrganicProgressRing(progress = progress, size = ringSize) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(1.dp)
+                ) {
+                    Text(
+                        text = minutesToday.toString(),
+                        fontFamily = organicHeadingFontFamily(),
+                        fontWeight = FontWeight.Normal,
+                        fontSize = 38.sp,
+                        lineHeight = 38.sp,
+                        color = OrganicColors.accent2_900
+                    )
+                    Text(
+                        text = targetLabel.uppercase(),
+                        fontFamily = organicBodyFontFamily(),
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 11.sp,
+                        letterSpacing = 0.66.sp,
+                        color = OrganicColors.accent2_900.copy(alpha = 0.75f)
+                    )
+                }
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = title,
+                    fontFamily = organicHeadingFontFamily(),
+                    fontWeight = FontWeight.Normal,
+                    fontSize = 22.sp,
+                    lineHeight = 24.2.sp,
+                    color = OrganicColors.accent2_900,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis
+                )
+                if (subtitle != null) {
+                    Text(
+                        text = subtitle,
+                        fontFamily = organicBodyFontFamily(),
+                        fontSize = 13.sp,
+                        lineHeight = 19.5.sp,
+                        color = OrganicColors.accent2_900.copy(alpha = 0.85f),
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                if (actionLabel != null && onActionClick != null) {
+                    Text(
+                        text = actionLabel,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(OrganicShape.pill))
+                            .background(OrganicColors.accent)
+                            .clickable(role = Role.Button, onClick = onActionClick)
+                            .padding(horizontal = 18.dp, vertical = 12.dp),
+                        fontFamily = organicBodyFontFamily(),
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 14.sp,
+                        color = Color.White
+                    )
+                }
+            }
+        }
+    }
+}

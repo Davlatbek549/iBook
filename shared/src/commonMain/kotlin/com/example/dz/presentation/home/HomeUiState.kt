@@ -4,6 +4,7 @@ import com.example.dz.domain.model.Book
 import com.example.dz.domain.model.Category
 import com.example.dz.domain.model.Friend
 import com.example.dz.domain.model.LibraryBook
+import com.example.dz.domain.model.ReadingGoal
 
 data class HomeUiState(
     val books: List<Book> = emptyList(),
@@ -15,6 +16,8 @@ data class HomeUiState(
     /** Friends with a book open, for the social strip under the presence card. */
     val friendsReading: List<Friend> = emptyList(),
     val categories: List<Category> = emptyList(),
+    /** Today's reading against the target. Null only until the first load finishes. */
+    val goal: ReadingGoal? = null,
     /** Greeted by name. Null until the profile call lands, and the greeting stands alone. */
     val userName: String? = null,
     /** Null while unknown or when nobody is reading — the card is hidden rather than showing zero. */
