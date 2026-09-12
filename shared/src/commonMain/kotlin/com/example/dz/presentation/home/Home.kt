@@ -19,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -37,6 +38,12 @@ import com.example.dz.designsystem.components.organic.OrganicBookCover
 import com.example.dz.designsystem.components.organic.OrganicCard
 import com.example.dz.designsystem.components.organic.OrganicCircleIconButton
 import com.example.dz.designsystem.components.organic.OrganicCoverCard
+import com.example.dz.designsystem.components.organic.OrganicGenreTile
+import com.example.dz.designsystem.components.organic.OrganicGenreTints
+import com.example.dz.designsystem.components.organic.OrganicHeroCard
+import com.example.dz.designsystem.components.organic.OrganicListRowCard
+import com.example.dz.designsystem.components.organic.OrganicPersonRow
+import com.example.dz.designsystem.components.organic.OrganicSectionLabel
 import com.example.dz.designsystem.components.organic.OrganicKicker
 import com.example.dz.designsystem.components.organic.OrganicListRow
 import com.example.dz.designsystem.components.organic.OrganicProgressDonut
@@ -46,18 +53,22 @@ import com.example.dz.designsystem.components.organic.OrganicSectionHeader
 import com.example.dz.designsystem.theme.OrganicColors
 import com.example.dz.designsystem.theme.organicBodyFontFamily
 import com.example.dz.designsystem.theme.organicHeadingFontFamily
-import com.example.dz.domain.model.Book
 import com.example.dz.domain.model.LibraryBook
 import com.example.dz.presentation.common.uniqueLazyKeys
 import dz.shared.generated.resources.Res
+import dz.shared.generated.resources.home_browse
+import dz.shared.generated.resources.home_editors_pick
+import dz.shared.generated.resources.home_friends_reading
 import dz.shared.generated.resources.home_greeting
 import dz.shared.generated.resources.home_keep_going
 import dz.shared.generated.resources.home_new_this_week
 import dz.shared.generated.resources.home_one_of_them
 import dz.shared.generated.resources.home_picked_for_you
+import dz.shared.generated.resources.home_reading_a_book
 import dz.shared.generated.resources.home_reading_right_now
 import dz.shared.generated.resources.home_search
 import dz.shared.generated.resources.home_see_all
+import dz.shared.generated.resources.home_your_shelf
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -85,6 +96,9 @@ fun HomeScreen(
     val pickedShown = picked.take(PICKED_FOR_YOU_LIMIT)
     val pickedKeys = pickedShown.uniqueLazyKeys { it.id }
     val newKeys = newThisWeek.uniqueLazyKeys { it.id }
+    val shelfKeys = uiState.shelf.uniqueLazyKeys { it.book.id }
+    val friendKeys = uiState.friendsReading.uniqueLazyKeys { it.id }
+    val genres = uiState.categories.take(GENRE_LIMIT)
 
     OrganicScreen {
         LazyColumn(
@@ -106,6 +120,42 @@ fun HomeScreen(
                         libraryBook = current,
                         modifier = Modifier.padding(horizontal = ORGANIC_GUTTER),
                         onClick = onKeepReadingClick,
+                    )
+                }
+            }
+
+            if (uiState.shelf.isNotEmpty()) {
+                item(key = "shelf-header") {
+                    OrganicSectionHeader(
+                        title = stringResource(Res.string.home_your_shelf),
+                        modifier = Modifier.padding(horizontal = ORGANIC_GUTTER),
+                    )
+                }
+                items(uiState.shelf.size, key = { shelfKeys[it] }) { index ->
+                    val entry = uiState.shelf[index]
+                    OrganicListRowCard(
+                        title = entry.book.title,
+                        modifier = Modifier.padding(horizontal = ORGANIC_GUTTER),
+                        author = entry.book.authors.firstOrNull()?.name,
+                        coverUrl = entry.book.coverUrl,
+                        onClick = { onBookClick(entry.book.id) },
+                        trailing = {
+                            OrganicProgressDonut(
+                                progress = entry.progressPercent / 100f,
+                                size = 44.dp,
+                                innerSize = 34.dp,
+                                trackColor = OrganicColors.neutral200,
+                                innerColor = OrganicColors.neutral100,
+                                label = {
+                                    Text(
+                                        text = entry.progressPercent.toString(),
+                                        fontFamily = organicBodyFontFamily(),
+                                        fontSize = 11.sp,
+                                        color = OrganicColors.neutral800
+                                    )
+                                }
+                            )
+                        },
                     )
                 }
             }
@@ -137,6 +187,20 @@ fun HomeScreen(
                 }
             }
 
+            uiState.editorsPick?.let { pick ->
+                item(key = "editors-pick") {
+                    OrganicHeroCard(
+                        title = pick.title,
+                        kicker = stringResource(Res.string.home_editors_pick),
+                        modifier = Modifier.padding(horizontal = ORGANIC_GUTTER),
+                        author = pick.authors.firstOrNull()?.name,
+                        price = pick.price,
+                        coverUrl = pick.coverUrl,
+                        onClick = { onBookClick(pick.id) },
+                    )
+                }
+            }
+
             uiState.presence?.let { presence ->
                 item(key = "presence") {
                     PresenceCard(
@@ -144,6 +208,69 @@ fun HomeScreen(
                         modifier = Modifier.padding(horizontal = ORGANIC_GUTTER),
                         onClick = onPresenceClick,
                     )
+                }
+            }
+
+            if (uiState.friendsReading.isNotEmpty()) {
+                item(key = "friends-label") {
+                    OrganicSectionLabel(
+                        text = stringResource(Res.string.home_friends_reading),
+                        modifier = Modifier.padding(horizontal = ORGANIC_GUTTER),
+                    )
+                }
+                items(uiState.friendsReading.size, key = { friendKeys[it] }) { index ->
+                    val friend = uiState.friendsReading[index]
+                    OrganicPersonRow(
+                        name = friend.name,
+                        modifier = Modifier.padding(horizontal = ORGANIC_GUTTER),
+                        subtitle = friend.currentBook?.title?.let {
+                            stringResource(Res.string.home_reading_a_book, it)
+                        },
+                        avatarBackground = friendAvatarTints[index % friendAvatarTints.size],
+                        onClick = onPresenceClick,
+                    )
+                }
+            }
+
+            if (genres.isNotEmpty()) {
+                item(key = "genres-label") {
+                    OrganicSectionLabel(
+                        text = stringResource(Res.string.home_browse),
+                        modifier = Modifier.padding(horizontal = ORGANIC_GUTTER),
+                    )
+                }
+                // A two-column grid inside a LazyColumn: the rows are laid out in pairs rather
+                // than nesting a LazyVerticalGrid, which cannot measure inside a vertical scroll.
+                items(
+                    count = (genres.size + 1) / 2,
+                    key = { "genre-row-$it" }
+                ) { row ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = ORGANIC_GUTTER),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        for (column in 0..1) {
+                            val index = row * 2 + column
+                            val category = genres.getOrNull(index)
+                            if (category == null) {
+                                Box(modifier = Modifier.weight(1f))
+                            } else {
+                                val tint = OrganicGenreTints[index % OrganicGenreTints.size]
+                                OrganicGenreTile(
+                                    name = category.name,
+                                    modifier = Modifier.weight(1f),
+                                    background = tint.background,
+                                    decorationColor = tint.decoration,
+                                    spineColor = tint.spine,
+                                    textColor = tint.text,
+                                    subtitleColor = tint.subtitle,
+                                    onClick = onSeeAllClick,
+                                )
+                            }
+                        }
+                    }
                 }
             }
 
@@ -241,17 +368,18 @@ private fun KeepGoingCard(
         modifier = modifier.fillMaxWidth(),
         background = OrganicColors.accent200,
         contentPadding = PaddingValues(16.dp),
+        decoration = {
+            // `right:-52; top:-58; 150×150`, drawn rather than laid out so it cannot stretch the
+            // card past the 128dp the design gives it.
+            drawCircle(
+                color = OrganicColors.accent300.copy(alpha = 0.55f),
+                radius = 75.dp.toPx(),
+                center = Offset(size.width - 23.dp.toPx(), 17.dp.toPx())
+            )
+        },
         onClick = onClick,
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .offset(x = 52.dp, y = (-74).dp)
-                    .size(150.dp)
-                    .clip(CircleShape)
-                    .background(OrganicColors.accent300.copy(alpha = 0.55f))
-            )
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -386,6 +514,16 @@ private fun PresenceCard(
 /** The carousel shows seven; what follows it fills the list below. */
 private const val PICKED_FOR_YOU_LIMIT = 7
 private const val NEW_THIS_WEEK_LIMIT = 2
+
+/** Six tiles is three rows — enough to browse without turning Home into the Categories screen. */
+private const val GENRE_LIMIT = 6
+
+/** The design cycles friend avatars through sage, terracotta and neutral rather than one colour. */
+private val friendAvatarTints = listOf(
+    OrganicColors.accent2_600,
+    OrganicColors.accent600,
+    OrganicColors.neutral500,
+)
 
 /** Stands in for an initial while the profile is still loading. */
 private const val FALLBACK_INITIAL = "•"

@@ -121,6 +121,11 @@
     <string name="home_search">Search</string>
     <string name="home_reading_right_now">%1$s reading right now</string>
     <string name="home_one_of_them">%1$s is one of them</string>
+    <string name="home_your_shelf">Your shelf</string>
+    <string name="home_editors_pick">Editor&#8217;s pick</string>
+    <string name="home_friends_reading">Reading now</string>
+    <string name="home_browse">Browse by genre</string>
+    <string name="home_reading_a_book">Reading %1$s</string>
     <string name="search_title">Search</string>
     <string name="search_placeholder">Books, authors, friends…</string>
     <string name="search_recent">Recent</string>

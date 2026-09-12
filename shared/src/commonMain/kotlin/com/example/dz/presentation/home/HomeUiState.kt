@@ -1,11 +1,20 @@
 package com.example.dz.presentation.home
 
 import com.example.dz.domain.model.Book
+import com.example.dz.domain.model.Category
+import com.example.dz.domain.model.Friend
 import com.example.dz.domain.model.LibraryBook
 
 data class HomeUiState(
     val books: List<Book> = emptyList(),
     val continueReading: LibraryBook? = null,
+    /** The rest of what is part-read, so Home shows more than the one book on the Keep going card. */
+    val shelf: List<LibraryBook> = emptyList(),
+    /** The week's hero title. */
+    val editorsPick: Book? = null,
+    /** Friends with a book open, for the social strip under the presence card. */
+    val friendsReading: List<Friend> = emptyList(),
+    val categories: List<Category> = emptyList(),
     /** Greeted by name. Null until the profile call lands, and the greeting stands alone. */
     val userName: String? = null,
     /** Null while unknown or when nobody is reading — the card is hidden rather than showing zero. */

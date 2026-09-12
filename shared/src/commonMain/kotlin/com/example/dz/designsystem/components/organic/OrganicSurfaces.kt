@@ -27,6 +27,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -62,6 +63,14 @@ fun OrganicCard(
     cornerRadius: Dp = OrganicShape.radiusLg,
     elevated: Boolean = false,
     contentPadding: PaddingValues = PaddingValues(14.dp),
+    /**
+     * Decoration drawn across the card's whole face, under its content and inside its corners.
+     *
+     * It is a draw, not a child, because the design's decorative circles are `position: absolute`
+     * — they bleed past the card's edge and must not enlarge it. A 190dp circle laid out as a
+     * child made a 172dp hero card 235dp tall.
+     */
+    decoration: (DrawScope.() -> Unit)? = null,
     onClick: (() -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
@@ -77,6 +86,13 @@ fun OrganicCard(
             )
             .clip(shape)
             .background(background)
+            .then(
+                if (decoration != null) {
+                    Modifier.drawBehind { decoration() }
+                } else {
+                    Modifier
+                }
+            )
             .then(
                 if (onClick != null) {
                     Modifier.clickable(role = Role.Button, onClick = onClick)
