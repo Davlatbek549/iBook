@@ -1,29 +1,15 @@
 package com.example.dz.presentation.navigation
 
 
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import com.example.dz.designsystem.theme.inkColors
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModel
@@ -147,6 +133,9 @@ import com.example.dz.presentation.store.StoreScreen
 import com.example.dz.presentation.store.StoreViewModel
 import com.example.dz.presentation.auth.new_password.NewPasswordEffect
 import com.example.dz.presentation.auth.new_password.NewPasswordScreen
+import com.example.dz.designsystem.components.organic.OrganicTabBar
+import com.example.dz.designsystem.components.organic.organicBackdropSource
+import com.example.dz.designsystem.components.organic.rememberOrganicBackdrop
 import com.example.dz.presentation.auth.new_password.NewPasswordViewModel
 import com.example.dz.presentation.auth.verification.VerificationEffect
 import com.example.dz.presentation.auth.verification.VerificationEvent
@@ -155,56 +144,6 @@ import com.example.dz.presentation.auth.verification.VerificationScreen
 import com.example.dz.presentation.auth.verification.VerificationViewModel
 import org.koin.mp.KoinPlatform
 import org.koin.core.parameter.parametersOf
-import org.jetbrains.compose.resources.painterResource
-
-@Composable
-fun CustomBottomBar(
-    currentRoute: String,
-    onItemClick: (String) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val colors = inkColors()
-
-    Column(modifier = modifier.fillMaxWidth().background(colors.paper)) {
-        HorizontalDivider(thickness = 1.dp, color = colors.line)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(64.dp)
-                .padding(bottom = 6.dp),
-            horizontalArrangement = Arrangement.SpaceAround,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            bottomNavItems.forEach { item ->
-                val isSelected = currentRoute == item.route
-
-                val tint by animateColorAsState(
-                    targetValue = if (isSelected) colors.accent else colors.muted,
-                    label = "iconColor"
-                )
-
-                Column(
-                    modifier = Modifier.clickable { onItemClick(item.route) },
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(5.dp)
-                ) {
-                    Icon(
-                        imageVector = item.icon,
-                        contentDescription = item.route,
-                        tint = tint,
-                        modifier = Modifier.size(21.dp)
-                    )
-                    Box(
-                        modifier = Modifier
-                            .size(4.dp)
-                            .clip(CircleShape)
-                            .background(if (isSelected) colors.accent else Color.Transparent)
-                    )
-                }
-            }
-        }
-    }
-}
 
 @Composable
 fun DZNavGraph() {
@@ -240,7 +179,6 @@ fun DZNavGraph() {
         Routes.NOTIFICATIONS,
         Routes.INVITE_FRIENDS,
         Routes.NO_FRIENDS,
-        Routes.PROFILE_TAB,
         Routes.SETTINGS,
         Routes.MEMBERSHIP,
         Routes.PREMIUM_MEMBERSHIP,
@@ -266,11 +204,24 @@ fun DZNavGraph() {
         }
     }
 
+    val tabBarBackdrop = rememberOrganicBackdrop()
+
     Box(modifier = Modifier.fillMaxSize()) {
         NavHost(
             navController = navController,
             startDestination = Routes.SPLASH,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                // Recording the screen into a layer costs something every frame, so only the
+                // screens that actually carry the glass bar pay for it. Auth and pushed screens
+                // draw straight through.
+                .then(
+                    if (showBottomBar) {
+                        Modifier.organicBackdropSource(tabBarBackdrop)
+                    } else {
+                        Modifier
+                    }
+                )
         ) {
             composable(Routes.SPLASH) {
                 val splashViewModel = koinViewModel<SplashViewModel>()
@@ -1140,9 +1091,11 @@ fun DZNavGraph() {
         }
 
         if (showBottomBar) {
-            CustomBottomBar(
+            OrganicTabBar(
+                tabs = bottomNavItems,
                 currentRoute = route,
-                onItemClick = { selectedRoute ->
+                backdrop = tabBarBackdrop,
+                onTabClick = { selectedRoute ->
                     navigateBottomTab(selectedRoute)
                 },
                 modifier = Modifier
