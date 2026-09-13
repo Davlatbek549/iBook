@@ -1,5 +1,11 @@
 package com.example.dz.designsystem.components.organic
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -18,12 +24,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -528,3 +536,41 @@ fun OrganicShelfColorPicker(
         }
     }
 }
+
+/**
+ * A block standing in for content that has not arrived.
+ *
+ * It breathes rather than spins: a spinner says "something is happening somewhere", while a shape
+ * where the content will be says "this is what is coming, and it is nearly here". The pulse is
+ * slow and shallow on purpose — a skeleton that flashes is harder to wait next to than one that
+ * barely moves.
+ */
+@Composable
+fun OrganicSkeleton(
+    modifier: Modifier = Modifier,
+    cornerRadius: Dp = OrganicShape.radiusMd,
+) {
+    val transition = rememberInfiniteTransition(label = "skeleton")
+    val progress by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(SKELETON_PULSE_MILLIS, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "skeletonPulse"
+    )
+
+    // Between two real ramp steps rather than one step fading out. neutral-200 is within a few
+    // percent of the cream ground, so a skeleton built from it was almost invisible on the page it
+    // was meant to stand out against; 300 to 400 reads clearly and still sits inside the palette.
+    val fill = lerp(OrganicColors.neutral300, OrganicColors.neutral400, progress)
+
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(cornerRadius))
+            .background(fill)
+    )
+}
+
+private const val SKELETON_PULSE_MILLIS = 750

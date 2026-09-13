@@ -32,6 +32,7 @@ object BookMapper {
             firstPublishYear = dto.firstPublishYear,
             pageCount = dto.pageCount,
             language = dto.languages.firstOrNull(),
+            publisher = dto.publisher.firstOrNull(),
             isFree = true
         )
     }
@@ -47,6 +48,28 @@ object BookMapper {
             categories = dto.subjects.take(MAX_CATEGORIES).map(::categoryFromName),
             firstPublishYear = dto.firstPublishDate?.firstFourDigitYear(),
             isFree = true
+        )
+    }
+
+    /**
+     * Folds the search row's numbers into the canonical work record.
+     *
+     * Neither OpenLibrary endpoint is enough on its own: the work has the description and subjects
+     * but no rating, length or publisher, and the search row has those but a thinner description.
+     * Work wins wherever both speak.
+     */
+    fun mergeOpenLibrary(work: Book, searchRow: Book?): Book {
+        if (searchRow == null) return work
+        return work.copy(
+            authors = work.authors.ifEmpty { searchRow.authors },
+            coverUrl = work.coverUrl ?: searchRow.coverUrl,
+            categories = work.categories.ifEmpty { searchRow.categories },
+            rating = searchRow.rating,
+            reviewCount = searchRow.reviewCount,
+            firstPublishYear = work.firstPublishYear ?: searchRow.firstPublishYear,
+            pageCount = searchRow.pageCount,
+            language = work.language ?: searchRow.language,
+            publisher = searchRow.publisher,
         )
     }
 
@@ -66,6 +89,7 @@ object BookMapper {
             description = dto.summaries.firstOrNull(),
             categories = dto.subjects.take(MAX_CATEGORIES).map(::categoryFromName),
             language = dto.languages.firstOrNull(),
+            downloadCount = dto.downloadCount,
             isFree = true,
             textUrl = dto.plainTextUrl()
         )

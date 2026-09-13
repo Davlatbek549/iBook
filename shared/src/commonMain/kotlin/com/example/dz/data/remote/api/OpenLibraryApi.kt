@@ -12,6 +12,15 @@ interface OpenLibraryApi {
     suspend fun searchBooksBySubject(subject: String, limit: Int = DEFAULT_LIMIT): OpenLibrarySearchResponseDto
     suspend fun getWork(workId: String): OpenLibraryWorkDto
 
+    /**
+     * The search row for one known work.
+     *
+     * `works/{id}.json` is the canonical record but carries none of the numbers a reader wants —
+     * no rating, no page count, no publisher. Those live only on search, so a detail screen has to
+     * ask twice.
+     */
+    suspend fun searchByWorkKey(workId: String): OpenLibrarySearchResponseDto
+
     companion object {
         const val DEFAULT_LIMIT = 20
     }
@@ -35,4 +44,10 @@ class KtorOpenLibraryApi(
 
     override suspend fun getWork(workId: String): OpenLibraryWorkDto =
         client.get("$baseUrl/works/${workId.removePrefix("/works/")}.json").body()
+
+    override suspend fun searchByWorkKey(workId: String): OpenLibrarySearchResponseDto =
+        client.get("$baseUrl/search.json") {
+            parameter("q", "key:/works/${workId.removePrefix("/works/")}")
+            parameter("limit", 1)
+        }.body()
 }

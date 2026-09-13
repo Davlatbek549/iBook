@@ -17,11 +17,18 @@ data class PrePurchaseUiState(
     val authorId: String? = null,
     /** Null when the source has no rating, rather than a number invented to fill the pill. */
     val rating: String? = null,
+    val ratingCount: Int? = null,
     val overview: String = "",
     val price: String? = null,
     val isFree: Boolean = false,
     val pages: Int? = null,
+    /** Roughly how long it takes to read, from its length. Approximate, and labelled as such. */
+    val minutesToRead: Int? = null,
     val genre: String? = null,
+    val publisher: String? = null,
+    val firstPublishYear: Int? = null,
+    val downloadCount: Int? = null,
+    val language: String? = null,
     val coverUrl: String? = null,
     val relatedBooks: List<PrePurchaseRelatedBookUi> = emptyList(),
     val ownership: BookOwnership = BookOwnership.NOT_OWNED,
@@ -45,17 +52,41 @@ fun Book.toPrePurchaseUiState(relatedBooks: List<Book> = emptyList()): PrePurcha
         author = authors.firstOrNull()?.name.orEmpty(),
         authorId = authors.firstOrNull()?.id,
         rating = rating?.toRatingText(),
+        ratingCount = reviewCount,
         overview = description.orEmpty(),
         price = price,
         isFree = isFree,
         pages = pageCount,
-        genre = categories.firstOrNull()?.name,
+        minutesToRead = pageCount?.let { it * MINUTES_PER_PAGE },
+        genre = categories.firstOrNull()?.name?.toDisplayCategory(),
+        publisher = publisher,
+        firstPublishYear = firstPublishYear,
+        downloadCount = downloadCount,
+        language = language?.uppercase(),
         coverUrl = coverUrl,
         relatedBooks = relatedBooks.map { it.toPrePurchaseRelatedBookUi() }
     )
 
 private fun Book.toPrePurchaseRelatedBookUi(): PrePurchaseRelatedBookUi =
     PrePurchaseRelatedBookUi(id = id, title = title, coverUrl = coverUrl)
+
+/**
+ * Catalogue subjects arrive in library cataloguing style — "Courtship -- Fiction", "Fiction,
+ * general" — which reads as a database field rather than a genre. This takes the first real part
+ * and gives it a capital.
+ */
+private fun String.toDisplayCategory(): String =
+    split(" -- ", "--", ",")
+        .firstOrNull { it.isNotBlank() }
+        ?.trim()
+        ?.replaceFirstChar { it.uppercase() }
+        ?: this
+
+/**
+ * A page a minute and a half. Every reader is different, which is why the screen says "about" and
+ * never presents this as the book's own fact.
+ */
+private const val MINUTES_PER_PAGE = 2
 
 /** One decimal place — "4.6", not "4.5999999". */
 private fun Double.toRatingText(): String {

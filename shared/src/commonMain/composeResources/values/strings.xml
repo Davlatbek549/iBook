@@ -151,6 +151,16 @@
     <string name="book_download">Save for offline</string>
     <string name="book_downloaded">Saved for offline</string>
     <string name="book_more_like_this">More like this</string>
+    <string name="book_about_duration">about %1$s</string>
+    <string name="book_hours_minutes">%1$dh %2$dm</string>
+    <string name="book_minutes">%1$dm</string>
+    <string name="book_ratings">%1$s ratings</string>
+    <string name="book_downloads">%1$s downloads</string>
+    <string name="book_details">Details</string>
+    <string name="book_publisher">Publisher</string>
+    <string name="book_published">First published</string>
+    <string name="book_language">Language</string>
+    <string name="book_length">Length</string>
     <string name="collections_title">Collections</string>
     <string name="collection_edit_title">Edit collection</string>
     <string name="collection_new_title">New collection</string>

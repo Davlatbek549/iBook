@@ -60,9 +60,15 @@ class RemoteBookRepository(
             if (bookId.startsWith(GUTENDEX_PREFIX)) {
                 BookMapper.fromGutendexBook(gutendexApi.getBook(bookId))
             } else {
-                BookMapper.fromOpenLibraryWork(
-                    openLibraryApi.getWork(BookMapper.openLibraryWorkIdFromDomainId(bookId))
-                )
+                val workId = BookMapper.openLibraryWorkIdFromDomainId(bookId)
+                val work = BookMapper.fromOpenLibraryWork(openLibraryApi.getWork(workId))
+                // The numbers live on search, not on the work record, so the detail asks twice.
+                // A failure here costs the rating and the page count, not the book.
+                val searchRow = runCatching {
+                    openLibraryApi.searchByWorkKey(workId).docs.firstOrNull()
+                        ?.let(BookMapper::fromOpenLibraryBook)
+                }.getOrNull()
+                BookMapper.mergeOpenLibrary(work, searchRow)
             }
         }
 

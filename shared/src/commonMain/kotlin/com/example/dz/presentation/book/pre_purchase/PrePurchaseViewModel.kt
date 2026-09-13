@@ -110,7 +110,7 @@ class PrePurchaseViewModel(
         val categoryId = book.categories.firstOrNull()?.id
         val relatedBooks = if (categoryId != null) {
             when (val result = getBooksByCategory(categoryId)) {
-                is AppResult.Success -> result.data.filterNot { it.id == book.id }
+                is AppResult.Success -> result.data.toRelated(book)
                 is AppResult.Error -> emptyList()
             }
         } else {
@@ -128,9 +128,35 @@ class PrePurchaseViewModel(
         }
     }
 
+    /**
+     * Tidies a subject search into something worth calling "more like this".
+     *
+     * A subject query returns the book itself, its other editions, and anything sharing a shelf
+     * label — so Pride and Prejudice came back beside three more Pride and Prejudices. This drops
+     * the book, anything by the same title, and anything with no cover, since a row of blank
+     * rectangles is worse than a shorter row.
+     */
+    private fun List<Book>.toRelated(book: Book): List<Book> {
+        val seenTitles = mutableSetOf(book.title.normalisedTitle())
+        return asSequence()
+            .filterNot { it.id == book.id }
+            .filter { !it.coverUrl.isNullOrBlank() }
+            .filter { seenTitles.add(it.title.normalisedTitle()) }
+            .take(RELATED_LIMIT)
+            .toList()
+    }
+
+    private fun String.normalisedTitle(): String =
+        lowercase().filter { it.isLetterOrDigit() }
+
     private fun emitEffect(effect: PrePurchaseEffect) {
         viewModelScope.launch {
             _effects.emit(effect)
         }
+    }
+
+    private companion object {
+        /** Enough to scroll sideways a couple of times without another request's worth of rows. */
+        const val RELATED_LIMIT = 10
     }
 }

@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -47,6 +49,7 @@ import com.example.dz.designsystem.components.organic.OrganicHeroCard
 import com.example.dz.designsystem.components.organic.OrganicListRowCard
 import com.example.dz.designsystem.components.organic.OrganicPersonRow
 import com.example.dz.designsystem.components.organic.OrganicSectionLabel
+import com.example.dz.designsystem.components.organic.OrganicSkeleton
 import com.example.dz.designsystem.components.organic.OrganicKicker
 import com.example.dz.designsystem.components.organic.OrganicListRow
 import com.example.dz.designsystem.components.organic.OrganicProgressDonut
@@ -132,6 +135,14 @@ fun HomeScreen(
         stringResource(Res.string.home_shelf_worth_a_look),
         stringResource(Res.string.home_shelf_something_different),
     )
+
+    // A first load with nothing to show yet gets the screen's own shape in grey. A reload with
+    // content already on screen does not — blanking a page the reader is looking at to say
+    // "refreshing" is worse than letting the numbers change under them.
+    if (uiState.isLoading && uiState.books.isEmpty() && uiState.continueReading == null) {
+        HomeSkeleton()
+        return
+    }
 
     OrganicScreen {
         LazyColumn(
@@ -399,6 +410,97 @@ private fun LazyListScope.bookCarousel(
                     coverUrl = book.coverUrl,
                     onClick = { onBookClick(book.id) },
                 )
+            }
+        }
+    }
+}
+
+/**
+ * Home's layout in grey, while the first load is still out.
+ *
+ * It mirrors the real thing top to bottom — greeting, goal card, a shelf of covers, a couple of
+ * rows — so the page does not rearrange itself when the content lands.
+ */
+@Composable
+private fun HomeSkeleton() {
+    OrganicScreen {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = ORGANIC_GUTTER),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                OrganicSkeleton(modifier = Modifier.size(46.dp), cornerRadius = 46.dp)
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    OrganicSkeleton(modifier = Modifier.fillMaxWidth(0.35f).height(11.dp))
+                    OrganicSkeleton(modifier = Modifier.fillMaxWidth(0.6f).height(22.dp))
+                }
+                OrganicSkeleton(modifier = Modifier.size(42.dp), cornerRadius = 42.dp)
+            }
+
+            OrganicSkeleton(
+                modifier = Modifier
+                    .padding(horizontal = ORGANIC_GUTTER)
+                    .fillMaxWidth()
+                    .height(160.dp),
+                cornerRadius = 28.dp,
+            )
+
+            OrganicSkeleton(
+                modifier = Modifier
+                    .padding(horizontal = ORGANIC_GUTTER, vertical = 6.dp)
+                    .fillMaxWidth(0.45f)
+                    .height(21.dp),
+            )
+
+            Row(
+                modifier = Modifier.padding(start = ORGANIC_GUTTER),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Three covers is what fits across, and the third is cut by the edge exactly as a
+                // real carousel is.
+                repeat(3) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OrganicSkeleton(
+                            modifier = Modifier.width(112.dp).height(118.dp),
+                            cornerRadius = 18.dp,
+                        )
+                        OrganicSkeleton(modifier = Modifier.width(96.dp).height(13.dp))
+                        OrganicSkeleton(modifier = Modifier.width(64.dp).height(11.dp))
+                    }
+                }
+            }
+
+            repeat(2) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = ORGANIC_GUTTER, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OrganicSkeleton(
+                        modifier = Modifier.width(44.dp).height(60.dp),
+                        cornerRadius = 10.dp,
+                    )
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        OrganicSkeleton(modifier = Modifier.fillMaxWidth(0.75f).height(17.dp))
+                        OrganicSkeleton(modifier = Modifier.fillMaxWidth(0.45f).height(12.dp))
+                    }
+                }
             }
         }
     }

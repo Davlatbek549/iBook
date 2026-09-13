@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -38,13 +39,23 @@ import com.example.dz.designsystem.components.organic.OrganicCircleIconButton
 import com.example.dz.designsystem.components.organic.OrganicCoverCard
 import com.example.dz.designsystem.components.organic.OrganicScreen
 import com.example.dz.designsystem.components.organic.OrganicSectionHeader
+import com.example.dz.designsystem.components.organic.OrganicSkeleton
 import com.example.dz.designsystem.theme.OrganicColors
 import com.example.dz.designsystem.theme.OrganicShape
 import com.example.dz.designsystem.theme.organicBodyFontFamily
 import com.example.dz.designsystem.theme.organicHeadingFontFamily
 import com.example.dz.presentation.common.uniqueLazyKeys
 import dz.shared.generated.resources.Res
+import dz.shared.generated.resources.book_about_duration
 import dz.shared.generated.resources.book_continue_reading
+import dz.shared.generated.resources.book_details
+import dz.shared.generated.resources.book_downloads
+import dz.shared.generated.resources.book_hours_minutes
+import dz.shared.generated.resources.book_language
+import dz.shared.generated.resources.book_length
+import dz.shared.generated.resources.book_minutes
+import dz.shared.generated.resources.book_published
+import dz.shared.generated.resources.book_publisher
 import dz.shared.generated.resources.book_download
 import dz.shared.generated.resources.book_downloaded
 import dz.shared.generated.resources.book_file_to_shelf
@@ -72,6 +83,11 @@ fun PrePurchaseScreen(
     modifier: Modifier = Modifier,
 ) {
     val relatedKeys = uiState.relatedBooks.uniqueLazyKeys { it.id }
+
+    if (uiState.isLoading) {
+        BookDetailSkeleton(modifier = modifier, onBack = { onEvent(PrePurchaseEvent.BackClicked) })
+        return
+    }
 
     OrganicScreen(modifier = modifier) {
         LazyColumn(
@@ -178,6 +194,13 @@ fun PrePurchaseScreen(
                 }
             }
 
+            item(key = "details") {
+                DetailsBlock(
+                    uiState = uiState,
+                    modifier = Modifier.padding(horizontal = ORGANIC_GUTTER),
+                )
+            }
+
             if (uiState.relatedBooks.isNotEmpty()) {
                 item(key = "related-header") {
                     OrganicSectionHeader(
@@ -207,6 +230,131 @@ fun PrePurchaseScreen(
 }
 
 /**
+ * The screen's own shape, greyed out, while the book is still being fetched.
+ *
+ * It mirrors the real layout — cover, title, author, pills, prose, button — so nothing jumps when
+ * the content lands. The back button is live throughout: a reader who opened the wrong book should
+ * not have to wait for it to arrive before leaving.
+ */
+@Composable
+private fun BookDetailSkeleton(
+    modifier: Modifier = Modifier,
+    onBack: () -> Unit,
+) {
+    OrganicScreen(modifier = modifier) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = ORGANIC_GUTTER)
+                .padding(top = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
+        ) {
+            OrganicCircleIconButton(
+                icon = OrganicIcons.ChevronLeft,
+                onClick = onBack,
+                contentDescription = stringResource(Res.string.nav_back),
+            )
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                OrganicSkeleton(
+                    modifier = Modifier.width(132.dp).height(194.dp),
+                    cornerRadius = 20.dp,
+                )
+                OrganicSkeleton(modifier = Modifier.fillMaxWidth(0.7f).height(26.dp))
+                OrganicSkeleton(modifier = Modifier.fillMaxWidth(0.4f).height(16.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    repeat(3) {
+                        OrganicSkeleton(
+                            modifier = Modifier.width(72.dp).height(30.dp),
+                            cornerRadius = OrganicShape.pill,
+                        )
+                    }
+                }
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                repeat(4) { line ->
+                    OrganicSkeleton(
+                        // The last line of a paragraph is short, so the block reads as prose
+                        // rather than as a grey rectangle.
+                        modifier = Modifier
+                            .fillMaxWidth(if (line == 3) 0.55f else 1f)
+                            .height(14.dp),
+                        cornerRadius = OrganicShape.radiusSm,
+                    )
+                }
+            }
+            OrganicSkeleton(
+                modifier = Modifier.fillMaxWidth().height(58.dp),
+                cornerRadius = OrganicShape.pill,
+            )
+        }
+    }
+}
+
+/** "6h 20m", or just minutes for anything short. */
+@Composable
+private fun readingTimeText(minutes: Int): String =
+    if (minutes >= 60) {
+        stringResource(Res.string.book_hours_minutes, minutes / 60, minutes % 60)
+    } else {
+        stringResource(Res.string.book_minutes, minutes)
+    }
+
+/** 12,345 becomes 12k — a pill has no room for the exact figure and no need for it. */
+private fun Int.toCompactCount(): String = when {
+    this >= 1_000_000 -> "${this / 1_000_000}m"
+    this >= 1_000 -> "${this / 1_000}k"
+    else -> toString()
+}
+
+/**
+ * The facts that belong in a list rather than a pill — who published it, when, how long, what
+ * language. Each row appears only if the catalogue carries it, so this whole block disappears for
+ * a record that carries none.
+ */
+@Composable
+private fun DetailsBlock(
+    uiState: PrePurchaseUiState,
+    modifier: Modifier = Modifier,
+) {
+    val rows = buildList {
+        uiState.publisher?.let { add(stringResource(Res.string.book_publisher) to it) }
+        uiState.firstPublishYear?.let { add(stringResource(Res.string.book_published) to it.toString()) }
+        uiState.pages?.let { add(stringResource(Res.string.book_length) to stringResource(Res.string.book_pages, it)) }
+        uiState.language?.let { add(stringResource(Res.string.book_language) to it) }
+    }
+    if (rows.isEmpty()) return
+
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        OrganicSectionHeader(title = stringResource(Res.string.book_details))
+        rows.forEach { (label, value) ->
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = label,
+                    modifier = Modifier.weight(1f),
+                    fontFamily = organicBodyFontFamily(),
+                    fontSize = 14.sp,
+                    color = OrganicColors.neutral700
+                )
+                Text(
+                    text = value,
+                    modifier = Modifier.weight(1.4f),
+                    fontFamily = organicBodyFontFamily(),
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp,
+                    color = OrganicColors.text,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
+
+/**
  * Rating, length and genre as pills — each one only when the source actually carries it. An
  * unrated book shows two pills rather than a made-up score.
  */
@@ -214,7 +362,13 @@ fun PrePurchaseScreen(
 private fun MetaPills(uiState: PrePurchaseUiState) {
     val pills = buildList {
         uiState.rating?.let { add("★ $it" to true) }
+        uiState.minutesToRead?.let {
+            add(stringResource(Res.string.book_about_duration, readingTimeText(it)) to false)
+        }
         uiState.pages?.let { add(stringResource(Res.string.book_pages, it) to false) }
+        // Gutenberg gives no rating and no length; how often a book has been downloaded is the
+        // one popularity signal it does give, and it is a real number.
+        uiState.downloadCount?.let { add(stringResource(Res.string.book_downloads, it.toCompactCount()) to false) }
         uiState.genre?.let { add(it to false) }
     }
     if (pills.isEmpty()) return
