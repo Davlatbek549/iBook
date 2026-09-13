@@ -117,6 +117,14 @@ fun OrganicSectionHeader(
     ) {
         Text(
             text = title,
+            // The title goes wherever the action goes. "See all" is a 12sp target for the most
+            // obvious thing on the row to tap, and a heading that leads somewhere should take a
+            // tap on the heading.
+            modifier = if (onActionClick != null) {
+                Modifier.clickable(role = Role.Button, onClick = onActionClick)
+            } else {
+                Modifier
+            },
             fontFamily = organicHeadingFontFamily(),
             fontWeight = FontWeight.Normal,
             fontSize = 21.sp,
