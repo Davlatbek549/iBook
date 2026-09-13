@@ -1,24 +1,21 @@
 package com.example.dz.presentation.collections.details
 
-import com.example.dz.presentation.common.uniqueLazyKeys
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -26,228 +23,338 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.dz.designsystem.components.icons.InkIcons
-import com.example.dz.designsystem.components.ink.InkBookRow
-import com.example.dz.designsystem.components.ink.InkIconButton
-import com.example.dz.designsystem.components.remote.RemoteBookCover
-import com.example.dz.designsystem.theme.InkShape
-import com.example.dz.designsystem.theme.inkBodyFontFamily
-import com.example.dz.designsystem.theme.inkColors
-import com.example.dz.designsystem.theme.inkDisplayFontFamily
+import com.example.dz.designsystem.components.icons.OrganicIcons
+import com.example.dz.designsystem.components.organic.ORGANIC_GUTTER
+import com.example.dz.designsystem.components.organic.ORGANIC_TAB_BAR_CLEARANCE
+import com.example.dz.designsystem.components.organic.OrganicBookCover
+import com.example.dz.designsystem.components.organic.OrganicCircleIconButton
+import com.example.dz.designsystem.components.organic.OrganicSectionLabel
+import com.example.dz.designsystem.components.organic.shelfColorAt
+import com.example.dz.designsystem.theme.OrganicColors
+import com.example.dz.designsystem.theme.OrganicShape
+import com.example.dz.designsystem.theme.organicBodyFontFamily
+import com.example.dz.designsystem.theme.organicHeadingFontFamily
+import com.example.dz.presentation.common.uniqueLazyKeys
 import dz.shared.generated.resources.Res
-import dz.shared.generated.resources.book_cover
-import dz.shared.generated.resources.book_cover_3
-import dz.shared.generated.resources.book_cover_4
-import dz.shared.generated.resources.coll_add_books
-import dz.shared.generated.resources.coll_edit
-import dz.shared.generated.resources.olive_again_book
+import dz.shared.generated.resources.collection_edit
+import dz.shared.generated.resources.collection_empty_books
+import dz.shared.generated.resources.collection_in_this
+import dz.shared.generated.resources.collection_read_next
+import dz.shared.generated.resources.library_book_count
+import dz.shared.generated.resources.nav_back
 import org.jetbrains.compose.resources.stringResource
 
-private val previewUiState = CollectionDetailsUiState(
-    collectionId = "quiet-novels",
-    title = "Quiet novels",
-    description = "“Small lives, carefully observed — the books I reach for on slow evenings.”",
-    bookCount = 12,
-    books = listOf(
-        CollectionDetailsBookUiState("olive-again", "Olive, Again", "Elizabeth Strout", Res.drawable.olive_again_book, note = "read · 5★"),
-        CollectionDetailsBookUiState("red-at-the-bone", "Red at the Bone", "Jacqueline Woodson", Res.drawable.book_cover_3, note = "reading · 62%", noteHighlighted = true),
-        CollectionDetailsBookUiState("mexican-gothic", "Mexican Gothic", "Silvia Moreno-Garcia", Res.drawable.book_cover, note = "to read"),
-        CollectionDetailsBookUiState("bestiary", "Bestiary", "K-Ming Chang", Res.drawable.book_cover_4, note = "to read")
-    )
-)
-
+/**
+ * Collection detail — one shelf, washed in the colour the reader gave it.
+ *
+ * The header is the screen's whole identity: the shelf's own colour as a ground, its covers fanned
+ * out, and the one action worth having at the top of it. That wash is why a shelf colour is worth
+ * storing — picking a swatch tints a screen, not a dot.
+ *
+ * Geometry from `dz-all-screens.html`.
+ */
 @Composable
 fun CollectionDetails(
-    uiState: CollectionDetailsUiState = previewUiState,
+    uiState: CollectionDetailsUiState = CollectionDetailsUiState(),
     onEvent: (CollectionDetailsEvent) -> Unit = {},
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
-    val colors = inkColors()
-    val displayFont = inkDisplayFontFamily()
-    val bodyFont = inkBodyFontFamily()
+    val shelf = shelfColorAt(uiState.colorIndex)
+    val keys = uiState.books.uniqueLazyKeys { it.id }
 
-    val bookKeys = uiState.books.uniqueLazyKeys { it.id }
-
-    LazyColumn(
+    Box(
         modifier = modifier
-            .fillMaxSize()
-            .background(colors.paper)
-            .statusBarsPadding(),
-        contentPadding = PaddingValues(bottom = 30.dp)
+            .fillMaxWidth()
+            .background(OrganicColors.bg)
     ) {
-        item(key = "top-bar") {
-            // top bar
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 22.dp, end = 22.dp, top = 4.dp)
-            ) {
-                InkIconButton(icon = InkIcons.Back, onClick = { onEvent(CollectionDetailsEvent.BackClicked) }, colors = colors)
-                Spacer(modifier = Modifier.weight(1f))
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    InkIconButton(icon = InkIcons.Share, onClick = { onEvent(CollectionDetailsEvent.ShareClicked) }, colors = colors)
-                    InkIconButton(icon = InkIcons.MoreVertical, onClick = { onEvent(CollectionDetailsEvent.EditClicked) }, colors = colors)
-                }
+        LazyColumn(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(bottom = ORGANIC_TAB_BAR_CLEARANCE)
+        ) {
+            item(key = "header") {
+                ShelfHeader(uiState = uiState, shelfInk = shelf.ink, shelfGround = shelf.ground,
+                    shelfSwatch = shelf.swatch, onEvent = onEvent)
             }
-        }
-        item(key = "header") {
-            // header: fanned covers + name
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 22.dp, end = 22.dp, top = 18.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Box {
-                    val stack = uiState.books.take(3)
-                    // draw right-to-left so the leftmost cover sits on top, like the design
-                    stack.indices.reversed().forEach { j ->
-                        RemoteBookCover(
-                            coverUrl = stack[j].coverUrl,
-                            fallback = stack[j].coverRes,
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier
-                                .offset(x = (34 * j).dp)
-                                .size(width = 56.dp, height = 82.dp)
-                                .clip(RoundedCornerShape(InkShape.cover))
-                                .border(2.dp, colors.paper, RoundedCornerShape(InkShape.cover))
-                        )
-                    }
-                    // reserve the stack's visual footprint
-                    Spacer(modifier = Modifier.size(width = (56 + 34 * (stack.size - 1)).coerceAtLeast(56).dp, height = 82.dp))
-                }
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = uiState.title,
-                        fontFamily = displayFont,
-                        fontWeight = FontWeight.Medium,
-                        fontSize = 24.sp,
-                        lineHeight = 27.sp,
-                        color = colors.ink
-                    )
-                    Text(
-                        text = "${uiState.bookCount} books · updated recently",
-                        modifier = Modifier.padding(top = 6.dp),
-                        fontFamily = bodyFont,
-                        fontSize = 12.sp,
-                        color = colors.muted
-                    )
-                }
-            }
-        }
-        item(key = "description") {
-            // description
-            if (uiState.description.isNotBlank()) {
-                Text(
-                    text = uiState.description,
-                    modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 14.dp),
-                    fontFamily = displayFont,
-                    fontStyle = FontStyle.Italic,
-                    fontSize = 13.sp,
-                    lineHeight = 21.5.sp,
-                    color = colors.inkSoft
+
+            item(key = "list-label") {
+                OrganicSectionLabel(
+                    text = stringResource(Res.string.collection_in_this),
+                    modifier = Modifier.padding(
+                        start = ORGANIC_GUTTER,
+                        end = ORGANIC_GUTTER,
+                        top = 20.dp,
+                        bottom = 14.dp,
+                    ),
                 )
             }
-        }
-        item(key = "actions") {
-            // actions
-            Row(
-                modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(44.dp)
-                        .clip(RoundedCornerShape(InkShape.radiusSm + 2.dp))
-                        .background(colors.accentSoft)
-                        .clickable { onEvent(CollectionDetailsEvent.AddBooksClicked) },
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(9.dp, Alignment.CenterHorizontally)
-                ) {
-                    Icon(
-                        imageVector = InkIcons.Plus,
-                        contentDescription = null,
-                        tint = colors.accent,
-                        modifier = Modifier.size(13.dp)
-                    )
+
+            if (uiState.books.isEmpty()) {
+                item(key = "empty") {
                     Text(
-                        text = stringResource(Res.string.coll_add_books),
-                        fontFamily = bodyFont,
-                        fontWeight = FontWeight.SemiBold,
+                        text = stringResource(Res.string.collection_empty_books),
+                        modifier = Modifier.padding(horizontal = ORGANIC_GUTTER),
+                        fontFamily = organicBodyFontFamily(),
                         fontSize = 13.sp,
-                        color = colors.accent
-                    )
-                }
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(44.dp)
-                        .clip(RoundedCornerShape(InkShape.radiusSm + 2.dp))
-                        .border(1.dp, colors.line, RoundedCornerShape(InkShape.radiusSm + 2.dp))
-                        .clickable { onEvent(CollectionDetailsEvent.EditClicked) },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = stringResource(Res.string.coll_edit),
-                        fontFamily = bodyFont,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 13.sp,
-                        color = colors.ink
+                        color = OrganicColors.neutral700
                     )
                 }
             }
-        }
-        // book list — lazy, so a large collection builds only the rows on screen
-        item(key = "list-top") { Spacer(modifier = Modifier.height(18.dp)) }
-        itemsIndexed(
-            items = uiState.books,
-            key = { index, _ -> "book:" + bookKeys[index] },
-            contentType = { _, _ -> "book" }
-        ) { i, book ->
-            Box(modifier = Modifier.padding(horizontal = 22.dp)) {
-                InkBookRow(
-                    cover = book.coverRes,
-                    coverUrl = book.coverUrl,
-                    title = book.title,
-                    author = book.author,
-                    modifier = Modifier.clickable { onEvent(CollectionDetailsEvent.BookClicked(book.id)) },
-                    showDivider = i > 0,
-                    meta = {
-                        Text(
-                            text = book.note,
-                            fontFamily = bodyFont,
-                            fontSize = 11.sp,
-                            color = if (book.noteHighlighted) colors.accent else colors.muted
-                        )
-                    },
-                    trailing = {
-                        Icon(
-                            imageVector = InkIcons.MoreVertical,
-                            contentDescription = null,
-                            tint = colors.muted,
-                            modifier = Modifier
-                                .size(16.dp)
-                                .clickable { onEvent(CollectionDetailsEvent.BookOptionsClicked(book.id)) }
-                        )
-                    },
-                    colors = colors
+
+            items(uiState.books.size, key = { keys[it] }) { index ->
+                ShelfBookRow(
+                    position = index + 1,
+                    book = uiState.books[index],
+                    modifier = Modifier.padding(horizontal = ORGANIC_GUTTER, vertical = 7.dp),
+                    onClick = { onEvent(CollectionDetailsEvent.BookClicked(uiState.books[index].id)) },
                 )
             }
         }
     }
 }
 
-@Preview(showBackground = true, widthDp = 375, heightDp = 820)
+/**
+ * The coloured block at the top. Its bottom corners are rounded and its top are not — it runs up
+ * under the status bar, so it reads as the page's own head rather than as a card sitting on it.
+ */
 @Composable
-private fun CollectionDetailsPreview() {
+private fun ShelfHeader(
+    uiState: CollectionDetailsUiState,
+    shelfInk: Color,
+    shelfGround: Color,
+    shelfSwatch: Color,
+    onEvent: (CollectionDetailsEvent) -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(bottomStart = 34.dp, bottomEnd = 34.dp))
+            .background(shelfGround)
+            // The colour runs up behind the status bar — the design butts it against the top of
+            // the frame — while the content it holds starts below.
+            .statusBarsPadding()
+            .padding(start = ORGANIC_GUTTER, end = ORGANIC_GUTTER, bottom = 24.dp)
+            .padding(top = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            OrganicCircleIconButton(
+                icon = OrganicIcons.ChevronLeft,
+                onClick = { onEvent(CollectionDetailsEvent.BackClicked) },
+                contentDescription = stringResource(Res.string.nav_back),
+                size = 38.dp,
+                iconSize = 17.dp,
+                background = OrganicColors.bg,
+                tint = shelfInk,
+            )
+            Box(modifier = Modifier.weight(1f))
+            Text(
+                text = stringResource(Res.string.collection_edit),
+                modifier = Modifier
+                    .height(38.dp)
+                    .clip(RoundedCornerShape(OrganicShape.pill))
+                    .background(OrganicColors.bg)
+                    .clickable(role = Role.Button) { onEvent(CollectionDetailsEvent.EditClicked) }
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                fontFamily = organicBodyFontFamily(),
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 13.sp,
+                color = shelfInk
+            )
+        }
+
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.Bottom
+        ) {
+            // Bigger than the stack on the Collections list, and its back card takes the shelf's
+            // own swatch so the colour reads even on a shelf whose covers are all dark.
+            Box(modifier = Modifier.width(104.dp).height(126.dp)) {
+                Box(
+                    modifier = Modifier
+                        .offset(x = 22.dp, y = 8.dp)
+                        .width(74.dp)
+                        .height(112.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(shelfSwatch)
+                )
+                uiState.books.getOrNull(1)?.let { second ->
+                    OrganicBookCover(
+                        title = second.title,
+                        modifier = Modifier.offset(x = 11.dp, y = 4.dp),
+                        coverUrl = second.coverUrl,
+                        width = 76.dp,
+                        height = 118.dp,
+                        cornerRadius = 13.dp,
+                    )
+                }
+                uiState.books.firstOrNull()?.let { first ->
+                    OrganicBookCover(
+                        title = first.title,
+                        modifier = Modifier.shadow(
+                            elevation = 14.dp,
+                            shape = RoundedCornerShape(14.dp),
+                            ambientColor = OrganicColors.shadow.copy(alpha = 0.22f),
+                            spotColor = OrganicColors.shadow.copy(alpha = 0.22f)
+                        ),
+                        coverUrl = first.coverUrl,
+                        width = 78.dp,
+                        height = 122.dp,
+                        cornerRadius = 14.dp,
+                    )
+                }
+            }
+            Column(
+                modifier = Modifier.padding(bottom = 6.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Text(
+                    text = uiState.title,
+                    fontFamily = organicHeadingFontFamily(),
+                    fontWeight = FontWeight.Normal,
+                    fontSize = 30.sp,
+                    lineHeight = 31.5.sp,
+                    color = shelfInk,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    // Pages only when the books on the shelf actually say how long they are.
+                    // The design reads "12 books · 4,208 pages". A collection stores a book's
+                    // title, author and cover — not its length — so the count is what is true.
+                    text = stringResource(Res.string.library_book_count, uiState.bookCount),
+                    fontFamily = organicBodyFontFamily(),
+                    fontSize = 13.sp,
+                    color = shelfInk.copy(alpha = 0.8f)
+                )
+            }
+        }
+
+        if (uiState.description.isNotBlank()) {
+            Text(
+                text = uiState.description,
+                fontFamily = organicBodyFontFamily(),
+                fontSize = 14.sp,
+                lineHeight = 22.4.sp,
+                color = shelfInk.copy(alpha = 0.85f)
+            )
+        }
+
+        if (uiState.books.isNotEmpty()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(52.dp)
+                        .shadow(
+                            elevation = 6.dp,
+                            shape = RoundedCornerShape(OrganicShape.pill),
+                            ambientColor = OrganicColors.shadow.copy(alpha = 0.16f),
+                            spotColor = OrganicColors.shadow.copy(alpha = 0.16f)
+                        )
+                        .clip(RoundedCornerShape(OrganicShape.pill))
+                        .background(OrganicColors.accent)
+                        .clickable(role = Role.Button) {
+                            uiState.books.firstOrNull()?.let {
+                                onEvent(CollectionDetailsEvent.BookClicked(it.id))
+                            }
+                        },
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = stringResource(Res.string.collection_read_next),
+                        fontFamily = organicBodyFontFamily(),
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 15.sp,
+                        color = Color.White
+                    )
+                }
+                OrganicCircleIconButton(
+                    icon = OrganicIcons.Plus,
+                    onClick = { onEvent(CollectionDetailsEvent.AddBooksClicked) },
+                    contentDescription = stringResource(Res.string.collection_edit),
+                    size = 52.dp,
+                    iconSize = 20.dp,
+                    background = OrganicColors.bg,
+                    tint = shelfInk,
+                )
+            }
+        }
+    }
+}
+
+/** A numbered row: where the book sits on the shelf, its cover, and who wrote it. */
+@Composable
+private fun ShelfBookRow(
+    position: Int,
+    book: CollectionDetailsBookUiState,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(role = Role.Button, onClick = onClick),
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = position.toString(),
+            modifier = Modifier.width(18.dp),
+            fontFamily = organicBodyFontFamily(),
+            fontWeight = FontWeight.Bold,
+            fontSize = 13.sp,
+            color = OrganicColors.neutral500
+        )
+        OrganicBookCover(
+            title = book.title,
+            coverUrl = book.coverUrl,
+            width = 46.dp,
+            height = 68.dp,
+            cornerRadius = 9.dp,
+            elevated = true,
+        )
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                text = book.title,
+                fontFamily = organicBodyFontFamily(),
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 15.sp,
+                color = OrganicColors.text,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = book.author,
+                fontFamily = organicBodyFontFamily(),
+                fontSize = 12.sp,
+                color = OrganicColors.neutral700,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+@Preview
+@Composable
+fun CollectionDetailsPreview() {
     CollectionDetails()
 }

@@ -53,6 +53,7 @@ class CollectionsEditViewModel(
             is CollectionsEditEvent.NameChanged -> _uiState.update { it.copy(name = event.value) }
             is CollectionsEditEvent.DescriptionChanged -> _uiState.update { it.copy(description = event.value) }
             is CollectionsEditEvent.VisibilityChanged -> _uiState.update { it.copy(visibleToFriends = event.value) }
+            is CollectionsEditEvent.ColorSelected -> _uiState.update { it.copy(colorIndex = event.index) }
             is CollectionsEditEvent.BookRemoved -> _uiState.update {
                 it.copy(books = it.books.filterNot { book -> book.id == event.bookId })
             }
@@ -99,6 +100,8 @@ class CollectionsEditViewModel(
                     base.copy(
                         title = state.name,
                         description = state.description.ifBlank { null },
+                        colorIndex = state.colorIndex,
+                        isShared = state.visibleToFriends,
                         books = base.books.filter { it.id in keptBookIds }
                     )
                 )

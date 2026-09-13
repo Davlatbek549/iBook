@@ -1,233 +1,257 @@
 package com.example.dz.presentation.collections.edit
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.defaultMinSize
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.dz.designsystem.components.icons.InkIcons
-import com.example.dz.designsystem.components.ink.InkField
-import com.example.dz.designsystem.components.ink.InkLabel
-import com.example.dz.designsystem.components.ink.InkToggle
-import com.example.dz.designsystem.components.ink.InkTopBar
-import com.example.dz.designsystem.components.remote.RemoteBookCover
-import com.example.dz.designsystem.theme.InkColors
-import com.example.dz.designsystem.theme.InkShape
-import com.example.dz.designsystem.theme.inkBodyFontFamily
-import com.example.dz.designsystem.theme.inkColors
-import com.example.dz.designsystem.theme.inkDisplayFontFamily
+import com.example.dz.designsystem.components.icons.OrganicIcons
+import com.example.dz.designsystem.components.organic.ORGANIC_GUTTER
+import com.example.dz.designsystem.components.organic.ORGANIC_TAB_BAR_CLEARANCE
+import com.example.dz.designsystem.components.organic.OrganicBookCover
+import com.example.dz.designsystem.components.organic.OrganicCard
+import com.example.dz.designsystem.components.organic.OrganicField
+import com.example.dz.designsystem.components.organic.OrganicSectionLabel
+import com.example.dz.designsystem.components.organic.OrganicShelfColorPicker
+import com.example.dz.designsystem.components.organic.OrganicToggle
+import com.example.dz.designsystem.theme.OrganicColors
+import com.example.dz.designsystem.theme.OrganicShape
+import com.example.dz.designsystem.theme.organicBodyFontFamily
+import com.example.dz.designsystem.theme.organicHeadingFontFamily
+import com.example.dz.presentation.common.uniqueLazyKeys
 import dz.shared.generated.resources.Res
-import dz.shared.generated.resources.book_cover
-import dz.shared.generated.resources.book_cover_3
-import dz.shared.generated.resources.coll_books_reorder
-import dz.shared.generated.resources.coll_delete
-import dz.shared.generated.resources.coll_description
-import dz.shared.generated.resources.coll_edit_title
-import dz.shared.generated.resources.coll_name
-import dz.shared.generated.resources.coll_save
-import dz.shared.generated.resources.coll_visible
-import dz.shared.generated.resources.coll_visible_sub
-import dz.shared.generated.resources.olive_again_book
+import dz.shared.generated.resources.collection_add_books
+import dz.shared.generated.resources.collection_books_reorder
+import dz.shared.generated.resources.collection_cancel
+import dz.shared.generated.resources.collection_colour
+import dz.shared.generated.resources.collection_delete
+import dz.shared.generated.resources.collection_description
+import dz.shared.generated.resources.collection_description_hint
+import dz.shared.generated.resources.collection_edit_title
+import dz.shared.generated.resources.collection_name
+import dz.shared.generated.resources.collection_name_hint
+import dz.shared.generated.resources.collection_new_title
+import dz.shared.generated.resources.collection_remove_book
+import dz.shared.generated.resources.collection_save
+import dz.shared.generated.resources.collection_shared
+import dz.shared.generated.resources.collection_shared_off
+import dz.shared.generated.resources.collection_shared_on
 import org.jetbrains.compose.resources.stringResource
 
-private val previewUiState = CollectionsEditUiState(
-    collectionId = "quiet-novels",
-    name = "Quiet novels",
-    description = "Small lives, carefully observed — the books I reach for on slow evenings.",
-    books = listOf(
-        CollectionsEditBookUi("olive-again", "Olive, Again", "Elizabeth Strout", Res.drawable.olive_again_book),
-        CollectionsEditBookUi("red-at-the-bone", "Red at the Bone", "Jacqueline Woodson", Res.drawable.book_cover_3),
-        CollectionsEditBookUi("mexican-gothic", "Mexican Gothic", "Silvia Moreno-Garcia", Res.drawable.book_cover)
-    )
-)
-
+/**
+ * Collection edit — and collection *create*, which is the same screen with nothing in it yet.
+ *
+ * The handoff routes "New collection" here rather than to a second form, and the view model already
+ * worked that way: an id it reads as "this shelf does not exist yet" makes Save create instead of
+ * update. Only the title changes between the two.
+ *
+ * Geometry from `dz-all-screens.html`.
+ */
 @Composable
-fun CollectionsEdit(
-    uiState: CollectionsEditUiState = previewUiState,
+fun CollectionsEditScreen(
+    uiState: CollectionsEditUiState = CollectionsEditUiState(),
     onEvent: (CollectionsEditEvent) -> Unit = {},
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
-    val colors = inkColors()
-    val bodyFont = inkBodyFontFamily()
+    val keys = uiState.books.uniqueLazyKeys { it.id }
 
     Box(
         modifier = modifier
-            .fillMaxSize()
-            .background(colors.paper)
+            .fillMaxWidth()
+            .background(OrganicColors.bg)
+            .statusBarsPadding()
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .verticalScroll(rememberScrollState())
-                .padding(bottom = 130.dp)
+        LazyColumn(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(
+                start = ORGANIC_GUTTER,
+                end = ORGANIC_GUTTER,
+                top = 12.dp,
+                bottom = ORGANIC_TAB_BAR_CLEARANCE,
+            ),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            InkTopBar(
-                title = stringResource(Res.string.coll_edit_title),
-                onBackClick = { onEvent(CollectionsEditEvent.BackClicked) },
-                right = {
+            item(key = "bar") {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Text(
-                        text = stringResource(Res.string.coll_save),
-                        modifier = Modifier
-                            .clickable { onEvent(CollectionsEditEvent.SaveClicked) }
-                            .padding(6.dp),
-                        fontFamily = bodyFont,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 13.sp,
-                        color = colors.accent
+                        text = stringResource(Res.string.collection_cancel),
+                        modifier = Modifier.clickable(role = Role.Button) {
+                            onEvent(CollectionsEditEvent.BackClicked)
+                        },
+                        fontFamily = organicBodyFontFamily(),
+                        fontSize = 15.sp,
+                        color = OrganicColors.neutral700
                     )
-                },
-                colors = colors
-            )
+                    Text(
+                        text = stringResource(
+                            if (uiState.isNewCollection) {
+                                Res.string.collection_new_title
+                            } else {
+                                Res.string.collection_edit_title
+                            }
+                        ),
+                        fontFamily = organicHeadingFontFamily(),
+                        fontWeight = FontWeight.Normal,
+                        fontSize = 20.sp,
+                        color = OrganicColors.text
+                    )
+                    Text(
+                        text = stringResource(Res.string.collection_save),
+                        modifier = Modifier.clickable(role = Role.Button) {
+                            onEvent(CollectionsEditEvent.SaveClicked)
+                        },
+                        fontFamily = organicBodyFontFamily(),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp,
+                        color = OrganicColors.accent700
+                    )
+                }
+            }
 
-            // name
-            Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 8.dp)) {
-                InkLabel(text = stringResource(Res.string.coll_name), colors = colors)
-                Box(modifier = Modifier.padding(top = 10.dp)) {
-                    InkField(
+            item(key = "name") {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OrganicSectionLabel(text = stringResource(Res.string.collection_name))
+                    OrganicField(
                         value = uiState.name,
                         onValueChange = { onEvent(CollectionsEditEvent.NameChanged(it)) },
-                        placeholder = "",
-                        colors = colors
+                        placeholder = stringResource(Res.string.collection_name_hint),
                     )
                 }
             }
 
-            // description (multiline)
-            Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 20.dp)) {
-                InkLabel(text = stringResource(Res.string.coll_description), colors = colors)
-                BasicTextField(
-                    value = uiState.description,
-                    onValueChange = { onEvent(CollectionsEditEvent.DescriptionChanged(it)) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 10.dp)
-                        .defaultMinSize(minHeight = 70.dp)
-                        .clip(RoundedCornerShape(InkShape.radiusSm + 2.dp))
-                        .background(colors.surface)
-                        .border(1.dp, colors.line, RoundedCornerShape(InkShape.radiusSm + 2.dp))
-                        .padding(horizontal = 15.dp, vertical = 13.dp),
-                    textStyle = TextStyle(
-                        fontFamily = bodyFont,
-                        fontSize = 13.sp,
-                        lineHeight = 21.sp,
-                        color = colors.ink
-                    ),
-                    cursorBrush = SolidColor(colors.accent)
-                )
-            }
-
-            // visibility toggle
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 22.dp, end = 22.dp, top = 20.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(Res.string.coll_visible),
-                        fontFamily = bodyFont,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 13.5.sp,
-                        color = colors.ink
-                    )
-                    Text(
-                        text = stringResource(Res.string.coll_visible_sub),
-                        modifier = Modifier.padding(top = 5.dp),
-                        fontFamily = bodyFont,
-                        fontSize = 11.5.sp,
-                        color = colors.muted
+            item(key = "description") {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OrganicSectionLabel(text = stringResource(Res.string.collection_description))
+                    OrganicField(
+                        value = uiState.description,
+                        onValueChange = { onEvent(CollectionsEditEvent.DescriptionChanged(it)) },
+                        placeholder = stringResource(Res.string.collection_description_hint),
+                        singleLine = false,
+                        minHeight = 78.dp,
                     )
                 }
-                InkToggle(
-                    checked = uiState.visibleToFriends,
-                    onCheckedChange = { onEvent(CollectionsEditEvent.VisibilityChanged(it)) },
-                    colors = colors
-                )
             }
 
-            // books
-            Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 22.dp)) {
-                InkLabel(text = stringResource(Res.string.coll_books_reorder), colors = colors)
-                Column(modifier = Modifier.padding(top = 4.dp)) {
-                    uiState.books.forEachIndexed { i, book ->
-                        if (i > 0) {
-                            HorizontalDivider(thickness = 1.dp, color = colors.line)
+            item(key = "colour") {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OrganicSectionLabel(text = stringResource(Res.string.collection_colour))
+                    OrganicShelfColorPicker(
+                        selectedIndex = uiState.colorIndex,
+                        onSelect = { onEvent(CollectionsEditEvent.ColorSelected(it)) },
+                    )
+                }
+            }
+
+            item(key = "shared") {
+                OrganicCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(horizontal = 18.dp, vertical = 16.dp),
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(3.dp)
+                        ) {
+                            Text(
+                                text = stringResource(Res.string.collection_shared),
+                                fontFamily = organicBodyFontFamily(),
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 15.sp,
+                                color = OrganicColors.text
+                            )
+                            Text(
+                                text = stringResource(
+                                    if (uiState.visibleToFriends) {
+                                        Res.string.collection_shared_on
+                                    } else {
+                                        Res.string.collection_shared_off
+                                    }
+                                ),
+                                fontFamily = organicBodyFontFamily(),
+                                fontSize = 12.sp,
+                                color = OrganicColors.neutral700
+                            )
                         }
-                        EditableBookRow(
-                            book = book,
-                            onRemove = { onEvent(CollectionsEditEvent.BookRemoved(book.id)) },
-                            colors = colors
+                        OrganicToggle(
+                            checked = uiState.visibleToFriends,
+                            onCheckedChange = { onEvent(CollectionsEditEvent.VisibilityChanged(it)) },
                         )
                     }
                 }
             }
-        }
 
-        // pinned delete bar
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .background(colors.paper)
-        ) {
-            HorizontalDivider(thickness = 1.dp, color = colors.line)
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .padding(top = 14.dp, bottom = 18.dp),
-                horizontalArrangement = Arrangement.Center
-            ) {
-                Row(
-                    modifier = Modifier
-                        .clickable { onEvent(CollectionsEditEvent.DeleteClicked) }
-                        .padding(6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(
-                        imageVector = InkIcons.Delete,
-                        contentDescription = null,
-                        tint = colors.danger,
-                        modifier = Modifier.size(15.dp)
+            if (uiState.books.isNotEmpty()) {
+                item(key = "books-label") {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.Bottom
+                    ) {
+                        OrganicSectionLabel(text = stringResource(Res.string.collection_books_reorder))
+                        Text(
+                            text = stringResource(Res.string.collection_add_books),
+                            modifier = Modifier.clickable(role = Role.Button) {
+                                onEvent(CollectionsEditEvent.BackClicked)
+                            },
+                            fontFamily = organicBodyFontFamily(),
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 13.sp,
+                            color = OrganicColors.accent700
+                        )
+                    }
+                }
+                items(uiState.books.size, key = { keys[it] }) { index ->
+                    val book = uiState.books[index]
+                    EditBookRow(
+                        book = book,
+                        modifier = Modifier.padding(bottom = 10.dp),
+                        onRemove = { onEvent(CollectionsEditEvent.BookRemoved(book.id)) },
                     )
+                }
+            }
+
+            if (!uiState.isNewCollection) {
+                item(key = "delete") {
                     Text(
-                        text = stringResource(Res.string.coll_delete),
-                        fontFamily = bodyFont,
+                        text = stringResource(Res.string.collection_delete),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(role = Role.Button) { onEvent(CollectionsEditEvent.DeleteClicked) }
+                            .padding(vertical = 12.dp),
+                        fontFamily = organicBodyFontFamily(),
                         fontWeight = FontWeight.SemiBold,
-                        fontSize = 13.sp,
-                        color = colors.danger
+                        fontSize = 15.sp,
+                        color = OrganicColors.danger
                     )
                 }
             }
@@ -235,72 +259,65 @@ fun CollectionsEdit(
     }
 }
 
+/**
+ * A book on the shelf being edited: a pill rather than a card, so the list reads as something
+ * being rearranged rather than as content.
+ *
+ * The design draws a drag handle. Reordering is not wired — nothing persists an order — so the
+ * handle is left off rather than drawn as a control that does not move anything.
+ */
 @Composable
-private fun EditableBookRow(
+private fun EditBookRow(
     book: CollectionsEditBookUi,
+    modifier: Modifier = Modifier,
     onRemove: () -> Unit,
-    colors: InkColors,
 ) {
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(13.dp)
+            .clip(RoundedCornerShape(OrganicShape.pill))
+            .background(OrganicColors.neutral100)
+            .padding(start = 12.dp, end = 16.dp, top = 10.dp, bottom = 10.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = InkIcons.Move,
-            contentDescription = null,
-            tint = colors.muted,
-            modifier = Modifier.size(15.dp)
-        )
-        RemoteBookCover(
+        OrganicBookCover(
+            title = book.title,
             coverUrl = book.coverUrl,
-            fallback = book.coverRes,
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .size(width = 38.dp, height = 56.dp)
-                .clip(RoundedCornerShape(InkShape.cover - 1.dp))
+            width = 30.dp,
+            height = 44.dp,
+            cornerRadius = 7.dp,
         )
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = book.title,
-                fontFamily = inkDisplayFontFamily(),
-                fontWeight = FontWeight.Medium,
-                fontSize = 14.sp,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                color = colors.ink
-            )
-            Text(
-                text = book.author,
-                modifier = Modifier.padding(top = 4.dp),
-                fontFamily = inkBodyFontFamily(),
-                fontSize = 11.5.sp,
-                color = colors.muted
-            )
-        }
+        Text(
+            text = book.title,
+            modifier = Modifier.weight(1f),
+            fontFamily = organicBodyFontFamily(),
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 14.sp,
+            color = OrganicColors.text,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
         Box(
             modifier = Modifier
                 .size(30.dp)
                 .clip(CircleShape)
-                .border(1.dp, colors.line, CircleShape)
-                .clickable(onClick = onRemove),
+                .background(OrganicColors.neutral200)
+                .clickable(role = Role.Button, onClick = onRemove),
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector = InkIcons.Close,
-                contentDescription = null,
-                tint = colors.muted,
-                modifier = Modifier.size(10.dp)
+                imageVector = OrganicIcons.Close,
+                contentDescription = stringResource(Res.string.collection_remove_book),
+                tint = OrganicColors.neutral800,
+                modifier = Modifier.size(14.dp)
             )
         }
     }
 }
 
-@Preview(showBackground = true, widthDp = 375, heightDp = 820)
+@Preview
 @Composable
-private fun CollectionsEditPreview() {
-    CollectionsEdit()
+fun CollectionsEditScreenPreview() {
+    CollectionsEditScreen()
 }

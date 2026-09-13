@@ -45,7 +45,7 @@ import com.example.dz.presentation.collections.details.CollectionDetailsViewMode
 import com.example.dz.presentation.collections.list.CollectionsScreen
 import com.example.dz.presentation.collections.list.CollectionsEffect
 import com.example.dz.presentation.collections.list.CollectionsViewModel
-import com.example.dz.presentation.collections.edit.CollectionsEdit
+import com.example.dz.presentation.collections.edit.CollectionsEditScreen
 import com.example.dz.presentation.collections.edit.CollectionsEditEffect
 import com.example.dz.presentation.collections.edit.CollectionsEditViewModel
 import com.example.dz.presentation.social.friends.FriendListEffect
@@ -67,7 +67,7 @@ import com.example.dz.presentation.home.HomeViewModel
 import com.example.dz.presentation.social.invite_friends.InviteFriendList2Screen
 import com.example.dz.presentation.social.invite_friends.InviteFriendsEffect
 import com.example.dz.presentation.social.invite_friends.InviteFriendsViewModel
-import com.example.dz.presentation.library.Library
+import com.example.dz.presentation.library.LibraryScreen
 import com.example.dz.presentation.library.LibraryEffect
 import com.example.dz.presentation.library.LibraryEvent
 import com.example.dz.presentation.library.LibraryViewModel
@@ -503,20 +503,30 @@ fun DZNavGraph() {
                     libraryViewModel.effects.collect { effect ->
                         when (effect) {
                             is LibraryEffect.NavigateToBook -> navController.navigate(Routes.reading(effect.bookId))
+                            is LibraryEffect.NavigateToCollection ->
+                                navController.navigate(Routes.collectionDetail(effect.collectionId))
+                            LibraryEffect.NavigateToCollections -> navController.navigate(Routes.COLLECTIONS)
+                            LibraryEffect.NavigateToSearch -> navController.navigate(Routes.SEARCH)
                             LibraryEffect.NavigateToGoal -> navController.navigate(Routes.GOAL)
-                            LibraryEffect.OpenSort -> Unit
                         }
                     }
                 }
 
-                Library(
+                // Finishing a book in the reader moves it between shelves, so the shelf is
+                // re-read on the way back rather than left as it was when the tab was last opened.
+                LifecycleResumeEffect(libraryViewModel) {
+                    libraryViewModel.onEvent(LibraryEvent.Resumed)
+                    onPauseOrDispose { }
+                }
+
+                LibraryScreen(
                     uiState = uiState,
-                    onSettingsClick = { navController.navigate(Routes.COLLECTIONS) },
-                    onSortClick = { libraryViewModel.onEvent(LibraryEvent.SortClicked) },
-                    onBookClick = { book ->
-                        libraryViewModel.onEvent(LibraryEvent.BookClicked(book.id))
-                    },
-                    onGoalClick = { libraryViewModel.onEvent(LibraryEvent.GoalClicked) }
+                    onFilterSelect = { libraryViewModel.onEvent(LibraryEvent.FilterSelected(it)) },
+                    onSearchClick = { libraryViewModel.onEvent(LibraryEvent.SearchClicked) },
+                    onBookClick = { bookId -> libraryViewModel.onEvent(LibraryEvent.BookClicked(bookId)) },
+                    onCollectionClick = { id -> libraryViewModel.onEvent(LibraryEvent.CollectionClicked(id)) },
+                    onCollectionsClick = { libraryViewModel.onEvent(LibraryEvent.CollectionsClicked) },
+                    onNewCollectionClick = { navController.navigate(Routes.collectionsEdit(NEW_COLLECTION_ID)) }
                 )
             }
 
@@ -897,7 +907,7 @@ fun DZNavGraph() {
                     }
                 }
 
-                CollectionsEdit(
+                CollectionsEditScreen(
                     uiState = uiState,
                     onEvent = collectionsEditViewModel::onEvent
                 )
@@ -1117,6 +1127,9 @@ fun DZNavGraph() {
         }
     }
 }
+
+/** The id the edit screen reads as "this shelf does not exist yet" — see CollectionsEditViewModel. */
+private const val NEW_COLLECTION_ID = "new"
 
 private val UnsafeRouteCharacters = Regex("[^A-Za-z0-9_-]+")
 

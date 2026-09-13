@@ -3,10 +3,13 @@ package com.example.dz.presentation.library
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.dz.core.result.AppResult
+import com.example.dz.domain.usecase.collection.GetCollectionsUseCase
 import com.example.dz.domain.usecase.library.GetContinueReadingUseCase
 import com.example.dz.domain.usecase.library.GetLibraryBooksUseCase
 import com.example.dz.domain.usecase.library.UpdateReadingProgressUseCase
 import com.example.dz.presentation.mvi.toPresentationMessage
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -17,7 +20,8 @@ import kotlinx.coroutines.launch
 class LibraryViewModel(
     private val getLibraryBooks: GetLibraryBooksUseCase,
     private val getContinueReading: GetContinueReadingUseCase,
-    private val updateReadingProgress: UpdateReadingProgressUseCase
+    private val updateReadingProgress: UpdateReadingProgressUseCase,
+    private val getCollections: GetCollectionsUseCase
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(LibraryUiState(isLoading = true))
     val uiState = _uiState.asStateFlow()
@@ -33,8 +37,14 @@ class LibraryViewModel(
         when (event) {
             is LibraryEvent.BookClicked -> emitEffect(LibraryEffect.NavigateToBook(event.bookId))
             is LibraryEvent.ProgressChanged -> updateProgress(event.bookId, event.progressPercent)
+            is LibraryEvent.FilterSelected -> _uiState.update { it.copy(filter = event.filter) }
+            is LibraryEvent.CollectionClicked ->
+                emitEffect(LibraryEffect.NavigateToCollection(event.collectionId))
+            LibraryEvent.CollectionsClicked -> emitEffect(LibraryEffect.NavigateToCollections)
+            LibraryEvent.SearchClicked -> emitEffect(LibraryEffect.NavigateToSearch)
             LibraryEvent.GoalClicked -> emitEffect(LibraryEffect.NavigateToGoal)
-            LibraryEvent.SortClicked -> emitEffect(LibraryEffect.OpenSort)
+            // Reading happens on another screen, and finishing a book moves it between shelves.
+            LibraryEvent.Resumed -> load()
         }
     }
 
@@ -42,8 +52,12 @@ class LibraryViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
-            val booksResult = getLibraryBooks()
-            val continueReadingResult = getContinueReading()
+            val (booksResult, continueReadingResult, collectionsResult) = coroutineScope {
+                val books = async { getLibraryBooks() }
+                val continueReading = async { getContinueReading() }
+                val collections = async { getCollections() }
+                Triple(books.await(), continueReading.await(), collections.await())
+            }
 
             val books = (booksResult as? AppResult.Success)?.data.orEmpty()
             val continueReading = (continueReadingResult as? AppResult.Success)?.data
@@ -56,6 +70,8 @@ class LibraryViewModel(
                 it.copy(
                     books = books,
                     continueReading = continueReading,
+                    // Shelves the reader built themselves; an empty list just hides the section.
+                    collections = (collectionsResult as? AppResult.Success)?.data.orEmpty(),
                     isLoading = false,
                     errorMessage = error
                 )

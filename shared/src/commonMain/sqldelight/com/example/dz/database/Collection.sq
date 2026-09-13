@@ -3,6 +3,10 @@ CREATE TABLE collection (
     id TEXT NOT NULL PRIMARY KEY,
     title TEXT NOT NULL,
     description TEXT,
+    -- Index into the design's five-swatch shelf palette, not a colour value: the palette is the
+    -- design system's to change, and a stored hex would outlive it.
+    color_index INTEGER NOT NULL DEFAULT 0,
+    is_shared INTEGER NOT NULL DEFAULT 0,
     created_at INTEGER NOT NULL
 );
 
@@ -13,10 +17,11 @@ selectById:
 SELECT * FROM collection WHERE id = ?;
 
 insert:
-INSERT INTO collection(id, title, description, created_at) VALUES (?, ?, ?, ?);
+INSERT INTO collection(id, title, description, color_index, is_shared, created_at)
+VALUES (?, ?, ?, ?, ?, ?);
 
 updateMeta:
-UPDATE collection SET title = ?, description = ? WHERE id = ?;
+UPDATE collection SET title = ?, description = ?, color_index = ?, is_shared = ? WHERE id = ?;
 
 deleteById:
 DELETE FROM collection WHERE id = ?;

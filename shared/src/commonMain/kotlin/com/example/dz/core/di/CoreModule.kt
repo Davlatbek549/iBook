@@ -249,7 +249,7 @@ val coreModule = module {
     }
     factory { (email: String, code: String) -> NewPasswordViewModel(email, code, get()) }
     factory { HomeViewModel(get(), get(), get(), get(), get(), get(), get(), get()) }
-    factory { LibraryViewModel(get(), get(), get()) }
+    factory { LibraryViewModel(get(), get(), get(), get()) }
     factory { SearchViewModel(get(), get()) }
     factory { StoreViewModel(get(), get()) }
     factory { (authorId: String) -> AuthorDetailViewModel(authorId) }

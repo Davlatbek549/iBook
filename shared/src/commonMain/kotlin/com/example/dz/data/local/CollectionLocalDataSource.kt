@@ -19,6 +19,8 @@ class CollectionLocalDataSource(private val database: DzDatabase) {
                 id = row.id,
                 title = row.title,
                 description = row.description,
+                colorIndex = row.color_index.toInt(),
+                isShared = row.is_shared != 0L,
                 books = booksFor(row.id)
             )
         }
@@ -29,6 +31,8 @@ class CollectionLocalDataSource(private val database: DzDatabase) {
             id = row.id,
             title = row.title,
             description = row.description,
+            colorIndex = row.color_index.toInt(),
+            isShared = row.is_shared != 0L,
             books = booksFor(row.id)
         )
     }
@@ -40,6 +44,8 @@ class CollectionLocalDataSource(private val database: DzDatabase) {
                 id = collection.id,
                 title = collection.title,
                 description = collection.description,
+                color_index = collection.colorIndex.toLong(),
+                is_shared = if (collection.isShared) 1L else 0L,
                 created_at = createdAt
             )
             replaceBooks(collection.id, collection.books)
@@ -52,6 +58,8 @@ class CollectionLocalDataSource(private val database: DzDatabase) {
             collectionQueries.updateMeta(
                 title = collection.title,
                 description = collection.description,
+                color_index = collection.colorIndex.toLong(),
+                is_shared = if (collection.isShared) 1L else 0L,
                 id = collection.id
             )
             replaceBooks(collection.id, collection.books)
