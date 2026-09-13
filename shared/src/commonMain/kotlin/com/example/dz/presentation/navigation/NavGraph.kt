@@ -556,6 +556,7 @@ fun DZNavGraph() {
                             is SearchEffect.NavigateToBook -> navController.navigate(Routes.prePurchase(effect.bookId))
                             is SearchEffect.NavigateToAuthor -> navController.navigate(Routes.authorDetail(effect.authorId))
                             is SearchEffect.NavigateToCategory -> navController.navigate(Routes.categoryDetail(effect.categoryId))
+                            SearchEffect.NavigateBack -> navController.popBackStack()
                         }
                     }
                 }

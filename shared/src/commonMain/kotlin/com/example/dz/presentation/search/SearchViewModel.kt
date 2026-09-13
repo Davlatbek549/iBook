@@ -49,6 +49,7 @@ class SearchViewModel(
                 }
             }
             SearchEvent.SearchClicked -> search()
+            SearchEvent.BackClicked -> emitEffect(SearchEffect.NavigateBack)
             is SearchEvent.BookClicked -> emitEffect(SearchEffect.NavigateToBook(event.bookId))
             is SearchEvent.AuthorClicked -> emitEffect(SearchEffect.NavigateToAuthor(event.authorId))
             is SearchEvent.CategoryClicked -> emitEffect(SearchEffect.NavigateToCategory(event.categoryId))
