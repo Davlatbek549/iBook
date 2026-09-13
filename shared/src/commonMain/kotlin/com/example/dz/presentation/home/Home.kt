@@ -78,6 +78,9 @@ import dz.shared.generated.resources.home_reading_a_book
 import dz.shared.generated.resources.home_reading_right_now
 import dz.shared.generated.resources.home_search
 import dz.shared.generated.resources.home_see_all
+import dz.shared.generated.resources.home_shelf_also_like
+import dz.shared.generated.resources.home_shelf_something_different
+import dz.shared.generated.resources.home_shelf_worth_a_look
 import dz.shared.generated.resources.home_your_shelf
 import org.jetbrains.compose.resources.stringResource
 
@@ -115,6 +118,17 @@ fun HomeScreen(
     val genres = uiState.categories.filterNot { it.id in shelvedIds }.take(GENRE_LIMIT)
     val pickedForYouLabel = stringResource(Res.string.home_picked_for_you)
     val seeAllLabel = stringResource(Res.string.home_see_all)
+
+    /**
+     * Genre shelves are headed as recommendations rather than by genre name. Each is still a
+     * genre slice underneath, so these say why you might read them and stop short of claiming
+     * anything about other readers — nothing measures that yet.
+     */
+    val shelfHeadings = listOf(
+        stringResource(Res.string.home_shelf_also_like),
+        stringResource(Res.string.home_shelf_worth_a_look),
+        stringResource(Res.string.home_shelf_something_different),
+    )
 
     OrganicScreen {
         LazyColumn(
@@ -285,10 +299,10 @@ fun HomeScreen(
                 }
             }
 
-            uiState.categoryShelves.forEach { shelf ->
+            uiState.categoryShelves.forEachIndexed { index, shelf ->
                 bookCarousel(
                     key = "shelf-${shelf.category.id}",
-                    title = shelf.category.name,
+                    title = shelfHeadings[index % shelfHeadings.size],
                     books = shelf.books,
                     actionLabel = seeAllLabel,
                     onActionClick = { onCategoryClick(shelf.category.id) },

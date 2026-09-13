@@ -125,6 +125,9 @@
     <string name="home_editors_pick">Editor&#8217;s pick</string>
     <string name="home_friends_reading">Reading now</string>
     <string name="home_browse">Browse by genre</string>
+    <string name="home_shelf_also_like">You might also like</string>
+    <string name="home_shelf_worth_a_look">Worth a look</string>
+    <string name="home_shelf_something_different">Something different</string>
     <string name="home_reading_a_book">Reading %1$s</string>
     <string name="goal_of_minutes">of %1$d min</string>
     <string name="goal_minutes_to_go">%1$d minutes to go</string>
