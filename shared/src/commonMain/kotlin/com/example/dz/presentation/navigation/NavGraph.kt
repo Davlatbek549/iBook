@@ -643,7 +643,6 @@ fun DZNavGraph() {
                     readingViewModel.effects.collect { effect ->
                         when (effect) {
                             ReadingEffect.NavigateBack -> navController.popBackStack()
-                            ReadingEffect.NavigateToSettings -> navController.navigate(Routes.SETTINGS)
                             is ReadingEffect.NavigateToComments -> navController.navigate(Routes.bookReview(effect.bookId))
                         }
                     }

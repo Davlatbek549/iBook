@@ -181,6 +181,46 @@ object OrganicIcons {
         }
     }
 
+    /** A large A beside a small one — the reader's type control. */
+    val TextSize: ImageVector by lazy {
+        organicIcon("OrganicTextSize") {
+            stroke {
+                // Small A
+                moveTo(3f, 15.5f)
+                lineTo(6.2f, 7.5f)
+                lineTo(9.4f, 15.5f)
+                moveTo(4.3f, 12.6f)
+                horizontalLineToRelative(3.8f)
+            }
+            stroke {
+                // Large A
+                moveTo(12.6f, 19f)
+                lineTo(17.3f, 5.5f)
+                lineTo(22f, 19f)
+                moveTo(14.4f, 14.2f)
+                horizontalLineToRelative(5.8f)
+            }
+        }
+    }
+
+    /** Speech bubble — notes other readers left on a page. */
+    val Chat: ImageVector by lazy {
+        organicIcon("OrganicChat") {
+            stroke {
+                moveTo(4f, 17.5f)
+                verticalLineTo(6.5f)
+                curveToRelative(0f, -1.1f, 0.9f, -2f, 2f, -2f)
+                horizontalLineToRelative(12f)
+                curveToRelative(1.1f, 0f, 2f, 0.9f, 2f, 2f)
+                verticalLineToRelative(7f)
+                curveToRelative(0f, 1.1f, -0.9f, 2f, -2f, 2f)
+                horizontalLineTo(8.5f)
+                lineTo(4f, 20f)
+                close()
+            }
+        }
+    }
+
     /** Cross, for removing one thing from a list without leaving the screen. */
     val Close: ImageVector by lazy {
         organicIcon("OrganicClose") {
@@ -212,6 +252,40 @@ object OrganicIcons {
                 moveTo(5f, 12.5f)
                 lineToRelative(4.5f, 4.5f)
                 lineTo(19f, 7f)
+            }
+        }
+    }
+
+    /**
+     * The reader's bookmark — a ribbon with a notch cut out of its foot.
+     *
+     * Drawn as a stroke so the empty state reads as an outline, and filled by the caller's tint
+     * when a page is actually pinned; one shape covers both states, which keeps the button from
+     * changing silhouette when it is pressed.
+     */
+    val Bookmark: ImageVector by lazy {
+        organicIcon("OrganicBookmark") {
+            stroke {
+                moveTo(7f, 4f)
+                horizontalLineToRelative(10f)
+                verticalLineToRelative(16.5f)
+                lineToRelative(-5f, -4f)
+                lineToRelative(-5f, 4f)
+                close()
+            }
+        }
+    }
+
+    /** The same ribbon, solid — the pinned state. */
+    val BookmarkFilled: ImageVector by lazy {
+        organicIcon("OrganicBookmarkFilled") {
+            path(fill = INK) {
+                moveTo(7f, 4f)
+                horizontalLineToRelative(10f)
+                verticalLineToRelative(16.5f)
+                lineToRelative(-5f, -4f)
+                lineToRelative(-5f, 4f)
+                close()
             }
         }
     }

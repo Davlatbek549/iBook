@@ -574,3 +574,17 @@ fun OrganicSkeleton(
 }
 
 private const val SKELETON_PULSE_MILLIS = 750
+
+/**
+ * The grounds a page can be set on, and what reads on each.
+ *
+ * The reader is the one screen that leaves the app's cream behind, because a page is read for an
+ * hour at a time and the choice belongs to whoever is reading it.
+ */
+data class OrganicPageColors(
+    val ground: Color,
+    val ink: Color,
+    /** Chrome sits on the page's ground, so its own fills have to come from the same family. */
+    val chrome: Color,
+    val chromeInk: Color,
+)

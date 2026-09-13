@@ -79,4 +79,23 @@ class BookContentMappingTest {
         val cleaned = cleanBookText(raw)
         assertEquals("Just plain text\n\nwith extra blank lines.", cleaned)
     }
+
+    @Test
+    fun cleanBookTextRejoinsHardWrappedProse() {
+        val raw = "On the pleasant banks of the Garonne, in the province of Gascony,\n" +
+            "stood, in the year 1584, the chateau of Monsieur St. Aubert."
+
+        assertEquals(
+            "On the pleasant banks of the Garonne, in the province of Gascony, " +
+                "stood, in the year 1584, the chateau of Monsieur St. Aubert.",
+            cleanBookText(raw)
+        )
+    }
+
+    @Test
+    fun cleanBookTextKeepsBreaksTheBookMeant() {
+        // A contents list: every line is short, so every break is the book's own.
+        val raw = "VOLUME I\nCHAPTER I\nCHAPTER II\nCHAPTER III"
+        assertEquals(raw, cleanBookText(raw))
+    }
 }

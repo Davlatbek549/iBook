@@ -20,6 +20,8 @@ import com.example.dz.data.repository.DownloadRepositoryImpl
 import com.example.dz.data.repository.LocalDeviceDataRepository
 import com.example.dz.data.repository.LocalCollectionRepository
 import com.example.dz.data.repository.LocalGoalRepository
+import com.example.dz.data.repository.LocalReaderPreferencesRepository
+import com.example.dz.data.repository.LocalReadingPositionRepository
 import com.example.dz.data.repository.LocalLibraryRepository
 import com.example.dz.data.repository.MembershipRepositoryImpl
 import com.example.dz.data.repository.NotificationRepositoryImpl
@@ -35,6 +37,8 @@ import com.example.dz.domain.repository.CollectionRepository
 import com.example.dz.domain.repository.DeviceDataRepository
 import com.example.dz.domain.repository.DownloadRepository
 import com.example.dz.domain.repository.GoalRepository
+import com.example.dz.domain.repository.ReaderPreferencesRepository
+import com.example.dz.domain.repository.ReadingPositionRepository
 import com.example.dz.domain.repository.LibraryRepository
 import com.example.dz.domain.repository.MembershipRepository
 import com.example.dz.domain.repository.NotificationRepository
@@ -177,6 +181,8 @@ val coreModule = module {
     single<BookRepository> { RemoteBookRepository(get(), get(), get()) }
     single<LibraryRepository> { LocalLibraryRepository(get()) }
     single<GoalRepository> { LocalGoalRepository(get()) }
+    single<ReaderPreferencesRepository> { LocalReaderPreferencesRepository(get()) }
+    single<ReadingPositionRepository> { LocalReadingPositionRepository(get()) }
     single<CollectionRepository> { LocalCollectionRepository(get()) }
 
     // ── Offline downloads (Phase 3) ──────────────────────────────────────────
@@ -279,7 +285,7 @@ val coreModule = module {
     factory { PaymentFailedViewModel() }
 
     factory { ProfileViewModel(get()) }
-    factory { (bookId: String) -> ReadingViewModel(bookId, get(), get(), get(), get(), get(), get()) }
+    factory { (bookId: String) -> ReadingViewModel(bookId, get(), get(), get(), get(), get(), get(), get(), get()) }
     factory { SettingsViewModel(get(), get()) }
 
     factory { FriendListViewModel(get()) }

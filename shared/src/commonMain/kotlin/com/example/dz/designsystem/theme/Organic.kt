@@ -12,6 +12,8 @@ import dz.shared.generated.resources.caprasimo_regular
 import dz.shared.generated.resources.figtree_bold
 import dz.shared.generated.resources.figtree_regular
 import dz.shared.generated.resources.figtree_semibold
+import dz.shared.generated.resources.newsreader_medium
+import dz.shared.generated.resources.newsreader_regular
 import org.jetbrains.compose.resources.Font
 
 /**
@@ -111,6 +113,17 @@ object OrganicSize {
 @Composable
 fun organicHeadingFontFamily(): FontFamily = FontFamily(
     Font(Res.font.caprasimo_regular, FontWeight.Normal),
+)
+
+/**
+ * The reader's alternative face. The handoff offers "Figtree or the serif" on the display sheet;
+ * Newsreader is the serif the app already bundles, and it is a text face rather than a display
+ * one, which is what a page of prose needs.
+ */
+@Composable
+fun organicSerifFontFamily(): FontFamily = FontFamily(
+    Font(Res.font.newsreader_regular, FontWeight.Normal),
+    Font(Res.font.newsreader_medium, FontWeight.Medium),
 )
 
 /** Body/UI face — Figtree at 400 / 600 / 700. */
