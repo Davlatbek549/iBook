@@ -36,6 +36,7 @@ class LibraryLocalDataSource(database: DzDatabase) {
             progress_percent = libraryBook.progressPercent.toLong(),
             is_downloaded = libraryBook.isDownloaded.toLong(),
             is_favorite = libraryBook.isFavorite.toLong(),
+            page_count = book.pageCount?.toLong(),
             added_at = addedAt
         )
     }
@@ -86,6 +87,7 @@ private fun Library_book.toLibraryBook(): LibraryBook =
             description = description,
             language = null,
             isFree = is_free.toBoolean(),
+            pageCount = page_count?.toInt(),
             textUrl = text_url
         ),
         progressPercent = progress_percent.toInt(),

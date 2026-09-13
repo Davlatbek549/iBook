@@ -1,0 +1,3 @@
+-- v2 -> v3: how long a book is, so a shelf row can say how much of it is left. Null for
+-- anything already on the shelf; the value arrives the next time that book is written.
+ALTER TABLE library_book ADD COLUMN page_count INTEGER;

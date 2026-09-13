@@ -30,6 +30,9 @@ object OrganicIcons {
     /** The trailing chevron, drawn a touch heavier because it renders at 15px. */
     private const val STROKE_CHEVRON = 2.6f
 
+    /** The tick on a filled badge, where the heavier weight reads against the fill. */
+    private const val STROKE_CHECK = 3f
+
     private val INK = SolidColor(Color(0xFF201E1D))
 
     private fun ImageVector.Builder.stroke(
@@ -162,6 +165,17 @@ object OrganicIcons {
     }
 
     // ── Row and header affordances ────────────────────────────────────────────
+
+    /** Tick, for the badge on a finished book. Drawn at 3 — it sits inside a filled circle. */
+    val Check: ImageVector by lazy {
+        organicIcon("OrganicCheck") {
+            stroke(STROKE_CHECK) {
+                moveTo(5f, 12.5f)
+                lineToRelative(4.5f, 4.5f)
+                lineTo(19f, 7f)
+            }
+        }
+    }
 
     /** Trailing chevron on every list row and tappable card. */
     val ChevronRight: ImageVector by lazy {

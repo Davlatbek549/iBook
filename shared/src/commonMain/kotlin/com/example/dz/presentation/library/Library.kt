@@ -1,425 +1,339 @@
 package com.example.dz.presentation.library
 
-import com.example.dz.presentation.common.uniqueLazyKeys
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.IntrinsicSize
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.dz.designsystem.components.icons.InkIcons
-import com.example.dz.designsystem.components.ink.InkBookRow
-import com.example.dz.designsystem.components.ink.InkIconButton
-import com.example.dz.designsystem.components.ink.InkProgressBar
-import com.example.dz.designsystem.components.ink.InkSectionTitle
-import com.example.dz.designsystem.components.ink.inkCard
-import com.example.dz.designsystem.theme.InkColors
-import com.example.dz.designsystem.theme.InkShape
-import com.example.dz.designsystem.theme.inkBodyFontFamily
-import com.example.dz.designsystem.theme.inkColors
-import com.example.dz.designsystem.theme.inkDisplayFontFamily
-import com.example.dz.domain.model.LibraryBook as DomainLibraryBook
+import com.example.dz.designsystem.components.icons.OrganicIcons
+import com.example.dz.designsystem.components.organic.ORGANIC_GUTTER
+import com.example.dz.designsystem.components.organic.ORGANIC_TAB_BAR_CLEARANCE
+import com.example.dz.designsystem.components.organic.OrganicCard
+import com.example.dz.designsystem.components.organic.OrganicCircleIconButton
+import com.example.dz.designsystem.components.organic.OrganicFilterPills
+import com.example.dz.designsystem.components.organic.OrganicListRowCard
+import com.example.dz.designsystem.components.organic.OrganicProgressDonut
+import com.example.dz.designsystem.components.organic.OrganicScreen
+import com.example.dz.designsystem.components.organic.OrganicScreenHeader
+import com.example.dz.designsystem.components.organic.OrganicSectionHeader
+import com.example.dz.designsystem.theme.OrganicColors
+import com.example.dz.designsystem.theme.organicBodyFontFamily
+import com.example.dz.designsystem.theme.organicHeadingFontFamily
+import com.example.dz.domain.model.Collection
+import com.example.dz.domain.model.LibraryBook
+import com.example.dz.presentation.common.uniqueLazyKeys
 import dz.shared.generated.resources.Res
-import dz.shared.generated.resources.book_cover
-import dz.shared.generated.resources.book_cover_2
-import dz.shared.generated.resources.book_cover_3
-import dz.shared.generated.resources.book_cover_4
+import dz.shared.generated.resources.library_book_count
 import dz.shared.generated.resources.library_collections
-import dz.shared.generated.resources.library_downloaded
+import dz.shared.generated.resources.library_empty_finished
+import dz.shared.generated.resources.library_empty_reading
+import dz.shared.generated.resources.library_empty_to_read
+import dz.shared.generated.resources.library_pages
+import dz.shared.generated.resources.library_pages_left
 import dz.shared.generated.resources.library_tab_finished
 import dz.shared.generated.resources.library_tab_reading
 import dz.shared.generated.resources.library_tab_to_read
-import dz.shared.generated.resources.library_title
-import dz.shared.generated.resources.home_see_all
-import dz.shared.generated.resources.olive_again_book
-import org.jetbrains.compose.resources.DrawableResource
-import org.jetbrains.compose.resources.painterResource
+import dz.shared.generated.resources.library_your_shelf
+import dz.shared.generated.resources.home_search
 import org.jetbrains.compose.resources.stringResource
 
-data class LibraryBook(
-    val title: String,
-    val author: String,
-    val coverRes: DrawableResource,
-    val tags: List<String> = emptyList(),
-    val progress: String? = null,
-    val timeLeft: String? = null,
-    val id: String = title,
-    val coverUrl: String? = null,
-    val isDownloaded: Boolean = false
-)
-
-data class LibraryCollection(
-    val title: String,
-    val books: List<LibraryBook>
-)
-
-private val readingBooks = listOf(
-    LibraryBook("Mexican Gothic", "Silvia Moreno-Garcia", Res.drawable.book_cover, progress = "62", timeLeft = "18 min left"),
-    LibraryBook("Olive, Again", "Elizabeth Strout", Res.drawable.olive_again_book, progress = "31", timeLeft = "2h 40m left"),
-    LibraryBook("The Archer", "Paulo Coelho", Res.drawable.book_cover_2, progress = "88", timeLeft = "12 min left")
-)
-
-private val toReadBooks = listOf(
-    LibraryBook("Red at the Bone", "Jacqueline Woodson", Res.drawable.book_cover_3),
-    LibraryBook("Bestiary", "K-Ming Chang", Res.drawable.book_cover_4)
-)
-
-private val finishedBooks = listOf(
-    LibraryBook("The Archer", "Paulo Coelho", Res.drawable.book_cover_2),
-    LibraryBook("Mexican Gothic", "Silvia Moreno-Garcia", Res.drawable.book_cover)
-)
-
-private val collections = listOf(
-    LibraryCollection("Quiet novels", listOf(
-        LibraryBook("Olive, Again", "Elizabeth Strout", Res.drawable.olive_again_book),
-        LibraryBook("Red at the Bone", "Jacqueline Woodson", Res.drawable.book_cover_3)
-    )),
-    LibraryCollection("For the train", listOf(
-        LibraryBook("The Archer", "Paulo Coelho", Res.drawable.book_cover_2),
-        LibraryBook("Bestiary", "K-Ming Chang", Res.drawable.book_cover_4)
-    ))
-)
-
-private val collectionSizes = listOf(12, 5)
-
-private val libraryCoverFallbacks = listOf(
-    Res.drawable.book_cover,
-    Res.drawable.olive_again_book,
-    Res.drawable.book_cover_2,
-    Res.drawable.book_cover_3,
-    Res.drawable.book_cover_4
-)
-
-@Composable
-fun Library(
-    uiState: LibraryUiState = LibraryUiState(),
-    onSettingsClick: () -> Unit = {},
-    onSortClick: () -> Unit = {},
-    onBookClick: (LibraryBook) -> Unit = {},
-    onGoalClick: () -> Unit = {}
-) {
-    LibraryScreen(
-        uiState = uiState,
-        onSettingsClick = onSettingsClick,
-        onSortClick = onSortClick,
-        onBookClick = onBookClick,
-        onGoalClick = onGoalClick
-    )
-}
-
+/**
+ * Library — the reader's own shelf, in three states.
+ *
+ * The handoff draws two of them (Reading and Finished) and names the third; they are the same
+ * screen with a different filter, so this is one composable rather than two. A row carries the
+ * badge its state has something to say with: a progress ring while a book is open, a tick once it
+ * is done, and nothing at all for one not started.
+ *
+ * Layout from `dz-all-screens.html`: a 20dp-gapped column on a 24dp gutter.
+ */
 @Composable
 fun LibraryScreen(
     uiState: LibraryUiState = LibraryUiState(),
-    onSettingsClick: () -> Unit = {},
-    onSortClick: () -> Unit = {},
-    onBookClick: (LibraryBook) -> Unit = {},
-    onGoalClick: () -> Unit = {}
+    onFilterSelect: (LibraryFilter) -> Unit = {},
+    onSearchClick: () -> Unit = {},
+    onBookClick: (String) -> Unit = {},
+    onCollectionClick: (String) -> Unit = {},
+    onCollectionsClick: () -> Unit = {},
 ) {
-    val colors = inkColors()
-    val displayFont = inkDisplayFontFamily()
-    val bodyFont = inkBodyFontFamily()
-
-    var selectedTab by remember { mutableIntStateOf(0) }
-    val tabs = listOf(
+    val shelf = uiState.shelf
+    val shelfKeys = shelf.uniqueLazyKeys { it.book.id }
+    val filters = listOf(LibraryFilter.READING, LibraryFilter.TO_READ, LibraryFilter.FINISHED)
+    val filterLabels = listOf(
         stringResource(Res.string.library_tab_reading),
         stringResource(Res.string.library_tab_to_read),
-        stringResource(Res.string.library_tab_finished)
+        stringResource(Res.string.library_tab_finished),
     )
-    val displayReadingBooks = remember(uiState.books) {
-        uiState.books
-            .mapIndexed { index, book -> book.toLibraryBook(index) }
-            .ifEmpty { readingBooks }
-    }
-    val tabBooks = when (selectedTab) {
-        1 -> toReadBooks
-        2 -> finishedBooks
-        else -> displayReadingBooks
-    }
-    val tabBookKeys = remember(tabBooks) { tabBooks.uniqueLazyKeys { it.id } }
 
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(colors.paper)
-            .statusBarsPadding(),
-        contentPadding = PaddingValues(bottom = 96.dp)
-    ) {
-        item(key = "header") {
-            // header
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 22.dp, end = 22.dp, top = 6.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = stringResource(Res.string.library_title),
-                    modifier = Modifier.weight(1f),
-                    fontFamily = displayFont,
-                    fontWeight = FontWeight.Medium,
-                    fontSize = 24.sp,
-                    color = colors.ink
-                )
-                InkIconButton(icon = InkIcons.Grid, onClick = onSettingsClick, colors = colors)
-            }
-        }
-        item(key = "tabs") {
-            // tabs
-            Box(modifier = Modifier.fillMaxWidth().padding(top = 20.dp)) {
-                HorizontalDivider(
-                    modifier = Modifier.align(Alignment.BottomCenter),
-                    thickness = 1.dp,
-                    color = colors.line
-                )
-                Row(
-                    modifier = Modifier.padding(horizontal = 22.dp),
-                    horizontalArrangement = Arrangement.spacedBy(22.dp)
-                ) {
-                    tabs.forEachIndexed { i, tab ->
-                        val selected = i == selectedTab
-                        Column(
-                            modifier = Modifier
-                                .width(IntrinsicSize.Max)
-                                .clickable { selectedTab = i },
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(
-                                text = tab,
-                                modifier = Modifier.padding(bottom = 11.dp),
-                                fontFamily = bodyFont,
-                                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                                fontSize = 13.5.sp,
-                                color = if (selected) colors.ink else colors.muted
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(2.dp)
-                                    .background(if (selected) colors.accent else androidx.compose.ui.graphics.Color.Transparent)
-                            )
-                        }
-                    }
-                }
-            }
-        }
-        // book rows — the whole shelf, lazy so only what is on screen is built
-        item(key = "rows-top") { Spacer(modifier = Modifier.height(6.dp)) }
-        itemsIndexed(
-            items = tabBooks,
-            key = { index, _ -> "book:$selectedTab:" + tabBookKeys[index] },
-            contentType = { _, _ -> "book" }
-        ) { i, book ->
-            Box(modifier = Modifier.padding(horizontal = 22.dp)) {
-                InkBookRow(
-                    cover = book.coverRes,
-                    coverUrl = book.coverUrl,
-                    title = book.title,
-                    author = book.author,
-                    modifier = Modifier.clickable { onBookClick(book) },
-                    showDivider = i > 0,
-                    meta = if (book.progress != null) {
-                        {
-                            val downloadedLabel = stringResource(Res.string.library_downloaded)
-                            Column {
-                                InkProgressBar(
-                                    progress = book.progress.toFloat() / 100f,
-                                    modifier = Modifier.fillMaxWidth(0.85f),
-                                    colors = colors
-                                )
-                                Text(
-                                    text = buildAnnotatedString {
-                                        withStyle(SpanStyle(color = colors.accent, fontWeight = FontWeight.SemiBold)) {
-                                            append("${book.progress}%")
-                                        }
-                                        append(" · ${book.timeLeft.orEmpty()}")
-                                        if (book.isDownloaded) {
-                                            append(" · ")
-                                            withStyle(
-                                                SpanStyle(
-                                                    color = colors.accent,
-                                                    fontWeight = FontWeight.SemiBold
-                                                )
-                                            ) {
-                                                append(downloadedLabel)
-                                            }
-                                        }
-                                    },
-                                    modifier = Modifier.padding(top = 6.dp),
-                                    fontFamily = bodyFont,
-                                    fontSize = 11.sp,
-                                    color = colors.muted
-                                )
-                            }
-                        }
-                    } else null,
+    OrganicScreen {
+        LazyColumn(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(top = 16.dp, bottom = ORGANIC_TAB_BAR_CLEARANCE),
+            // Rows sit 12dp apart. Sections want 20, so the items that start one add the
+            // difference themselves rather than every row paying for the wider gap.
+            verticalArrangement = Arrangement.spacedBy(ROW_GAP)
+        ) {
+            item(key = "header") {
+                OrganicScreenHeader(
+                    title = stringResource(Res.string.library_your_shelf),
+                    modifier = Modifier.padding(horizontal = ORGANIC_GUTTER),
                     trailing = {
-                        Icon(
-                            imageVector = InkIcons.MoreVertical,
-                            contentDescription = null,
-                            tint = colors.muted,
-                            modifier = Modifier
-                                .size(16.dp)
-                                .clickable(onClick = onSortClick)
+                        OrganicCircleIconButton(
+                            icon = OrganicIcons.Search,
+                            onClick = onSearchClick,
+                            contentDescription = stringResource(Res.string.home_search),
                         )
                     },
-                    colors = colors
                 )
             }
-        }
-        item(key = "collections") {
-            // collections
-            Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 20.dp)) {
-                InkSectionTitle(
-                    text = stringResource(Res.string.library_collections),
-                    action = stringResource(Res.string.home_see_all),
-                    onActionClick = onSettingsClick,
-                    colors = colors
+
+            item(key = "filters") {
+                OrganicFilterPills(
+                    labels = filterLabels,
+                    selectedIndex = filters.indexOf(uiState.filter),
+                    onSelect = { onFilterSelect(filters[it]) },
+                    modifier = Modifier.padding(horizontal = ORGANIC_GUTTER, vertical = SECTION_EXTRA),
                 )
-                Row(
-                    modifier = Modifier.padding(top = 14.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    collections.forEachIndexed { i, collection ->
-                        CollectionCard(
-                            collection = collection,
-                            bookCount = collectionSizes[i],
-                            onClick = onSettingsClick,
-                            modifier = Modifier.weight(1f),
-                            colors = colors
-                        )
+            }
+
+            if (shelf.isEmpty()) {
+                item(key = "empty") {
+                    ShelfEmptyNote(
+                        filter = uiState.filter,
+                        modifier = Modifier.padding(horizontal = ORGANIC_GUTTER),
+                    )
+                }
+            } else {
+                // The 20dp column gap is the rhythm between sections; rows sit 12dp apart, so the
+                // spacing is applied per row rather than by the list.
+                items(shelf.size, key = { shelfKeys[it] }) { index ->
+                    val entry = shelf[index]
+                    OrganicListRowCard(
+                        title = entry.book.title,
+                        modifier = Modifier.padding(horizontal = ORGANIC_GUTTER),
+                        author = entry.book.authors.firstOrNull()?.name,
+                        meta = entry.metaLine(),
+                        onClick = { onBookClick(entry.book.id) },
+                        coverUrl = entry.book.coverUrl,
+                        trailing = { ShelfBadge(entry) },
+                    )
+                }
+            }
+
+            if (uiState.collections.isNotEmpty()) {
+                item(key = "collections-header") {
+                    OrganicSectionHeader(
+                        title = stringResource(Res.string.library_collections),
+                        modifier = Modifier.padding(
+                            start = ORGANIC_GUTTER,
+                            end = ORGANIC_GUTTER,
+                            top = SECTION_EXTRA,
+                        ),
+                        onActionClick = onCollectionsClick,
+                    )
+                }
+                item(key = "collections") {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = ORGANIC_GUTTER),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        // The design shows two side by side; more than that would need a carousel
+                        // it does not draw, so the rest live on the Collections screen.
+                        uiState.collections.take(COLLECTIONS_SHOWN).forEachIndexed { index, collection ->
+                            CollectionTile(
+                                collection = collection,
+                                modifier = Modifier.weight(1f),
+                                tint = collectionTints[index % collectionTints.size],
+                                onClick = { onCollectionClick(collection.id) },
+                            )
+                        }
+                        // One collection would otherwise stretch to the full width, which reads as
+                        // a banner rather than as one of a pair.
+                        if (uiState.collections.size < COLLECTIONS_SHOWN) {
+                            Box(modifier = Modifier.weight(1f))
+                        }
                     }
                 }
             }
         }
-        item(key = "goal") {
-            // reading goal banner
-            Row(
-                modifier = Modifier
-                    .padding(start = 22.dp, end = 22.dp, top = 20.dp)
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(InkShape.radius))
-                    .background(colors.alt)
-                    .clickable(onClick = onGoalClick)
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Icon(
-                    imageVector = InkIcons.Stats,
-                    contentDescription = null,
-                    tint = colors.accent,
-                    modifier = Modifier.size(18.dp)
-                )
-                Text(
-                    text = buildAnnotatedString {
-                        append("You’ve read ")
-                        withStyle(SpanStyle(color = colors.ink, fontWeight = FontWeight.SemiBold)) {
-                            append("26 min")
-                        }
-                        append(" today — 4 min to your goal.")
-                    },
-                    fontFamily = bodyFont,
-                    fontSize = 12.5.sp,
-                    lineHeight = 17.5.sp,
-                    color = colors.inkSoft
-                )
-            }
-        }
     }
 }
 
-private fun DomainLibraryBook.toLibraryBook(index: Int): LibraryBook =
-    LibraryBook(
-        title = book.title,
-        author = book.authors.firstOrNull()?.name.orEmpty().ifBlank { "Unknown author" },
-        coverRes = libraryCoverFallbacks[index % libraryCoverFallbacks.size],
-        tags = book.categories.map { it.name },
-        progress = progressPercent.coerceIn(0, 100).toString(),
-        timeLeft = "18 min left",
-        id = book.id,
-        coverUrl = book.coverUrl,
-        isDownloaded = isDownloaded
-    )
-
+/**
+ * What the row says under the author.
+ *
+ * The design reads "18 min left" and "Finished in June". Neither is available: nothing estimates
+ * reading time, and a library book carries no date it was finished. Pages remaining is the true
+ * thing the data does support, and it answers the same question — how much is left.
+ */
 @Composable
-private fun CollectionCard(
-    collection: LibraryCollection,
-    bookCount: Int,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    colors: InkColors,
-) {
-    Column(
-        modifier = modifier
-            .inkCard(colors)
-            .clickable(onClick = onClick)
-            .padding(13.dp)
-    ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-            collection.books.forEach { book ->
-                Image(
-                    painter = painterResource(book.coverRes),
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .size(width = 40.dp, height = 58.dp)
-                        .clip(RoundedCornerShape(InkShape.cover - 1.dp))
+private fun LibraryBook.metaLine(): String? = when (filter) {
+    LibraryFilter.READING -> pagesLeft?.let { stringResource(Res.string.library_pages_left, it) }
+    LibraryFilter.TO_READ -> book.pageCount?.let { stringResource(Res.string.library_pages, it) }
+    LibraryFilter.FINISHED -> null
+}
+
+/** A ring while a book is open, a tick once it is done, nothing before it is started. */
+@Composable
+private fun ShelfBadge(entry: LibraryBook) {
+    when (entry.filter) {
+        LibraryFilter.READING -> OrganicProgressDonut(
+            progress = entry.progressPercent / 100f,
+            size = 44.dp,
+            innerSize = 34.dp,
+            trackColor = OrganicColors.neutral200,
+            innerColor = OrganicColors.neutral100,
+            label = {
+                Text(
+                    text = entry.progressPercent.toString(),
+                    fontFamily = organicBodyFontFamily(),
+                    fontSize = 11.sp,
+                    color = OrganicColors.neutral800
                 )
             }
-        }
-        Text(
-            text = collection.title,
-            modifier = Modifier.padding(top = 11.dp),
-            fontFamily = inkDisplayFontFamily(),
-            fontWeight = FontWeight.Medium,
-            fontSize = 13.5.sp,
-            lineHeight = 16.sp,
-            color = colors.ink
         )
+
+        LibraryFilter.FINISHED -> Box(
+            modifier = Modifier
+                .size(44.dp)
+                .clip(CircleShape)
+                .background(OrganicColors.accent2),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = OrganicIcons.Check,
+                contentDescription = stringResource(Res.string.library_tab_finished),
+                tint = Color.White,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+
+        LibraryFilter.TO_READ -> Unit
+    }
+}
+
+/**
+ * What an empty shelf says. The handoff draws no empty state for Library, so this follows its
+ * nearest pattern — a filled card and a plain sentence — rather than inventing artwork.
+ */
+@Composable
+private fun ShelfEmptyNote(
+    filter: LibraryFilter,
+    modifier: Modifier = Modifier,
+) {
+    OrganicCard(
+        modifier = modifier.fillMaxWidth(),
+        background = OrganicColors.neutral100,
+        contentPadding = PaddingValues(18.dp),
+    ) {
         Text(
-            text = "$bookCount books",
-            modifier = Modifier.padding(top = 4.dp),
-            fontFamily = inkBodyFontFamily(),
-            fontSize = 11.sp,
-            color = colors.muted
+            text = stringResource(
+                when (filter) {
+                    LibraryFilter.READING -> Res.string.library_empty_reading
+                    LibraryFilter.TO_READ -> Res.string.library_empty_to_read
+                    LibraryFilter.FINISHED -> Res.string.library_empty_finished
+                }
+            ),
+            fontFamily = organicBodyFontFamily(),
+            fontSize = 13.sp,
+            lineHeight = 19.5.sp,
+            color = OrganicColors.neutral700
         )
     }
 }
 
-@Preview(showBackground = true, widthDp = 375, heightDp = 820)
+/** A shelf the reader built: a coloured disc, the name, and how many books are on it. */
+@Composable
+private fun CollectionTile(
+    collection: Collection,
+    tint: CollectionTint,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    OrganicCard(
+        modifier = modifier,
+        background = tint.background,
+        contentPadding = PaddingValues(16.dp),
+        onClick = onClick,
+    ) {
+        Column {
+            Box(
+                modifier = Modifier
+                    .padding(bottom = 12.dp)
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(tint.disc)
+            )
+            Text(
+                text = collection.title,
+                fontFamily = organicHeadingFontFamily(),
+                fontWeight = FontWeight.Normal,
+                fontSize = 16.sp,
+                color = tint.text,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = stringResource(Res.string.library_book_count, collection.books.size),
+                fontFamily = organicBodyFontFamily(),
+                fontSize = 12.sp,
+                color = tint.subtitle
+            )
+        }
+    }
+}
+
+/** One collection tile's colours: ground, disc, title, count. */
+private data class CollectionTint(
+    val background: Color,
+    val disc: Color,
+    val text: Color,
+    val subtitle: Color,
+)
+
+/** The design alternates sage and terracotta between the two tiles. */
+private val collectionTints = listOf(
+    CollectionTint(
+        background = OrganicColors.accent2_200,
+        disc = OrganicColors.accent2_400,
+        text = OrganicColors.accent2_900,
+        subtitle = OrganicColors.accent2_800,
+    ),
+    CollectionTint(
+        background = OrganicColors.accent200,
+        disc = OrganicColors.accent400,
+        text = OrganicColors.accent900,
+        subtitle = OrganicColors.accent800,
+    ),
+)
+
+private val ROW_GAP = 12.dp
+
+/** Tops up the 12dp row gap to the 20dp the design puts between sections. */
+private val SECTION_EXTRA = 8.dp
+private const val COLLECTIONS_SHOWN = 2
+
+@Preview
 @Composable
 fun LibraryScreenPreview() {
     LibraryScreen()
