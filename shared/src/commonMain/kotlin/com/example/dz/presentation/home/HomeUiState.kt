@@ -1,5 +1,6 @@
 package com.example.dz.presentation.home
 
+import com.example.dz.core.time.TimeOfDay
 import com.example.dz.domain.model.Book
 import com.example.dz.domain.model.Category
 import com.example.dz.domain.model.Friend
@@ -22,6 +23,8 @@ data class HomeUiState(
     val goal: ReadingGoal? = null,
     /** Greeted by name. Null until the profile call lands, and the greeting stands alone. */
     val userName: String? = null,
+    /** Which greeting to use. Re-read when Home resumes, so it does not sit on the wrong one. */
+    val greeting: TimeOfDay = TimeOfDay.MORNING,
     /** Null while unknown or when nobody is reading — the card is hidden rather than showing zero. */
     val presence: HomePresence? = null,
     val isLoading: Boolean = false,

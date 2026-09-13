@@ -30,6 +30,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.dz.core.time.TimeOfDay
 import com.example.dz.designsystem.components.icons.OrganicIcons
 import com.example.dz.designsystem.components.organic.ORGANIC_GUTTER
 import com.example.dz.designsystem.components.organic.ORGANIC_TAB_BAR_CLEARANCE
@@ -69,7 +70,9 @@ import dz.shared.generated.resources.goal_streak_days
 import dz.shared.generated.resources.home_browse
 import dz.shared.generated.resources.home_editors_pick
 import dz.shared.generated.resources.home_friends_reading
-import dz.shared.generated.resources.home_greeting
+import dz.shared.generated.resources.home_greeting_afternoon
+import dz.shared.generated.resources.home_greeting_evening
+import dz.shared.generated.resources.home_greeting_morning
 import dz.shared.generated.resources.home_keep_going
 import dz.shared.generated.resources.home_new_this_week
 import dz.shared.generated.resources.home_one_of_them
@@ -139,6 +142,7 @@ fun HomeScreen(
             item(key = "greeting") {
                 GreetingRow(
                     name = uiState.userName,
+                    greeting = uiState.greeting,
                     onAvatarClick = onProfileClick,
                     onSearchClick = onSearchClick,
                 )
@@ -404,6 +408,7 @@ private fun LazyListScope.bookCarousel(
 @Composable
 private fun GreetingRow(
     name: String?,
+    greeting: TimeOfDay,
     onAvatarClick: () -> Unit,
     onSearchClick: () -> Unit,
 ) {
@@ -424,7 +429,13 @@ private fun GreetingRow(
             verticalArrangement = Arrangement.spacedBy(1.dp)
         ) {
             Text(
-                text = stringResource(Res.string.home_greeting),
+                text = stringResource(
+                    when (greeting) {
+                        TimeOfDay.MORNING -> Res.string.home_greeting_morning
+                        TimeOfDay.AFTERNOON -> Res.string.home_greeting_afternoon
+                        TimeOfDay.EVENING -> Res.string.home_greeting_evening
+                    }
+                ),
                 fontFamily = organicBodyFontFamily(),
                 fontSize = 12.sp,
                 color = OrganicColors.neutral700

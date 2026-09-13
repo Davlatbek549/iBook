@@ -3,6 +3,8 @@ package com.example.dz.presentation.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.dz.core.result.AppResult
+import com.example.dz.core.time.currentEpochMillis
+import com.example.dz.core.time.timeOfDay
 import com.example.dz.domain.model.Friend
 import com.example.dz.domain.model.Category
 import com.example.dz.domain.usecase.book.GetBooksByCategoryUseCase
@@ -122,6 +124,7 @@ class HomeViewModel(
                     categoryShelves = categoryShelves,
                     goal = (goalResult as? AppResult.Success)?.data,
                     userName = userName,
+                    greeting = timeOfDay(currentEpochMillis()),
                     presence = presenceOf(friends),
                     isLoading = false,
                     errorMessage = error
@@ -168,6 +171,9 @@ class HomeViewModel(
                 it.copy(
                     continueReading = continueReading,
                     shelf = shelf,
+                    // Home can sit open across noon or six; the greeting is re-read rather than
+                    // left on whichever one was true when the app opened.
+                    greeting = timeOfDay(currentEpochMillis()),
                     goal = (getReadingGoal() as? AppResult.Success)?.data ?: it.goal
                 )
             }

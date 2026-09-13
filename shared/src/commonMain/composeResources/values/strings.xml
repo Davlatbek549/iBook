@@ -113,7 +113,9 @@
     <string name="auth_saving">Saving&#8230;</string>
     <string name="auth_wrong_address">Wrong address?</string>
     <string name="auth_change_it">Change it</string>
-    <string name="home_greeting">Good evening,</string>
+    <string name="home_greeting_morning">Good morning,</string>
+    <string name="home_greeting_afternoon">Good afternoon,</string>
+    <string name="home_greeting_evening">Good evening,</string>
     <string name="home_keep_going">Keep going</string>
     <string name="home_picked_for_you">Picked for you</string>
     <string name="home_new_this_week">New this week</string>

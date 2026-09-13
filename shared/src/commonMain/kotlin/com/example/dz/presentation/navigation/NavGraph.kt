@@ -20,7 +20,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
-import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -195,11 +194,21 @@ fun DZNavGraph() {
 
     val showBottomBar = route != null && route !in bottomBarHiddenRoutes && !isSearchFocused
 
+    /**
+     * Switches tabs without growing the back stack.
+     *
+     * This used to pop up to the graph's start destination, which is Splash — and Splash is popped
+     * inclusively the moment a session lands, so by the time anyone touches a tab that `popUpTo`
+     * matched nothing and every switch pushed another entry. Four taps around the bar meant four
+     * presses of back to leave.
+     *
+     * Home is the anchor instead: it is the first tab and what every route into the app lands on,
+     * so back from any other tab returns to Home, and back from Home leaves. Each tab keeps its own
+     * scroll position and stack through save/restore.
+     */
     fun navigateBottomTab(selectedRoute: String) {
         navController.navigate(selectedRoute) {
-            popUpTo(navController.graph.findStartDestination().id) {
-                saveState = true
-            }
+            popUpTo(Routes.HOME) { saveState = true }
             launchSingleTop = true
             restoreState = true
         }
@@ -466,7 +475,9 @@ fun DZNavGraph() {
                             HomeEffect.NavigateToGoal -> navController.navigate(Routes.GOAL)
                             is HomeEffect.NavigateToCategory ->
                                 navController.navigate(Routes.categoryDetail(effect.categoryId))
-                            HomeEffect.NavigateToProfile -> navController.navigate(Routes.PROFILE_TAB)
+                            // The handoff calls both routes to Profile intentional; they are the same
+                            // destination, so the avatar switches tabs rather than pushing a second copy.
+                            HomeEffect.NavigateToProfile -> navigateBottomTab(Routes.PROFILE_TAB)
                         }
                     }
                 }

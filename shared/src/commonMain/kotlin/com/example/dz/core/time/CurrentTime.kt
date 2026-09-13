@@ -4,10 +4,10 @@ package com.example.dz.core.time
 expect fun currentEpochMillis(): Long
 
 /**
- * The reader's local calendar day, as days since the epoch.
+ * How far the reader's timezone is from UTC at [epochMillis], in milliseconds.
  *
- * Reading totals are per-day in the reader's own timezone, and epoch millis alone cannot say when
- * their midnight was. Stamping this at write time keeps timezone maths out of SQL, and out of every
- * query that later asks about "today".
+ * The one thing the platform has to answer. Everything else about local time is derived from it in
+ * [localDayKey] and [localHourOfDay], so the day boundary and the hour cannot drift apart between
+ * Android and iOS.
  */
-expect fun localDayKey(epochMillis: Long): Int
+expect fun localUtcOffsetMillis(epochMillis: Long): Long
