@@ -112,13 +112,39 @@ object OrganicIcons {
         }
     }
 
-    /** Magnifier. Tab 4, and the circular search button on Home and Library. */
+    /** Magnifier. The search circle on Home and Library — no longer a tab; see [Friends]. */
     val Search: ImageVector by lazy {
         organicIcon("OrganicSearch") {
             stroke {
                 circle(11f, 11f, 6f)
                 moveTo(15.5f, 15.5f)
                 lineToRelative(4.5f, 4.5f)
+            }
+        }
+    }
+
+    /**
+     * Two people, the second smaller and set back. Tab 4.
+     *
+     * The only tab icon with no counterpart in the handoff: its frames draw a magnifier in this
+     * slot, while the written spec puts Friends here. It took three tries to make legible at 20dp.
+     * Equal-sized figures merged into one blob with two eyes, and two plain overlapping discs read
+     * as abstract rings next to four literal objects. What works is Lucide's trick: the figure
+     * behind is smaller, higher, and drawn as a head and a single shoulder stub, so it sits clear
+     * of the front one instead of fusing with it.
+     */
+    val Friends: ImageVector by lazy {
+        organicIcon("OrganicFriends") {
+            stroke {
+                circle(8.8f, 10.2f, 3.1f)
+                moveTo(3.2f, 20.4f)
+                curveToRelative(0.8f, -2.8f, 2.6f, -4.2f, 5.6f, -4.2f)
+                reflectiveCurveToRelative(4.8f, 1.4f, 5.6f, 4.2f)
+            }
+            stroke {
+                circle(18f, 6.4f, 2.3f)
+                moveTo(18.2f, 12.4f)
+                curveToRelative(1.8f, 0.5f, 3.0f, 2.0f, 3.5f, 4.2f)
             }
         }
     }

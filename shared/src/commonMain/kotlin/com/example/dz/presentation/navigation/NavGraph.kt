@@ -173,7 +173,6 @@ fun DZNavGraph() {
         Routes.COLLECTION_DETAIL,
         Routes.COLLECTIONS_EDIT,
         Routes.GOAL,
-        Routes.FRIEND_LIST,
         Routes.FRIEND_DETAIL,
         Routes.CHAT,
         Routes.NOTIFICATIONS,
@@ -471,7 +470,7 @@ fun DZNavGraph() {
                         when (effect) {
                             is HomeEffect.NavigateToBook -> navController.navigate(Routes.prePurchase(effect.bookId))
                             is HomeEffect.NavigateToReading -> navController.navigate(Routes.reading(effect.bookId))
-                            HomeEffect.NavigateToFriends -> navController.navigate(Routes.FRIEND_LIST)
+                            HomeEffect.NavigateToFriends -> navigateBottomTab(Routes.FRIEND_LIST)
                             HomeEffect.NavigateToGoal -> navController.navigate(Routes.GOAL)
                             is HomeEffect.NavigateToCategory ->
                                 navController.navigate(Routes.categoryDetail(effect.categoryId))
@@ -584,7 +583,7 @@ fun DZNavGraph() {
                         when (effect) {
                             ProfileEffect.NavigateBack -> navController.popBackStack()
                             ProfileEffect.NavigateToNotifications -> navController.navigate(Routes.NOTIFICATIONS)
-                            ProfileEffect.NavigateToFriends -> navController.navigate(Routes.FRIEND_LIST)
+                            ProfileEffect.NavigateToFriends -> navigateBottomTab(Routes.FRIEND_LIST)
                             ProfileEffect.NavigateToGoals -> navController.navigate(Routes.GOAL)
                             ProfileEffect.NavigateToCollections -> navController.navigate(Routes.COLLECTIONS)
                             ProfileEffect.NavigateToPurchases -> navController.navigate(Routes.purchaseReceipt("history"))
@@ -941,7 +940,7 @@ fun DZNavGraph() {
                     notificationsViewModel.effects.collect { effect ->
                         when (effect) {
                             NotificationsEffect.NavigateBack -> navController.popBackStack()
-                            is NotificationsEffect.NavigateToChat -> navController.navigate(Routes.FRIEND_LIST)
+                            is NotificationsEffect.NavigateToChat -> navigateBottomTab(Routes.FRIEND_LIST)
                         }
                     }
                 }
