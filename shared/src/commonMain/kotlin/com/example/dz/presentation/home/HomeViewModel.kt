@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.dz.core.result.AppResult
 import com.example.dz.domain.model.Friend
+import com.example.dz.domain.model.Category
+import com.example.dz.domain.usecase.book.GetBooksByCategoryUseCase
 import com.example.dz.domain.usecase.book.GetCategoriesUseCase
 import com.example.dz.domain.usecase.book.GetHomeBooksUseCase
 import com.example.dz.domain.usecase.goal.GetReadingGoalUseCase
@@ -12,6 +14,9 @@ import com.example.dz.domain.usecase.library.GetLibraryBooksUseCase
 import com.example.dz.domain.usecase.social.GetFriendsUseCase
 import com.example.dz.domain.usecase.user.GetProfileUseCase
 import com.example.dz.presentation.mvi.toPresentationMessage
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -26,7 +31,8 @@ class HomeViewModel(
     private val getFriends: GetFriendsUseCase,
     private val getLibraryBooks: GetLibraryBooksUseCase,
     private val getCategories: GetCategoriesUseCase,
-    private val getReadingGoal: GetReadingGoalUseCase
+    private val getReadingGoal: GetReadingGoalUseCase,
+    private val getBooksByCategory: GetBooksByCategoryUseCase
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(HomeUiState(isLoading = true))
     val uiState = _uiState.asStateFlow()
@@ -47,6 +53,7 @@ class HomeViewModel(
             HomeEvent.PresenceClicked -> emitEffect(HomeEffect.NavigateToFriends)
             HomeEvent.GoalClicked -> emitEffect(HomeEffect.NavigateToGoal)
             HomeEvent.Resumed -> refreshLocal()
+            is HomeEvent.CategoryClicked -> emitEffect(HomeEffect.NavigateToCategory(event.categoryId))
             HomeEvent.ProfileClicked -> emitEffect(HomeEffect.NavigateToProfile)
         }
     }
@@ -55,13 +62,29 @@ class HomeViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
-            val booksResult = getHomeBooks()
-            val continueReadingResult = getContinueReading()
-            val profileResult = getProfile()
-            val friendsResult = getFriends()
-            val libraryResult = getLibraryBooks()
-            val categoriesResult = getCategories()
-            val goalResult = getReadingGoal()
+            // None of these depend on each other, and awaited one after another they stacked up
+            // into a visibly slow Home — seven round trips before the first pixel changed. The only
+            // ordering that survives is the genre shelves, which cannot start until the category
+            // list has named the genres.
+            coroutineScope {
+            val booksAsync = async { getHomeBooks() }
+            val continueReadingAsync = async { getContinueReading() }
+            val profileAsync = async { getProfile() }
+            val friendsAsync = async { getFriends() }
+            val libraryAsync = async { getLibraryBooks() }
+            val categoriesAsync = async { getCategories() }
+            val goalAsync = async { getReadingGoal() }
+
+            val booksResult = booksAsync.await()
+            val continueReadingResult = continueReadingAsync.await()
+            val profileResult = profileAsync.await()
+            val friendsResult = friendsAsync.await()
+            val libraryResult = libraryAsync.await()
+            val categoriesResult = categoriesAsync.await()
+            val goalResult = goalAsync.await()
+
+            val categories = (categoriesResult as? AppResult.Success)?.data.orEmpty()
+            val categoryShelves = shelvesFor(categories)
 
             val books = (booksResult as? AppResult.Success)?.data.orEmpty()
             val continueReading = (continueReadingResult as? AppResult.Success)?.data
@@ -95,7 +118,8 @@ class HomeViewModel(
                     // one after it rather than showing the same cover twice.
                     editorsPick = books.getOrNull(1) ?: books.firstOrNull(),
                     friendsReading = friends.filter { it.currentBook != null },
-                    categories = (categoriesResult as? AppResult.Success)?.data.orEmpty(),
+                    categories = categories,
+                    categoryShelves = categoryShelves,
                     goal = (goalResult as? AppResult.Success)?.data,
                     userName = userName,
                     presence = presenceOf(friends),
@@ -103,7 +127,27 @@ class HomeViewModel(
                     errorMessage = error
                 )
             }
+            }
         }
+    }
+
+    /**
+     * A carousel per genre, fetched together rather than one after another.
+     *
+     * Only the first few genres get one: each is its own request, and a screen that opens with a
+     * dozen of them in flight is slower than one that shows three and lets the tiles below carry
+     * the rest. Genres that come back empty are dropped rather than drawn as a headed void.
+     */
+    private suspend fun shelvesFor(categories: List<Category>): List<CategoryShelf> = coroutineScope {
+        categories.take(CATEGORY_SHELF_COUNT)
+            .map { category ->
+                async {
+                    val books = (getBooksByCategory(category.id) as? AppResult.Success)?.data.orEmpty()
+                    CategoryShelf(category = category, books = books.take(SHELF_BOOK_COUNT))
+                }
+            }
+            .awaitAll()
+            .filter { it.books.isNotEmpty() }
     }
 
     /**
@@ -153,5 +197,9 @@ class HomeViewModel(
 
     private companion object {
         const val DEFAULT_BOOK_ID = "current-book"
+
+        /** Three genre carousels: enough to browse, few enough that Home still opens quickly. */
+        const val CATEGORY_SHELF_COUNT = 3
+        const val SHELF_BOOK_COUNT = 10
     }
 }

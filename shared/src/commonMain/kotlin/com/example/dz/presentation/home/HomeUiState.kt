@@ -16,6 +16,8 @@ data class HomeUiState(
     /** Friends with a book open, for the social strip under the presence card. */
     val friendsReading: List<Friend> = emptyList(),
     val categories: List<Category> = emptyList(),
+    /** A carousel per genre, the same shape as Picked for you. Genres with nothing in them are dropped. */
+    val categoryShelves: List<CategoryShelf> = emptyList(),
     /** Today's reading against the target. Null only until the first load finishes. */
     val goal: ReadingGoal? = null,
     /** Greeted by name. Null until the profile call lands, and the greeting stands alone. */
@@ -24,6 +26,12 @@ data class HomeUiState(
     val presence: HomePresence? = null,
     val isLoading: Boolean = false,
     val errorMessage: String? = null
+)
+
+/** One genre's carousel: the genre, and the books to show under its name. */
+data class CategoryShelf(
+    val category: Category,
+    val books: List<Book>,
 )
 
 /**

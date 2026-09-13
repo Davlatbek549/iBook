@@ -464,6 +464,8 @@ fun DZNavGraph() {
                             is HomeEffect.NavigateToReading -> navController.navigate(Routes.reading(effect.bookId))
                             HomeEffect.NavigateToFriends -> navController.navigate(Routes.FRIEND_LIST)
                             HomeEffect.NavigateToGoal -> navController.navigate(Routes.GOAL)
+                            is HomeEffect.NavigateToCategory ->
+                                navController.navigate(Routes.categoryDetail(effect.categoryId))
                             HomeEffect.NavigateToProfile -> navController.navigate(Routes.PROFILE_TAB)
                         }
                     }
@@ -482,6 +484,7 @@ fun DZNavGraph() {
                     onBookClick = { bookId -> homeViewModel.onEvent(HomeEvent.BookClicked(bookId)) },
                     onPresenceClick = { homeViewModel.onEvent(HomeEvent.PresenceClicked) },
                     onGoalClick = { homeViewModel.onEvent(HomeEvent.GoalClicked) },
+                    onCategoryClick = { id -> homeViewModel.onEvent(HomeEvent.CategoryClicked(id)) },
                     onProfileClick = { homeViewModel.onEvent(HomeEvent.ProfileClicked) }
                 )
             }

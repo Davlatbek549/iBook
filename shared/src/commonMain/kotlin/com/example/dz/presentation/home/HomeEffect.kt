@@ -5,5 +5,6 @@ sealed interface HomeEffect {
     data class NavigateToReading(val bookId: String) : HomeEffect
     data object NavigateToFriends : HomeEffect
     data object NavigateToGoal : HomeEffect
+    data class NavigateToCategory(val categoryId: String) : HomeEffect
     data object NavigateToProfile : HomeEffect
 }

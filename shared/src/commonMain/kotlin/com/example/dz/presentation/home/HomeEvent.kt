@@ -5,6 +5,7 @@ sealed interface HomeEvent {
     data object KeepReadingClicked : HomeEvent
     data object PresenceClicked : HomeEvent
     data object GoalClicked : HomeEvent
+    data class CategoryClicked(val categoryId: String) : HomeEvent
 
     /**
      * Home came back to the foreground. Only the on-device figures are re-read — minutes, the

@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -54,6 +55,7 @@ import com.example.dz.designsystem.components.organic.OrganicSectionHeader
 import com.example.dz.designsystem.theme.OrganicColors
 import com.example.dz.designsystem.theme.organicBodyFontFamily
 import com.example.dz.designsystem.theme.organicHeadingFontFamily
+import com.example.dz.domain.model.Book
 import com.example.dz.domain.model.LibraryBook
 import com.example.dz.presentation.common.uniqueLazyKeys
 import dz.shared.generated.resources.Res
@@ -98,16 +100,21 @@ fun HomeScreen(
     onBookClick: (String) -> Unit = {},
     onPresenceClick: () -> Unit = {},
     onGoalClick: () -> Unit = {},
+    onCategoryClick: (String) -> Unit = {},
     onProfileClick: () -> Unit = {},
 ) {
     val picked = uiState.books
     val newThisWeek = uiState.books.drop(PICKED_FOR_YOU_LIMIT).take(NEW_THIS_WEEK_LIMIT)
     val pickedShown = picked.take(PICKED_FOR_YOU_LIMIT)
-    val pickedKeys = pickedShown.uniqueLazyKeys { it.id }
     val newKeys = newThisWeek.uniqueLazyKeys { it.id }
     val shelfKeys = uiState.shelf.uniqueLazyKeys { it.book.id }
     val friendKeys = uiState.friendsReading.uniqueLazyKeys { it.id }
-    val genres = uiState.categories.take(GENRE_LIMIT)
+    // The genres that already have a carousel are skipped by the tile grid, so the same three
+    // names do not appear twice a few hundred pixels apart.
+    val shelvedIds = uiState.categoryShelves.map { it.category.id }.toSet()
+    val genres = uiState.categories.filterNot { it.id in shelvedIds }.take(GENRE_LIMIT)
+    val pickedForYouLabel = stringResource(Res.string.home_picked_for_you)
+    val seeAllLabel = stringResource(Res.string.home_see_all)
 
     OrganicScreen {
         LazyColumn(
@@ -201,32 +208,14 @@ fun HomeScreen(
                 }
             }
 
-            if (picked.isNotEmpty()) {
-                item(key = "picked-header") {
-                    OrganicSectionHeader(
-                        title = stringResource(Res.string.home_picked_for_you),
-                        modifier = Modifier.padding(horizontal = ORGANIC_GUTTER),
-                        actionLabel = stringResource(Res.string.home_see_all),
-                        onActionClick = onSeeAllClick,
-                    )
-                }
-                item(key = "picked-carousel") {
-                    LazyRow(
-                        contentPadding = PaddingValues(horizontal = ORGANIC_GUTTER),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        items(pickedShown.size, key = { pickedKeys[it] }) { index ->
-                            val book = pickedShown[index]
-                            OrganicCoverCard(
-                                title = book.title,
-                                author = book.authors.firstOrNull()?.name.orEmpty(),
-                                coverUrl = book.coverUrl,
-                                onClick = { onBookClick(book.id) },
-                            )
-                        }
-                    }
-                }
-            }
+            bookCarousel(
+                key = "picked",
+                title = pickedForYouLabel,
+                books = pickedShown,
+                actionLabel = seeAllLabel,
+                onActionClick = onSeeAllClick,
+                onBookClick = onBookClick,
+            )
 
             uiState.editorsPick?.let { pick ->
                 item(key = "editors-pick") {
@@ -273,6 +262,40 @@ fun HomeScreen(
                 }
             }
 
+            if (newThisWeek.isNotEmpty()) {
+                item(key = "new-header") {
+                    OrganicSectionHeader(
+                        title = stringResource(Res.string.home_new_this_week),
+                        modifier = Modifier.padding(horizontal = ORGANIC_GUTTER),
+                        actionLabel = stringResource(Res.string.home_see_all),
+                        onActionClick = onSeeAllClick,
+                    )
+                }
+                items(newThisWeek.size, key = { newKeys[it] }) { index ->
+                    val book = newThisWeek[index]
+                    OrganicListRow(
+                        title = book.title,
+                        modifier = Modifier.padding(horizontal = ORGANIC_GUTTER),
+                        author = book.authors.firstOrNull()?.name,
+                        meta = book.price,
+                        coverUrl = book.coverUrl,
+                        onClick = { onBookClick(book.id) },
+                        trailing = { OrganicRowChevron() },
+                    )
+                }
+            }
+
+            uiState.categoryShelves.forEach { shelf ->
+                bookCarousel(
+                    key = "shelf-${shelf.category.id}",
+                    title = shelf.category.name,
+                    books = shelf.books,
+                    actionLabel = seeAllLabel,
+                    onActionClick = { onCategoryClick(shelf.category.id) },
+                    onBookClick = onBookClick,
+                )
+            }
+
             if (genres.isNotEmpty()) {
                 item(key = "genres-label") {
                     OrganicSectionLabel(
@@ -315,27 +338,49 @@ fun HomeScreen(
                 }
             }
 
-            if (newThisWeek.isNotEmpty()) {
-                item(key = "new-header") {
-                    OrganicSectionHeader(
-                        title = stringResource(Res.string.home_new_this_week),
-                        modifier = Modifier.padding(horizontal = ORGANIC_GUTTER),
-                        actionLabel = stringResource(Res.string.home_see_all),
-                        onActionClick = onSeeAllClick,
-                    )
-                }
-                items(newThisWeek.size, key = { newKeys[it] }) { index ->
-                    val book = newThisWeek[index]
-                    OrganicListRow(
-                        title = book.title,
-                        modifier = Modifier.padding(horizontal = ORGANIC_GUTTER),
-                        author = book.authors.firstOrNull()?.name,
-                        meta = book.price,
-                        coverUrl = book.coverUrl,
-                        onClick = { onBookClick(book.id) },
-                        trailing = { OrganicRowChevron() },
-                    )
-                }
+        }
+    }
+}
+
+/**
+ * A titled row of covers that scrolls sideways — Picked for you, and one per genre.
+ *
+ * Lives in [LazyListScope] rather than a composable so the header and the row stay separate list
+ * items: a section that is one item cannot be recycled, and Home now stacks several of these.
+ * Labels arrive resolved because `stringResource` needs a composable and this is not one.
+ */
+private fun LazyListScope.bookCarousel(
+    key: String,
+    title: String,
+    books: List<Book>,
+    actionLabel: String,
+    onActionClick: () -> Unit,
+    onBookClick: (String) -> Unit,
+) {
+    if (books.isEmpty()) return
+    val bookKeys = books.uniqueLazyKeys { it.id }
+
+    item(key = "$key-header") {
+        OrganicSectionHeader(
+            title = title,
+            modifier = Modifier.padding(horizontal = ORGANIC_GUTTER),
+            actionLabel = actionLabel,
+            onActionClick = onActionClick,
+        )
+    }
+    item(key = "$key-carousel") {
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = ORGANIC_GUTTER),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            items(books.size, key = { bookKeys[it] }) { index ->
+                val book = books[index]
+                OrganicCoverCard(
+                    title = book.title,
+                    author = book.authors.firstOrNull()?.name.orEmpty(),
+                    coverUrl = book.coverUrl,
+                    onClick = { onBookClick(book.id) },
+                )
             }
         }
     }
