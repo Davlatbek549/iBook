@@ -107,6 +107,8 @@ fun OrganicSectionHeader(
     modifier: Modifier = Modifier,
     actionLabel: String? = null,
     onActionClick: (() -> Unit)? = null,
+    /** An affordance beside the action, for a section that both leads somewhere and does something. */
+    trailing: @Composable (() -> Unit)? = null,
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -120,18 +122,24 @@ fun OrganicSectionHeader(
             fontSize = 21.sp,
             color = OrganicColors.text
         )
-        if (actionLabel != null) {
-            Text(
-                text = actionLabel,
-                modifier = if (onActionClick != null) {
-                    Modifier.clickable(role = Role.Button, onClick = onActionClick)
-                } else {
-                    Modifier
-                },
-                fontFamily = organicBodyFontFamily(),
-                fontSize = 12.sp,
-                color = OrganicColors.accent700
-            )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (actionLabel != null) {
+                Text(
+                    text = actionLabel,
+                    modifier = if (onActionClick != null) {
+                        Modifier.clickable(role = Role.Button, onClick = onActionClick)
+                    } else {
+                        Modifier
+                    },
+                    fontFamily = organicBodyFontFamily(),
+                    fontSize = 12.sp,
+                    color = OrganicColors.accent700
+                )
+            }
+            trailing?.invoke()
         }
     }
 }
@@ -150,19 +158,22 @@ fun OrganicCircleIconButton(
     modifier: Modifier = Modifier,
     size: Dp = 42.dp,
     iconSize: Dp = 19.dp,
+    /** The accent fill marks the one button on a screen that makes something new. */
+    background: Color = OrganicColors.neutral200,
+    tint: Color = OrganicColors.neutral800,
 ) {
     Box(
         modifier = modifier
             .size(size)
             .clip(CircleShape)
-            .background(OrganicColors.neutral200)
+            .background(background)
             .clickable(role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         Icon(
             imageVector = icon,
             contentDescription = contentDescription,
-            tint = OrganicColors.neutral800,
+            tint = tint,
             modifier = Modifier.size(iconSize)
         )
     }

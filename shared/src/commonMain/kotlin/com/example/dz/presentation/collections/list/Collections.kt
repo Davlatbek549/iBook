@@ -1,302 +1,178 @@
 package com.example.dz.presentation.collections.list
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.defaultMinSize
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.Canvas
-import com.example.dz.designsystem.components.icons.InkIcons
-import com.example.dz.designsystem.components.ink.InkIconButton
-import com.example.dz.designsystem.components.ink.InkLabel
-import com.example.dz.designsystem.components.ink.InkTopBar
-import com.example.dz.designsystem.components.ink.inkCard
-import com.example.dz.designsystem.components.remote.RemoteBookCover
-import com.example.dz.designsystem.theme.InkColors
-import com.example.dz.designsystem.theme.InkShape
-import com.example.dz.designsystem.theme.inkBodyFontFamily
-import com.example.dz.designsystem.theme.inkColors
-import com.example.dz.designsystem.theme.inkDisplayFontFamily
+import com.example.dz.designsystem.components.icons.OrganicIcons
+import com.example.dz.designsystem.components.organic.ORGANIC_GUTTER
+import com.example.dz.designsystem.components.organic.ORGANIC_TAB_BAR_CLEARANCE
+import com.example.dz.designsystem.components.organic.OrganicCard
+import com.example.dz.designsystem.components.organic.OrganicCircleIconButton
+import com.example.dz.designsystem.components.organic.OrganicRowChevron
+import com.example.dz.designsystem.components.organic.OrganicScreen
+import com.example.dz.designsystem.components.organic.OrganicScreenHeader
+import com.example.dz.designsystem.components.organic.OrganicStackedCovers
+import com.example.dz.designsystem.theme.OrganicColors
+import com.example.dz.designsystem.theme.organicBodyFontFamily
+import com.example.dz.designsystem.theme.organicHeadingFontFamily
+import com.example.dz.presentation.common.uniqueLazyKeys
 import dz.shared.generated.resources.Res
-import dz.shared.generated.resources.book_cover
-import dz.shared.generated.resources.book_cover_2
-import dz.shared.generated.resources.book_cover_3
-import dz.shared.generated.resources.book_cover_4
-import dz.shared.generated.resources.coll_loved
-import dz.shared.generated.resources.coll_purchased
-import dz.shared.generated.resources.coll_saved_for_later
-import dz.shared.generated.resources.coll_smart_shelves
-import dz.shared.generated.resources.coll_subtitle
-import dz.shared.generated.resources.library_collections
-import dz.shared.generated.resources.new_collection
-import dz.shared.generated.resources.olive_again_book
+import dz.shared.generated.resources.collections_empty
+import dz.shared.generated.resources.collections_title
+import dz.shared.generated.resources.library_book_count
+import dz.shared.generated.resources.library_new_collection
+import dz.shared.generated.resources.nav_back
 import org.jetbrains.compose.resources.stringResource
 
-private val previewUiState = CollectionsUiState(
-    collections = listOf(
-        CollectionUiState("quiet-novels", "Quiet novels", 12, listOf(CollectionCoverUi(coverRes = Res.drawable.olive_again_book), CollectionCoverUi(coverRes = Res.drawable.book_cover_3), CollectionCoverUi(coverRes = Res.drawable.book_cover))),
-        CollectionUiState("for-the-train", "For the train", 5, listOf(CollectionCoverUi(coverRes = Res.drawable.book_cover_2), CollectionCoverUi(coverRes = Res.drawable.book_cover_4))),
-        CollectionUiState("lent-to-friends", "Lent to friends", 3, listOf(CollectionCoverUi(coverRes = Res.drawable.book_cover_3)))
-    )
-)
-
+/**
+ * Collections — the shelves the reader built themselves.
+ *
+ * Each row wears the shelf's own books as its portrait: three covers fanned out, so a shelf is
+ * recognisable before its name is read. Geometry from `dz-all-screens.html`.
+ *
+ * Creating a shelf goes to the edit screen with nothing in it, which is how the handoff routes it
+ * and how the view model already works — there is no separate create form to keep in step.
+ */
 @Composable
 fun CollectionsScreen(
-    uiState: CollectionsUiState = previewUiState,
+    uiState: CollectionsUiState = CollectionsUiState(),
     onEvent: (CollectionsEvent) -> Unit = {},
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
-    val colors = inkColors()
+    val keys = uiState.collections.uniqueLazyKeys { it.id }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(colors.paper)
-            .statusBarsPadding()
-            .verticalScroll(rememberScrollState())
-            .padding(bottom = 96.dp)
-    ) {
-        InkTopBar(
-            title = stringResource(Res.string.library_collections),
-            subtitle = stringResource(Res.string.coll_subtitle),
-            onBackClick = { onEvent(CollectionsEvent.BackClicked) },
-            right = { InkIconButton(icon = InkIcons.Search, onClick = { onEvent(CollectionsEvent.SearchClicked) }, colors = colors) },
-            colors = colors
-        )
-
-        // collection grid: cards plus the trailing "new collection" tile
-        Column(
-            modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+    OrganicScreen(modifier = modifier) {
+        LazyColumn(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(top = 12.dp, bottom = ORGANIC_TAB_BAR_CLEARANCE),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            val cells: List<CollectionUiState?> = uiState.collections + null
-            cells.chunked(2).forEach { rowItems ->
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    rowItems.forEach { collection ->
-                        if (collection != null) {
-                            CollectionCard(
-                                collection = collection,
-                                onClick = { onEvent(CollectionsEvent.CollectionClicked(collection.id)) },
-                                modifier = Modifier.weight(1f),
-                                colors = colors
-                            )
-                        } else {
-                            NewCollectionTile(
-                                onClick = { onEvent(CollectionsEvent.NewCollectionClicked) },
-                                modifier = Modifier.weight(1f),
-                                colors = colors
-                            )
-                        }
+            item(key = "header") {
+                OrganicScreenHeader(
+                    title = stringResource(Res.string.collections_title),
+                    modifier = Modifier.padding(horizontal = ORGANIC_GUTTER, vertical = 4.dp),
+                    leading = {
+                        OrganicCircleIconButton(
+                            icon = OrganicIcons.ChevronLeft,
+                            onClick = { onEvent(CollectionsEvent.BackClicked) },
+                            contentDescription = stringResource(Res.string.nav_back),
+                            size = 38.dp,
+                            iconSize = 17.dp,
+                        )
+                    },
+                    trailing = {
+                        OrganicCircleIconButton(
+                            icon = OrganicIcons.Plus,
+                            onClick = { onEvent(CollectionsEvent.NewCollectionClicked) },
+                            contentDescription = stringResource(Res.string.library_new_collection),
+                            size = 38.dp,
+                            iconSize = 18.dp,
+                            background = OrganicColors.accent,
+                            tint = Color.White,
+                        )
+                    },
+                )
+            }
+
+            if (uiState.collections.isEmpty() && !uiState.isLoading) {
+                item(key = "empty") {
+                    OrganicCard(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = ORGANIC_GUTTER),
+                        contentPadding = PaddingValues(18.dp),
+                    ) {
+                        Text(
+                            text = stringResource(Res.string.collections_empty),
+                            fontFamily = organicBodyFontFamily(),
+                            fontSize = 13.sp,
+                            lineHeight = 19.5.sp,
+                            color = OrganicColors.neutral700
+                        )
                     }
-                    if (rowItems.size == 1) Box(modifier = Modifier.weight(1f))
                 }
             }
-        }
 
-        // smart shelves
-        Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 24.dp)) {
-            InkLabel(text = stringResource(Res.string.coll_smart_shelves), colors = colors)
-            Column(modifier = Modifier.padding(top = 6.dp)) {
-                SmartShelfRow(InkIcons.Bookmark, stringResource(Res.string.coll_saved_for_later), "8 books", colors)
-                HorizontalDivider(thickness = 1.dp, color = colors.line)
-                SmartShelfRow(InkIcons.Purchased, stringResource(Res.string.coll_purchased), "14 books", colors)
-                HorizontalDivider(thickness = 1.dp, color = colors.line)
-                SmartShelfRow(InkIcons.Favorite, stringResource(Res.string.coll_loved), "6 books", colors)
+            items(uiState.collections.size, key = { keys[it] }) { index ->
+                val collection = uiState.collections[index]
+                CollectionRow(
+                    collection = collection,
+                    modifier = Modifier.padding(horizontal = ORGANIC_GUTTER),
+                    onClick = { onEvent(CollectionsEvent.CollectionClicked(collection.id)) },
+                )
             }
         }
     }
 }
 
 @Composable
-private fun CollectionCard(
+private fun CollectionRow(
     collection: CollectionUiState,
-    onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    colors: InkColors,
-) {
-    Column(
-        modifier = modifier
-            .inkCard(colors)
-            .clickable(onClick = onClick)
-            .padding(13.dp)
-    ) {
-        Box {
-            // draw right-to-left so the leftmost cover sits on top, like the design
-            collection.covers.indices.reversed().forEach { j ->
-                RemoteBookCover(
-                    coverUrl = collection.covers[j].coverUrl,
-                    fallback = collection.covers[j].coverRes,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .offset(x = (28 * j).dp)
-                        .size(width = 44.dp, height = 64.dp)
-                        .clip(RoundedCornerShape(InkShape.cover - 1.dp))
-                        .border(2.dp, colors.surface, RoundedCornerShape(InkShape.cover - 1.dp))
-                )
-            }
-            Spacer(modifier = Modifier.size(width = (44 + 28 * (collection.covers.size - 1)).coerceAtLeast(44).dp, height = 64.dp))
-        }
-        Text(
-            text = collection.name,
-            modifier = Modifier.padding(top = 12.dp),
-            fontFamily = inkDisplayFontFamily(),
-            fontWeight = FontWeight.Medium,
-            fontSize = 14.5.sp,
-            lineHeight = 18.sp,
-            color = colors.ink
-        )
-        Text(
-            text = "${collection.bookCount} books",
-            modifier = Modifier.padding(top = 5.dp),
-            fontFamily = inkBodyFontFamily(),
-            fontSize = 11.sp,
-            color = colors.muted
-        )
-    }
-}
-
-@Composable
-private fun NewCollectionTile(
     onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    colors: InkColors,
 ) {
-    Box(
-        modifier = modifier
-            .defaultMinSize(minHeight = 128.dp)
-            .clip(RoundedCornerShape(InkShape.radius))
-            .clickable(onClick = onClick)
+    OrganicCard(
+        modifier = modifier.fillMaxWidth(),
+        elevated = true,
+        onClick = onClick,
     ) {
-        // dashed hairline border
-        val lineColor = colors.line
-        Canvas(modifier = Modifier.matchParentSize()) {
-            drawRoundRect(
-                color = lineColor,
-                style = Stroke(
-                    width = 1.5.dp.toPx(),
-                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(12f, 10f))
-                ),
-                cornerRadius = androidx.compose.ui.geometry.CornerRadius(InkShape.radius.toPx())
-            )
-        }
-        Column(
-            modifier = Modifier.align(Alignment.Center),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(9.dp)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier
-                    .size(34.dp)
-                    .clip(CircleShape)
-                    .background(colors.accentSoft),
-                contentAlignment = Alignment.Center
+            OrganicStackedCovers(
+                // The cover art keys the gradient behind it, so a shelf keeps its colours even
+                // before any artwork loads.
+                keys = collection.covers.indices.map { "${collection.id}-$it" }
+                    .ifEmpty { listOf(collection.id) },
+                coverUrls = collection.covers.map { it.coverUrl },
+            )
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(5.dp)
             ) {
-                Icon(
-                    imageVector = InkIcons.Plus,
-                    contentDescription = null,
-                    tint = colors.accent,
-                    modifier = Modifier.size(14.dp)
+                Text(
+                    text = collection.name,
+                    fontFamily = organicHeadingFontFamily(),
+                    fontWeight = FontWeight.Normal,
+                    fontSize = 20.sp,
+                    lineHeight = 22.sp,
+                    color = OrganicColors.text,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    // The design also reads "· 2 unread" and carries a Private/shared pill.
+                    // Neither exists: a collection records a title, a note and its books, and
+                    // nothing tracks who else can see it or what has been read inside it.
+                    text = stringResource(Res.string.library_book_count, collection.bookCount),
+                    fontFamily = organicBodyFontFamily(),
+                    fontSize = 13.sp,
+                    color = OrganicColors.neutral700
                 )
             }
-            Text(
-                text = stringResource(Res.string.new_collection),
-                fontFamily = inkBodyFontFamily(),
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 12.sp,
-                color = colors.accent
-            )
+            OrganicRowChevron()
         }
     }
 }
 
+@Preview
 @Composable
-private fun SmartShelfRow(
-    icon: ImageVector,
-    title: String,
-    count: String,
-    colors: InkColors,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 13.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(13.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .size(38.dp)
-                .clip(RoundedCornerShape(InkShape.radiusSm))
-                .background(colors.alt),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = colors.accent,
-                modifier = Modifier.size(16.dp)
-            )
-        }
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                fontFamily = inkBodyFontFamily(),
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 13.5.sp,
-                color = colors.ink
-            )
-            Text(
-                text = count,
-                modifier = Modifier.padding(top = 4.dp),
-                fontFamily = inkBodyFontFamily(),
-                fontSize = 11.sp,
-                color = colors.muted
-            )
-        }
-        Icon(
-            imageVector = InkIcons.Back,
-            contentDescription = null,
-            tint = colors.muted,
-            modifier = Modifier
-                .size(14.dp)
-                .graphicsLayer { rotationZ = 180f }
-        )
-    }
-}
-
-@Preview(showBackground = true, widthDp = 375, heightDp = 820)
-@Composable
-private fun CollectionsScreenPreview() {
+fun CollectionsScreenPreview() {
     CollectionsScreen()
 }

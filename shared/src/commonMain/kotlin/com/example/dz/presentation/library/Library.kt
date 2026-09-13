@@ -53,6 +53,8 @@ import dz.shared.generated.resources.library_tab_reading
 import dz.shared.generated.resources.library_tab_to_read
 import dz.shared.generated.resources.library_your_shelf
 import dz.shared.generated.resources.home_search
+import dz.shared.generated.resources.home_see_all
+import dz.shared.generated.resources.library_new_collection
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -73,6 +75,7 @@ fun LibraryScreen(
     onBookClick: (String) -> Unit = {},
     onCollectionClick: (String) -> Unit = {},
     onCollectionsClick: () -> Unit = {},
+    onNewCollectionClick: () -> Unit = {},
 ) {
     val shelf = uiState.shelf
     val shelfKeys = shelf.uniqueLazyKeys { it.book.id }
@@ -147,7 +150,19 @@ fun LibraryScreen(
                             end = ORGANIC_GUTTER,
                             top = SECTION_EXTRA,
                         ),
+                        actionLabel = stringResource(Res.string.home_see_all),
                         onActionClick = onCollectionsClick,
+                        trailing = {
+                            OrganicCircleIconButton(
+                                icon = OrganicIcons.Plus,
+                                onClick = onNewCollectionClick,
+                                contentDescription = stringResource(Res.string.library_new_collection),
+                                size = 32.dp,
+                                iconSize = 16.dp,
+                                background = OrganicColors.accent,
+                                tint = Color.White,
+                            )
+                        },
                     )
                 }
                 item(key = "collections") {

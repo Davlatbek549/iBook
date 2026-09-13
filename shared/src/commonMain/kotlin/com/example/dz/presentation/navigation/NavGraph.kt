@@ -525,7 +525,8 @@ fun DZNavGraph() {
                     onSearchClick = { libraryViewModel.onEvent(LibraryEvent.SearchClicked) },
                     onBookClick = { bookId -> libraryViewModel.onEvent(LibraryEvent.BookClicked(bookId)) },
                     onCollectionClick = { id -> libraryViewModel.onEvent(LibraryEvent.CollectionClicked(id)) },
-                    onCollectionsClick = { libraryViewModel.onEvent(LibraryEvent.CollectionsClicked) }
+                    onCollectionsClick = { libraryViewModel.onEvent(LibraryEvent.CollectionsClicked) },
+                    onNewCollectionClick = { navController.navigate(Routes.collectionsEdit(NEW_COLLECTION_ID)) }
                 )
             }
 
@@ -1126,6 +1127,9 @@ fun DZNavGraph() {
         }
     }
 }
+
+/** The id the edit screen reads as "this shelf does not exist yet" — see CollectionsEditViewModel. */
+private const val NEW_COLLECTION_ID = "new"
 
 private val UnsafeRouteCharacters = Regex("[^A-Za-z0-9_-]+")
 

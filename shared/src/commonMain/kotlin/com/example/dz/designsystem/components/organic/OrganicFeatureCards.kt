@@ -424,3 +424,48 @@ fun OrganicGoalCard(
         }
     }
 }
+
+/**
+ * Three covers fanned out, as a shelf's portrait: the front one square on, the next two peeking
+ * behind it, and a plain neutral card at the back so a shelf with one book still looks like a
+ * stack rather than a single cover.
+ *
+ * Sizes from `dz-all-screens.html`: a 78 × 96 area holding 60 × 92, 58 × 88 and 56 × 84.
+ */
+@Composable
+fun OrganicStackedCovers(
+    keys: List<String>,
+    modifier: Modifier = Modifier,
+    coverUrls: List<String?> = emptyList(),
+) {
+    Box(modifier = modifier.width(78.dp).height(96.dp)) {
+        Box(
+            modifier = Modifier
+                .offset(x = 16.dp, y = 6.dp)
+                .width(56.dp)
+                .height(84.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(OrganicColors.neutral300)
+        )
+        keys.getOrNull(1)?.let { key ->
+            OrganicBookCover(
+                title = key,
+                modifier = Modifier.offset(x = 8.dp, y = 3.dp),
+                coverUrl = coverUrls.getOrNull(1),
+                width = 58.dp,
+                height = 88.dp,
+                cornerRadius = 11.dp,
+            )
+        }
+        keys.firstOrNull()?.let { key ->
+            OrganicBookCover(
+                title = key,
+                coverUrl = coverUrls.firstOrNull(),
+                width = 60.dp,
+                height = 92.dp,
+                cornerRadius = 12.dp,
+                elevated = true,
+            )
+        }
+    }
+}

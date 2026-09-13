@@ -166,6 +166,18 @@ object OrganicIcons {
 
     // ── Row and header affordances ────────────────────────────────────────────
 
+    /** Plus, for the action that makes a new thing — a shelf, a friend. */
+    val Plus: ImageVector by lazy {
+        organicIcon("OrganicPlus") {
+            stroke {
+                moveTo(12f, 5f)
+                verticalLineToRelative(14f)
+                moveTo(5f, 12f)
+                horizontalLineToRelative(14f)
+            }
+        }
+    }
+
     /** Tick, for the badge on a finished book. Drawn at 3 — it sits inside a filled circle. */
     val Check: ImageVector by lazy {
         organicIcon("OrganicCheck") {

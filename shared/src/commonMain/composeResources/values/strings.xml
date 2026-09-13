@@ -142,7 +142,11 @@
     <string name="search_placeholder">Books, authors, friends…</string>
     <string name="search_recent">Recent</string>
     <string name="search_browse_by_mood">Browse by mood</string>
+    <string name="collections_title">Collections</string>
+    <string name="collections_empty">No shelves yet. Make one to group books however you like.</string>
+    <string name="nav_back">Back</string>
     <string name="library_your_shelf">Your shelf</string>
+    <string name="library_new_collection">New shelf</string>
     <string name="library_book_count">%1$d books</string>
     <string name="library_pages_left">%1$d pages left</string>
     <string name="library_pages">%1$d pages</string>
