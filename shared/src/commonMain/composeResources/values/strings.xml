@@ -142,6 +142,15 @@
     <string name="search_placeholder">Books, authors, friends…</string>
     <string name="search_recent">Recent</string>
     <string name="search_browse_by_mood">Browse by mood</string>
+    <string name="book_continue_reading">Continue reading</string>
+    <string name="book_start_reading">Start reading</string>
+    <string name="book_read_again">Read again</string>
+    <string name="book_read_free">Read free</string>
+    <string name="book_pages">%1$d pages</string>
+    <string name="book_file_to_shelf">Add to a shelf</string>
+    <string name="book_download">Save for offline</string>
+    <string name="book_downloaded">Saved for offline</string>
+    <string name="book_more_like_this">More like this</string>
     <string name="collections_title">Collections</string>
     <string name="collection_edit_title">Edit collection</string>
     <string name="collection_new_title">New collection</string>

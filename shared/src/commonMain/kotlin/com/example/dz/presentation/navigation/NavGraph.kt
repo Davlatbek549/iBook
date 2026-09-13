@@ -622,6 +622,7 @@ fun DZNavGraph() {
                             is PrePurchaseEffect.NavigateToReading -> navController.navigate(Routes.reading(effect.bookId))
                             is PrePurchaseEffect.NavigateToPurchase -> navController.navigate(Routes.purchaseDetails(effect.bookId))
                             is PrePurchaseEffect.NavigateToAuthor -> navController.navigate(Routes.authorDetail(effect.authorId))
+                            PrePurchaseEffect.NavigateToCollections -> navController.navigate(Routes.COLLECTIONS)
                             is PrePurchaseEffect.NavigateToBook -> navController.navigate(Routes.prePurchase(effect.bookId))
                         }
                     }

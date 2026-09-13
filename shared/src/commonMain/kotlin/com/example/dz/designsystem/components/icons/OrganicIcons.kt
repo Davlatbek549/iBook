@@ -166,6 +166,21 @@ object OrganicIcons {
 
     // ── Row and header affordances ────────────────────────────────────────────
 
+    /** Arrow into a tray — saving a book to the device. */
+    val Download: ImageVector by lazy {
+        organicIcon("OrganicDownload") {
+            stroke {
+                moveTo(12f, 4f)
+                verticalLineToRelative(10.5f)
+                moveTo(7.5f, 10.5f)
+                lineTo(12f, 15f)
+                lineToRelative(4.5f, -4.5f)
+                moveTo(5f, 19.5f)
+                horizontalLineToRelative(14f)
+            }
+        }
+    }
+
     /** Cross, for removing one thing from a list without leaving the screen. */
     val Close: ImageVector by lazy {
         organicIcon("OrganicClose") {

@@ -253,7 +253,7 @@ val coreModule = module {
     factory { SearchViewModel(get(), get()) }
     factory { StoreViewModel(get(), get()) }
     factory { (authorId: String) -> AuthorDetailViewModel(authorId) }
-    factory { (bookId: String) -> PrePurchaseViewModel(bookId, get(), get(), get()) }
+    factory { (bookId: String) -> PrePurchaseViewModel(bookId, get(), get(), get(), get(), get()) }
     factory { (bookId: String) -> BookReviewViewModel(bookId, get()) }
     factory { (categoryId: String) -> CategoryDetailViewModel(categoryId, get(), get()) }
 
