@@ -1,0 +1,32 @@
+-- One stretch of reading. Minutes read are measured on the device, where the reading happens,
+-- and aggregated per local day so "today" and a streak can be answered without timezone maths
+-- in SQL. day_key is days-since-epoch in the reader's own timezone, stamped on insert.
+CREATE TABLE reading_session (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    book_id TEXT NOT NULL,
+    day_key INTEGER NOT NULL,
+    started_at INTEGER NOT NULL,
+    seconds INTEGER NOT NULL
+);
+
+CREATE INDEX reading_session_day ON reading_session(day_key);
+
+insert:
+INSERT INTO reading_session(book_id, day_key, started_at, seconds)
+VALUES (?, ?, ?, ?);
+
+secondsOnDay:
+SELECT COALESCE(SUM(seconds), 0) AS seconds FROM reading_session WHERE day_key = ?;
+
+secondsPerDaySince:
+SELECT day_key, COALESCE(SUM(seconds), 0) AS seconds
+FROM reading_session
+WHERE day_key >= ?
+GROUP BY day_key
+ORDER BY day_key;
+
+daysWithReading:
+SELECT DISTINCT day_key FROM reading_session ORDER BY day_key DESC;
+
+deleteAll:
+DELETE FROM reading_session;

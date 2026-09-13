@@ -1,6 +1,7 @@
 package com.example.dz.core.di
 
 import com.example.dz.data.local.CollectionLocalDataSource
+import com.example.dz.data.local.GoalLocalDataSource
 import com.example.dz.data.local.LibraryLocalDataSource
 import com.example.dz.data.local.LocalDataSource
 import com.example.dz.data.local.LocalDataSourceImpl
@@ -18,6 +19,7 @@ import com.example.dz.data.repository.ChatRepositoryImpl
 import com.example.dz.data.repository.DownloadRepositoryImpl
 import com.example.dz.data.repository.LocalDeviceDataRepository
 import com.example.dz.data.repository.LocalCollectionRepository
+import com.example.dz.data.repository.LocalGoalRepository
 import com.example.dz.data.repository.LocalLibraryRepository
 import com.example.dz.data.repository.MembershipRepositoryImpl
 import com.example.dz.data.repository.NotificationRepositoryImpl
@@ -32,6 +34,7 @@ import com.example.dz.domain.repository.ChatRepository
 import com.example.dz.domain.repository.CollectionRepository
 import com.example.dz.domain.repository.DeviceDataRepository
 import com.example.dz.domain.repository.DownloadRepository
+import com.example.dz.domain.repository.GoalRepository
 import com.example.dz.domain.repository.LibraryRepository
 import com.example.dz.domain.repository.MembershipRepository
 import com.example.dz.domain.repository.NotificationRepository
@@ -66,6 +69,8 @@ import com.example.dz.domain.usecase.collection.DeleteCollectionUseCase
 import com.example.dz.domain.usecase.collection.GetCollectionDetailsUseCase
 import com.example.dz.domain.usecase.collection.GetCollectionsUseCase
 import com.example.dz.domain.usecase.collection.UpdateCollectionUseCase
+import com.example.dz.domain.usecase.goal.GetReadingGoalUseCase
+import com.example.dz.domain.usecase.goal.RecordReadingSessionUseCase
 import com.example.dz.domain.usecase.library.GetContinueReadingUseCase
 import com.example.dz.domain.usecase.library.GetLibraryBooksUseCase
 import com.example.dz.domain.usecase.library.UpdateReadingProgressUseCase
@@ -145,6 +150,7 @@ val coreModule = module {
     // ── SQLDelight database (DatabaseDriverFactory + FileStorage come from platformModule) ──
     single { createDatabase(get()) }
     single { LibraryLocalDataSource(get()) }
+    single { GoalLocalDataSource(get()) }
     single { CollectionLocalDataSource(get()) }
 
     // ── App backend API (our own dz-server) ─────────────────────────────────
@@ -170,6 +176,7 @@ val coreModule = module {
     single<OpenLibraryApi> { KtorOpenLibraryApi(get()) }
     single<BookRepository> { RemoteBookRepository(get(), get(), get()) }
     single<LibraryRepository> { LocalLibraryRepository(get()) }
+    single<GoalRepository> { LocalGoalRepository(get()) }
     single<CollectionRepository> { LocalCollectionRepository(get()) }
 
     // ── Offline downloads (Phase 3) ──────────────────────────────────────────
@@ -203,6 +210,8 @@ val coreModule = module {
 
     factory { GetLibraryBooksUseCase(get()) }
     factory { GetContinueReadingUseCase(get()) }
+    factory { GetReadingGoalUseCase(get(), get()) }
+    factory { RecordReadingSessionUseCase(get()) }
     factory { UpdateReadingProgressUseCase(get()) }
 
     factory { GetCollectionsUseCase(get()) }
@@ -239,7 +248,7 @@ val coreModule = module {
         VerificationViewModel(email, purpose, accountJustCreated, get(), get(), get(), get(), get(), get())
     }
     factory { (email: String, code: String) -> NewPasswordViewModel(email, code, get()) }
-    factory { HomeViewModel(get(), get()) }
+    factory { HomeViewModel(get(), get(), get(), get(), get(), get(), get(), get()) }
     factory { LibraryViewModel(get(), get(), get()) }
     factory { SearchViewModel(get(), get()) }
     factory { StoreViewModel(get(), get()) }
@@ -270,7 +279,7 @@ val coreModule = module {
     factory { PaymentFailedViewModel() }
 
     factory { ProfileViewModel(get()) }
-    factory { (bookId: String) -> ReadingViewModel(bookId, get(), get(), get(), get(), get()) }
+    factory { (bookId: String) -> ReadingViewModel(bookId, get(), get(), get(), get(), get(), get()) }
     factory { SettingsViewModel(get(), get()) }
 
     factory { FriendListViewModel(get()) }

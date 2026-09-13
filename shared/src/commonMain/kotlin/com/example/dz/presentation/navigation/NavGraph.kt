@@ -1,39 +1,24 @@
 package com.example.dz.presentation.navigation
 
 
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import com.example.dz.designsystem.theme.inkColors
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
-import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -147,6 +132,9 @@ import com.example.dz.presentation.store.StoreScreen
 import com.example.dz.presentation.store.StoreViewModel
 import com.example.dz.presentation.auth.new_password.NewPasswordEffect
 import com.example.dz.presentation.auth.new_password.NewPasswordScreen
+import com.example.dz.designsystem.components.organic.OrganicTabBar
+import com.example.dz.designsystem.components.organic.organicBackdropSource
+import com.example.dz.designsystem.components.organic.rememberOrganicBackdrop
 import com.example.dz.presentation.auth.new_password.NewPasswordViewModel
 import com.example.dz.presentation.auth.verification.VerificationEffect
 import com.example.dz.presentation.auth.verification.VerificationEvent
@@ -155,69 +143,12 @@ import com.example.dz.presentation.auth.verification.VerificationScreen
 import com.example.dz.presentation.auth.verification.VerificationViewModel
 import org.koin.mp.KoinPlatform
 import org.koin.core.parameter.parametersOf
-import org.jetbrains.compose.resources.painterResource
-
-@Composable
-fun CustomBottomBar(
-    currentRoute: String,
-    onItemClick: (String) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val colors = inkColors()
-
-    Column(modifier = modifier.fillMaxWidth().background(colors.paper)) {
-        HorizontalDivider(thickness = 1.dp, color = colors.line)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(64.dp)
-                .padding(bottom = 6.dp),
-            horizontalArrangement = Arrangement.SpaceAround,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            bottomNavItems.forEach { item ->
-                val isSelected = currentRoute == item.route
-
-                val tint by animateColorAsState(
-                    targetValue = if (isSelected) colors.accent else colors.muted,
-                    label = "iconColor"
-                )
-
-                Column(
-                    modifier = Modifier.clickable { onItemClick(item.route) },
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(5.dp)
-                ) {
-                    Icon(
-                        imageVector = item.icon,
-                        contentDescription = item.route,
-                        tint = tint,
-                        modifier = Modifier.size(21.dp)
-                    )
-                    Box(
-                        modifier = Modifier
-                            .size(4.dp)
-                            .clip(CircleShape)
-                            .background(if (isSelected) colors.accent else Color.Transparent)
-                    )
-                }
-            }
-        }
-    }
-}
 
 @Composable
 fun DZNavGraph() {
     val navController = rememberNavController()
     val currentRoute by navController.currentBackStackEntryAsState()
     val route = currentRoute?.destination?.route
-    var isSearchFocused by remember { mutableStateOf(false) }
-
-    LaunchedEffect(route) {
-        if (route != Routes.SEARCH) {
-            isSearchFocused = false
-        }
-    }
 
     val bottomBarHiddenRoutes = setOf(
         Routes.SPLASH,
@@ -227,6 +158,10 @@ fun DZNavGraph() {
         Routes.FORGOT_PASSWORD,
         Routes.VERIFICATION,
         Routes.NEW_PASSWORD,
+        // Search stopped being a tab when Friends took slot four. The design draws a bar
+        // here, but it drew one because Search *was* a tab — leaving it would show five
+        // destinations with none of them current.
+        Routes.SEARCH,
         Routes.PRE_PURCHASE,
         Routes.BOOK_REVIEW,
         Routes.AUTHOR_DETAIL,
@@ -234,13 +169,11 @@ fun DZNavGraph() {
         Routes.COLLECTION_DETAIL,
         Routes.COLLECTIONS_EDIT,
         Routes.GOAL,
-        Routes.FRIEND_LIST,
         Routes.FRIEND_DETAIL,
         Routes.CHAT,
         Routes.NOTIFICATIONS,
         Routes.INVITE_FRIENDS,
         Routes.NO_FRIENDS,
-        Routes.PROFILE_TAB,
         Routes.SETTINGS,
         Routes.MEMBERSHIP,
         Routes.PREMIUM_MEMBERSHIP,
@@ -254,23 +187,46 @@ fun DZNavGraph() {
         Routes.PAYMENT_FAILED
     )
 
-    val showBottomBar = route != null && route !in bottomBarHiddenRoutes && !isSearchFocused
+    val showBottomBar = route != null && route !in bottomBarHiddenRoutes
 
+    /**
+     * Switches tabs without growing the back stack.
+     *
+     * This used to pop up to the graph's start destination, which is Splash — and Splash is popped
+     * inclusively the moment a session lands, so by the time anyone touches a tab that `popUpTo`
+     * matched nothing and every switch pushed another entry. Four taps around the bar meant four
+     * presses of back to leave.
+     *
+     * Home is the anchor instead: it is the first tab and what every route into the app lands on,
+     * so back from any other tab returns to Home, and back from Home leaves. Each tab keeps its own
+     * scroll position and stack through save/restore.
+     */
     fun navigateBottomTab(selectedRoute: String) {
         navController.navigate(selectedRoute) {
-            popUpTo(navController.graph.findStartDestination().id) {
-                saveState = true
-            }
+            popUpTo(Routes.HOME) { saveState = true }
             launchSingleTop = true
             restoreState = true
         }
     }
 
+    val tabBarBackdrop = rememberOrganicBackdrop()
+
     Box(modifier = Modifier.fillMaxSize()) {
         NavHost(
             navController = navController,
             startDestination = Routes.SPLASH,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                // Recording the screen into a layer costs something every frame, so only the
+                // screens that actually carry the glass bar pay for it. Auth and pushed screens
+                // draw straight through.
+                .then(
+                    if (showBottomBar) {
+                        Modifier.organicBackdropSource(tabBarBackdrop)
+                    } else {
+                        Modifier
+                    }
+                )
         ) {
             composable(Routes.SPLASH) {
                 val splashViewModel = koinViewModel<SplashViewModel>()
@@ -509,26 +465,32 @@ fun DZNavGraph() {
                     homeViewModel.effects.collect { effect ->
                         when (effect) {
                             is HomeEffect.NavigateToBook -> navController.navigate(Routes.prePurchase(effect.bookId))
-                            is HomeEffect.NavigateToAuthor -> navController.navigate(Routes.authorDetail(effect.authorId))
                             is HomeEffect.NavigateToReading -> navController.navigate(Routes.reading(effect.bookId))
-                            HomeEffect.NavigateToNotifications -> navController.navigate(Routes.NOTIFICATIONS)
-                            HomeEffect.NavigateToProfile -> navController.navigate(Routes.PROFILE_TAB)
+                            HomeEffect.NavigateToFriends -> navigateBottomTab(Routes.FRIEND_LIST)
+                            HomeEffect.NavigateToGoal -> navController.navigate(Routes.GOAL)
+                            is HomeEffect.NavigateToCategory ->
+                                navController.navigate(Routes.categoryDetail(effect.categoryId))
+                            // The handoff calls both routes to Profile intentional; they are the same
+                            // destination, so the avatar switches tabs rather than pushing a second copy.
+                            HomeEffect.NavigateToProfile -> navigateBottomTab(Routes.PROFILE_TAB)
                         }
                     }
+                }
+
+                LifecycleResumeEffect(homeViewModel) {
+                    homeViewModel.onEvent(HomeEvent.Resumed)
+                    onPauseOrDispose { }
                 }
 
                 HomeScreen(
                     uiState = uiState,
                     onKeepReadingClick = { homeViewModel.onEvent(HomeEvent.KeepReadingClicked) },
-                    onViewAllCategoriesClick = { navigateBottomTab(Routes.SEARCH) },
-                    onBookClick = { book ->
-                        homeViewModel.onEvent(HomeEvent.BookClicked(book.id))
-                    },
-                    onAuthorClick = { author ->
-                        homeViewModel.onEvent(HomeEvent.AuthorClicked(routeKey(author.name)))
-                    },
-                    onGoalsKeepReadingClick = { homeViewModel.onEvent(HomeEvent.GoalsKeepReadingClicked) },
-                    onNotificationsClick = { homeViewModel.onEvent(HomeEvent.NotificationsClicked) },
+                    onSearchClick = { navController.navigate(Routes.SEARCH) },
+                    onSeeAllClick = { navigateBottomTab(Routes.STORE) },
+                    onBookClick = { bookId -> homeViewModel.onEvent(HomeEvent.BookClicked(bookId)) },
+                    onPresenceClick = { homeViewModel.onEvent(HomeEvent.PresenceClicked) },
+                    onGoalClick = { homeViewModel.onEvent(HomeEvent.GoalClicked) },
+                    onCategoryClick = { id -> homeViewModel.onEvent(HomeEvent.CategoryClicked(id)) },
                     onProfileClick = { homeViewModel.onEvent(HomeEvent.ProfileClicked) }
                 )
             }
@@ -594,6 +556,7 @@ fun DZNavGraph() {
                             is SearchEffect.NavigateToBook -> navController.navigate(Routes.prePurchase(effect.bookId))
                             is SearchEffect.NavigateToAuthor -> navController.navigate(Routes.authorDetail(effect.authorId))
                             is SearchEffect.NavigateToCategory -> navController.navigate(Routes.categoryDetail(effect.categoryId))
+                            SearchEffect.NavigateBack -> navController.popBackStack()
                         }
                     }
                 }
@@ -601,7 +564,6 @@ fun DZNavGraph() {
                 SearchScreen(
                     uiState = uiState,
                     onEvent = searchViewModel::onEvent,
-                    onSearchFocusChange = { isSearchFocused = it },
                     onCategoryClick = {},
                     onBookClick = {},
                     onAuthorClick = {}
@@ -617,7 +579,7 @@ fun DZNavGraph() {
                         when (effect) {
                             ProfileEffect.NavigateBack -> navController.popBackStack()
                             ProfileEffect.NavigateToNotifications -> navController.navigate(Routes.NOTIFICATIONS)
-                            ProfileEffect.NavigateToFriends -> navController.navigate(Routes.FRIEND_LIST)
+                            ProfileEffect.NavigateToFriends -> navigateBottomTab(Routes.FRIEND_LIST)
                             ProfileEffect.NavigateToGoals -> navController.navigate(Routes.GOAL)
                             ProfileEffect.NavigateToCollections -> navController.navigate(Routes.COLLECTIONS)
                             ProfileEffect.NavigateToPurchases -> navController.navigate(Routes.purchaseReceipt("history"))
@@ -974,7 +936,7 @@ fun DZNavGraph() {
                     notificationsViewModel.effects.collect { effect ->
                         when (effect) {
                             NotificationsEffect.NavigateBack -> navController.popBackStack()
-                            is NotificationsEffect.NavigateToChat -> navController.navigate(Routes.FRIEND_LIST)
+                            is NotificationsEffect.NavigateToChat -> navigateBottomTab(Routes.FRIEND_LIST)
                         }
                     }
                 }
@@ -1110,7 +1072,7 @@ fun DZNavGraph() {
                     inviteFriendsViewModel.effects.collect { effect ->
                         when (effect) {
                             InviteFriendsEffect.NavigateBack -> navController.popBackStack()
-                            InviteFriendsEffect.NavigateToDiscover -> navigateBottomTab(Routes.SEARCH)
+                            InviteFriendsEffect.NavigateToDiscover -> navController.navigate(Routes.SEARCH)
                         }
                     }
                 }
@@ -1140,9 +1102,11 @@ fun DZNavGraph() {
         }
 
         if (showBottomBar) {
-            CustomBottomBar(
+            OrganicTabBar(
+                tabs = bottomNavItems,
                 currentRoute = route,
-                onItemClick = { selectedRoute ->
+                backdrop = tabBarBackdrop,
+                onTabClick = { selectedRoute ->
                     navigateBottomTab(selectedRoute)
                 },
                 modifier = Modifier

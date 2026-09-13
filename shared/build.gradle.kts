@@ -20,9 +20,15 @@ kotlin {
         }
     }
     
-    androidLibrary {
+    android {
        namespace = "com.example.dz.shared"
-       compileSdk = libs.versions.android.compileSdk.get().toInt()
+       compileSdk {
+           // Haze 2.x requires 37.2. Minor platform releases are addressed separately from the
+           // API level, so the plain `compileSdk = 37` form cannot express it.
+           version = release(libs.versions.android.compileSdk.get().toInt()) {
+               minorApiLevel = libs.versions.android.compileSdkMinor.get().toInt()
+           }
+       }
        minSdk = libs.versions.android.minSdk.get().toInt()
     
        compilerOptions {
@@ -68,6 +74,8 @@ kotlin {
             implementation(libs.sqldelight.runtime)
             implementation(libs.coil.compose)
             implementation(libs.coil.network.ktor3)
+            implementation(libs.haze)
+            implementation(libs.haze.glass)
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)

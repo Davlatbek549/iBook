@@ -19,7 +19,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.SheetValue
+import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -63,7 +64,11 @@ fun OrganicLegalSheet(
     agreeLabel: String,
     keepReadingLabel: String,
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    // `skipPartiallyExpanded = true` became a set of the states the sheet may take: leaving
+    // PartiallyExpanded out is what stops consent being agreed to from a half-read sheet. Passed
+    // positionally because the parameter carries no name in this alpha's signature.
+    val allowedSheetValues = setOf(SheetValue.Hidden, SheetValue.Expanded)
+    val sheetState = rememberBottomSheetState(SheetValue.Hidden, allowedSheetValues)
     val scrollState = rememberScrollState()
     val heading = organicHeadingFontFamily()
     val body = organicBodyFontFamily()

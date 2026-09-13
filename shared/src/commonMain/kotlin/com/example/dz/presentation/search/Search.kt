@@ -25,7 +25,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -36,6 +35,7 @@ import com.example.dz.designsystem.components.ink.InkField
 import com.example.dz.designsystem.components.ink.InkBookRow
 import com.example.dz.designsystem.components.ink.InkLabel
 import com.example.dz.designsystem.components.ink.InkSectionTitle
+import com.example.dz.designsystem.components.ink.InkTopBar
 import com.example.dz.designsystem.components.ink.inkCard
 import com.example.dz.designsystem.theme.InkColors
 import com.example.dz.designsystem.theme.inkBodyFontFamily
@@ -73,13 +73,11 @@ private val searchCoverFallbacks = listOf(
 fun SearchScreen(
     uiState: SearchUiState = SearchUiState(),
     onEvent: (SearchEvent) -> Unit = {},
-    onSearchFocusChange: (Boolean) -> Unit = {},
     onCategoryClick: (String) -> Unit = {},
     onBookClick: (bookId: String) -> Unit = {},
     onAuthorClick: (authorId: String) -> Unit = {}
 ) {
     val colors = inkColors()
-    val displayFont = inkDisplayFontFamily()
     val bodyFont = inkBodyFontFamily()
 
     val recentSearches = remember {
@@ -95,18 +93,17 @@ fun SearchScreen(
             .background(colors.paper)
             .statusBarsPadding()
     ) {
-        // Pinned above the list rather than scrolling with it. A lazy list disposes what scrolls
-        // out of view, and a focused field disposed that way loses focus without reliably saying
-        // so — the nav graph hides the bottom bar while this field is focused, and would be left
-        // hiding it.
-        Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 6.dp)) {
-            Text(
-                text = stringResource(Res.string.search_title),
-                fontFamily = displayFont,
-                fontWeight = FontWeight.Medium,
-                fontSize = 24.sp,
-                color = colors.ink
-            )
+        // Search is a pushed screen with no tab of its own, so it carries its own way back rather
+        // than relying on the system gesture alone.
+        InkTopBar(
+            title = stringResource(Res.string.search_title),
+            onBackClick = { onEvent(SearchEvent.BackClicked) },
+            colors = colors
+        )
+
+        // Pinned above the list rather than scrolling with it: a lazy list disposes what scrolls
+        // out of view, and a focused field disposed that way loses focus without reliably saying so.
+        Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp)) {
             InkField(
                 value = uiState.query,
                 onValueChange = {
@@ -114,9 +111,7 @@ fun SearchScreen(
                     onEvent(SearchEvent.SearchClicked)
                 },
                 placeholder = stringResource(Res.string.search_placeholder),
-                modifier = Modifier
-                    .padding(top = 16.dp)
-                    .onFocusChanged { onSearchFocusChange(it.isFocused) },
+                modifier = Modifier.padding(top = 16.dp),
                 leadingIcon = InkIcons.Search,
                 colors = colors
             )
