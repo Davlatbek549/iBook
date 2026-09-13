@@ -1,0 +1,4 @@
+-- v3 -> v4: a shelf's colour and whether it is shared. The edit screen has offered both since
+-- it was written; neither had anywhere to go, so both were forgotten on save.
+ALTER TABLE collection ADD COLUMN color_index INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE collection ADD COLUMN is_shared INTEGER NOT NULL DEFAULT 0;

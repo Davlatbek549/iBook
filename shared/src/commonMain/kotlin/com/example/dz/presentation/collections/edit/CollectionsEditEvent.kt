@@ -7,5 +7,6 @@ sealed interface CollectionsEditEvent {
     data class NameChanged(val value: String) : CollectionsEditEvent
     data class DescriptionChanged(val value: String) : CollectionsEditEvent
     data class VisibilityChanged(val value: Boolean) : CollectionsEditEvent
+    data class ColorSelected(val index: Int) : CollectionsEditEvent
     data class BookRemoved(val bookId: String) : CollectionsEditEvent
 }

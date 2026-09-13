@@ -10,7 +10,9 @@ data class CollectionsEditUiState(
     val collectionId: String = "",
     val name: String = "",
     val description: String = "",
-    val visibleToFriends: Boolean = true,
+    val colorIndex: Int = 0,
+    /** A new shelf is private until the reader says otherwise. */
+    val visibleToFriends: Boolean = false,
     val books: List<CollectionsEditBookUi> = emptyList(),
     val isNewCollection: Boolean = false,
     val isLoading: Boolean = false,
@@ -30,6 +32,8 @@ fun Collection.toCollectionsEditUiState(): CollectionsEditUiState =
         collectionId = id,
         name = title,
         description = description.orEmpty(),
+        colorIndex = colorIndex,
+        visibleToFriends = isShared,
         books = books.map { it.toCollectionsEditBookUi() }
     )
 

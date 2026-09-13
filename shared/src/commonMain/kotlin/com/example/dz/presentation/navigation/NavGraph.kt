@@ -45,7 +45,7 @@ import com.example.dz.presentation.collections.details.CollectionDetailsViewMode
 import com.example.dz.presentation.collections.list.CollectionsScreen
 import com.example.dz.presentation.collections.list.CollectionsEffect
 import com.example.dz.presentation.collections.list.CollectionsViewModel
-import com.example.dz.presentation.collections.edit.CollectionsEdit
+import com.example.dz.presentation.collections.edit.CollectionsEditScreen
 import com.example.dz.presentation.collections.edit.CollectionsEditEffect
 import com.example.dz.presentation.collections.edit.CollectionsEditViewModel
 import com.example.dz.presentation.social.friends.FriendListEffect
@@ -907,7 +907,7 @@ fun DZNavGraph() {
                     }
                 }
 
-                CollectionsEdit(
+                CollectionsEditScreen(
                     uiState = uiState,
                     onEvent = collectionsEditViewModel::onEvent
                 )

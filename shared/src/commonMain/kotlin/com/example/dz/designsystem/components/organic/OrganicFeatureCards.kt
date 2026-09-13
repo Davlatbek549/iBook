@@ -1,6 +1,7 @@
 package com.example.dz.designsystem.components.organic
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -465,6 +466,64 @@ fun OrganicStackedCovers(
                 height = 92.dp,
                 cornerRadius = 12.dp,
                 elevated = true,
+            )
+        }
+    }
+}
+
+/**
+ * The five swatches a shelf can wear, in the order the edit screen offers them.
+ *
+ * Each carries more than the swatch itself: the detail screen washes its whole header in the
+ * shelf's [ground] and writes on it in [ink], so picking a colour tints a screen rather than just
+ * a dot.
+ */
+val OrganicShelfPalette: List<OrganicShelfColor> = listOf(
+    OrganicShelfColor(OrganicColors.accent2_400, OrganicColors.accent2_200, OrganicColors.accent2_900),
+    OrganicShelfColor(OrganicColors.accent400, OrganicColors.accent200, OrganicColors.accent900),
+    OrganicShelfColor(OrganicColors.neutral400, OrganicColors.neutral200, OrganicColors.neutral900),
+    OrganicShelfColor(OrganicColors.accent2_700, OrganicColors.accent2_200, OrganicColors.accent2_900),
+    OrganicShelfColor(OrganicColors.accent700, OrganicColors.accent200, OrganicColors.accent900),
+)
+
+/** One shelf colour: the swatch, the wash it makes, and what reads on that wash. */
+data class OrganicShelfColor(
+    val swatch: Color,
+    val ground: Color,
+    val ink: Color,
+)
+
+/** Falls back to the first swatch rather than throwing if a stored index outlives the palette. */
+fun shelfColorAt(index: Int): OrganicShelfColor =
+    OrganicShelfPalette.getOrElse(index) { OrganicShelfPalette.first() }
+
+/**
+ * The swatch row on the edit screen: five discs, the chosen one ringed in neutral-900.
+ */
+@Composable
+fun OrganicShelfColorPicker(
+    selectedIndex: Int,
+    onSelect: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        OrganicShelfPalette.forEachIndexed { index, color ->
+            Box(
+                modifier = Modifier
+                    .size(42.dp)
+                    .clip(CircleShape)
+                    .background(color.swatch)
+                    .then(
+                        if (index == selectedIndex) {
+                            Modifier.border(3.dp, OrganicColors.neutral900, CircleShape)
+                        } else {
+                            Modifier
+                        }
+                    )
+                    .clickable(role = Role.RadioButton, onClick = { onSelect(index) })
             )
         }
     }

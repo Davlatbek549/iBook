@@ -11,6 +11,7 @@ data class CollectionDetailsUiState(
     val title: String = "",
     val description: String = "",
     val bookCount: Int = 0,
+    val colorIndex: Int = 0,
     val books: List<CollectionDetailsBookUiState> = emptyList(),
     val isLoading: Boolean = false,
     val errorMessage: String? = null
@@ -32,6 +33,7 @@ fun Collection.toCollectionDetailsUiState(): CollectionDetailsUiState =
         title = title,
         description = description.orEmpty(),
         bookCount = books.size,
+        colorIndex = colorIndex,
         books = books.map { it.toCollectionDetailsBookUi() }
     )
 

@@ -166,6 +166,18 @@ object OrganicIcons {
 
     // ── Row and header affordances ────────────────────────────────────────────
 
+    /** Cross, for removing one thing from a list without leaving the screen. */
+    val Close: ImageVector by lazy {
+        organicIcon("OrganicClose") {
+            stroke {
+                moveTo(6.5f, 6.5f)
+                lineToRelative(11f, 11f)
+                moveTo(17.5f, 6.5f)
+                lineToRelative(-11f, 11f)
+            }
+        }
+    }
+
     /** Plus, for the action that makes a new thing — a shelf, a friend. */
     val Plus: ImageVector by lazy {
         organicIcon("OrganicPlus") {

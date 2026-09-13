@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -42,6 +43,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dz.designsystem.components.icons.InkIcons
@@ -168,6 +170,13 @@ fun OrganicField(
     showLabel: String? = null,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
+    /**
+     * A prose field grows instead of scrolling sideways — the collection description is written in
+     * sentences, not typed on one line like an address.
+     */
+    singleLine: Boolean = true,
+    /** How tall the box is before any text is in it. The description box is drawn deeper. */
+    minHeight: Dp = OrganicSize.fieldHeight,
 ) {
     var focused by remember { mutableStateOf(false) }
     var revealed by remember { mutableStateOf(false) }
@@ -188,7 +197,13 @@ fun OrganicField(
             onValueChange = onValueChange,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(OrganicSize.fieldHeight)
+                .then(
+                    if (singleLine) {
+                        Modifier.height(minHeight)
+                    } else {
+                        Modifier.defaultMinSize(minHeight = minHeight)
+                    }
+                )
                 .clip(shape)
                 .background(OrganicColors.neutral100)
                 .border(1.dp, borderColor, shape)
@@ -200,7 +215,7 @@ fun OrganicField(
                 letterSpacing = if (isPassword && !revealed) 3.sp else 0.sp,
                 color = OrganicColors.text
             ),
-            singleLine = true,
+            singleLine = singleLine,
             cursorBrush = SolidColor(OrganicColors.accent),
             visualTransformation =
                 if (isPassword && !revealed) PasswordVisualTransformation('•')
@@ -209,8 +224,8 @@ fun OrganicField(
             keyboardActions = keyboardActions,
             decorationBox = { innerTextField ->
                 Row(
-                    modifier = Modifier.padding(horizontal = 22.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    modifier = Modifier.padding(horizontal = 22.dp, vertical = if (singleLine) 0.dp else 14.dp),
+                    verticalAlignment = if (singleLine) Alignment.CenterVertically else Alignment.Top
                 ) {
                     Box(modifier = Modifier.weight(1f)) {
                         if (value.isEmpty()) {
@@ -219,7 +234,7 @@ fun OrganicField(
                                 fontFamily = body,
                                 fontSize = 15.sp,
                                 color = OrganicColors.neutral500,
-                                maxLines = 1
+                                maxLines = if (singleLine) 1 else 3
                             )
                         }
                         innerTextField()
