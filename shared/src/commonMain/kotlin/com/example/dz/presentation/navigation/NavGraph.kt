@@ -4,7 +4,6 @@ package com.example.dz.presentation.navigation
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -150,13 +149,6 @@ fun DZNavGraph() {
     val navController = rememberNavController()
     val currentRoute by navController.currentBackStackEntryAsState()
     val route = currentRoute?.destination?.route
-    var isSearchFocused by remember { mutableStateOf(false) }
-
-    LaunchedEffect(route) {
-        if (route != Routes.SEARCH) {
-            isSearchFocused = false
-        }
-    }
 
     val bottomBarHiddenRoutes = setOf(
         Routes.SPLASH,
@@ -166,6 +158,10 @@ fun DZNavGraph() {
         Routes.FORGOT_PASSWORD,
         Routes.VERIFICATION,
         Routes.NEW_PASSWORD,
+        // Search stopped being a tab when Friends took slot four. The design draws a bar
+        // here, but it drew one because Search *was* a tab — leaving it would show five
+        // destinations with none of them current.
+        Routes.SEARCH,
         Routes.PRE_PURCHASE,
         Routes.BOOK_REVIEW,
         Routes.AUTHOR_DETAIL,
@@ -191,7 +187,7 @@ fun DZNavGraph() {
         Routes.PAYMENT_FAILED
     )
 
-    val showBottomBar = route != null && route !in bottomBarHiddenRoutes && !isSearchFocused
+    val showBottomBar = route != null && route !in bottomBarHiddenRoutes
 
     /**
      * Switches tabs without growing the back stack.
@@ -489,7 +485,7 @@ fun DZNavGraph() {
                 HomeScreen(
                     uiState = uiState,
                     onKeepReadingClick = { homeViewModel.onEvent(HomeEvent.KeepReadingClicked) },
-                    onSearchClick = { navigateBottomTab(Routes.SEARCH) },
+                    onSearchClick = { navController.navigate(Routes.SEARCH) },
                     onSeeAllClick = { navigateBottomTab(Routes.STORE) },
                     onBookClick = { bookId -> homeViewModel.onEvent(HomeEvent.BookClicked(bookId)) },
                     onPresenceClick = { homeViewModel.onEvent(HomeEvent.PresenceClicked) },
@@ -567,7 +563,6 @@ fun DZNavGraph() {
                 SearchScreen(
                     uiState = uiState,
                     onEvent = searchViewModel::onEvent,
-                    onSearchFocusChange = { isSearchFocused = it },
                     onCategoryClick = {},
                     onBookClick = {},
                     onAuthorClick = {}
@@ -1076,7 +1071,7 @@ fun DZNavGraph() {
                     inviteFriendsViewModel.effects.collect { effect ->
                         when (effect) {
                             InviteFriendsEffect.NavigateBack -> navController.popBackStack()
-                            InviteFriendsEffect.NavigateToDiscover -> navigateBottomTab(Routes.SEARCH)
+                            InviteFriendsEffect.NavigateToDiscover -> navController.navigate(Routes.SEARCH)
                         }
                     }
                 }

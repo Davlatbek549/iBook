@@ -25,7 +25,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -73,7 +72,6 @@ private val searchCoverFallbacks = listOf(
 fun SearchScreen(
     uiState: SearchUiState = SearchUiState(),
     onEvent: (SearchEvent) -> Unit = {},
-    onSearchFocusChange: (Boolean) -> Unit = {},
     onCategoryClick: (String) -> Unit = {},
     onBookClick: (bookId: String) -> Unit = {},
     onAuthorClick: (authorId: String) -> Unit = {}
@@ -114,9 +112,7 @@ fun SearchScreen(
                     onEvent(SearchEvent.SearchClicked)
                 },
                 placeholder = stringResource(Res.string.search_placeholder),
-                modifier = Modifier
-                    .padding(top = 16.dp)
-                    .onFocusChanged { onSearchFocusChange(it.isFocused) },
+                modifier = Modifier.padding(top = 16.dp),
                 leadingIcon = InkIcons.Search,
                 colors = colors
             )
