@@ -150,53 +150,40 @@ import org.koin.mp.KoinPlatform
 import org.koin.core.parameter.parametersOf
 import org.jetbrains.compose.resources.painterResource
 
+/**
+ * Floating pill tab bar — Home · Library · Store · Search · Profile — per the
+ * "Organic" design handoff's global layout spec. Shown on every bottom-bar
+ * route, including screens not yet migrated to Organic (Store, Search,
+ * Profile), since the tab bar itself is shared shell, not per-screen UI.
+ */
 @Composable
 fun CustomBottomBar(
-    currentRoute: String,
+    currentRoute: String?,
     onItemClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val colors = inkColors()
-
-    Column(modifier = modifier.fillMaxWidth().background(colors.paper)) {
-        HorizontalDivider(thickness = 1.dp, color = colors.line)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(64.dp)
-                .padding(bottom = 6.dp),
-            horizontalArrangement = Arrangement.SpaceAround,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            bottomNavItems.forEach { item ->
-                val isSelected = currentRoute == item.route
-
-                val tint by animateColorAsState(
-                    targetValue = if (isSelected) colors.accent else colors.muted,
-                    label = "iconColor"
-                )
-
-                Column(
-                    modifier = Modifier.clickable { onItemClick(item.route) },
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(5.dp)
-                ) {
-                    Icon(
-                        imageVector = item.icon,
-                        contentDescription = item.route,
-                        tint = tint,
-                        modifier = Modifier.size(21.dp)
-                    )
-                    Box(
-                        modifier = Modifier
-                            .size(4.dp)
-                            .clip(CircleShape)
-                            .background(if (isSelected) colors.accent else Color.Transparent)
-                    )
-                }
-            }
-        }
+    val selectedTab = when (currentRoute) {
+        Routes.HOME -> com.example.dz.designsystem.components.organic.OrganicTab.Home
+        Routes.LIBRARY, Routes.COLLECTIONS -> com.example.dz.designsystem.components.organic.OrganicTab.Library
+        Routes.STORE -> com.example.dz.designsystem.components.organic.OrganicTab.Store
+        Routes.SEARCH -> com.example.dz.designsystem.components.organic.OrganicTab.Search
+        Routes.PROFILE_TAB -> com.example.dz.designsystem.components.organic.OrganicTab.Profile
+        else -> com.example.dz.designsystem.components.organic.OrganicTab.Home
     }
+    com.example.dz.designsystem.components.organic.OrganicBottomBar(
+        selected = selectedTab,
+        onTabClick = { tab ->
+            val nextRoute = when (tab) {
+                com.example.dz.designsystem.components.organic.OrganicTab.Home -> Routes.HOME
+                com.example.dz.designsystem.components.organic.OrganicTab.Library -> Routes.LIBRARY
+                com.example.dz.designsystem.components.organic.OrganicTab.Store -> Routes.STORE
+                com.example.dz.designsystem.components.organic.OrganicTab.Search -> Routes.SEARCH
+                com.example.dz.designsystem.components.organic.OrganicTab.Profile -> Routes.PROFILE_TAB
+            }
+            onItemClick(nextRoute)
+        },
+        modifier = modifier,
+    )
 }
 
 @Composable
@@ -413,16 +400,13 @@ fun DZNavGraph() {
                 HomeScreen(
                     uiState = uiState,
                     onKeepReadingClick = { homeViewModel.onEvent(HomeEvent.KeepReadingClicked) },
-                    onViewAllCategoriesClick = { navigateBottomTab(Routes.SEARCH) },
-                    onBookClick = { book ->
-                        homeViewModel.onEvent(HomeEvent.BookClicked(book.id))
+                    onBookClick = { bookId ->
+                        homeViewModel.onEvent(HomeEvent.BookClicked(bookId))
                     },
-                    onAuthorClick = { author ->
-                        homeViewModel.onEvent(HomeEvent.AuthorClicked(routeKey(author.name)))
-                    },
-                    onGoalsKeepReadingClick = { homeViewModel.onEvent(HomeEvent.GoalsKeepReadingClicked) },
-                    onNotificationsClick = { homeViewModel.onEvent(HomeEvent.NotificationsClicked) },
-                    onProfileClick = { homeViewModel.onEvent(HomeEvent.ProfileClicked) }
+                    onProfileClick = { homeViewModel.onEvent(HomeEvent.ProfileClicked) },
+                    onSearchClick = { navigateBottomTab(Routes.SEARCH) },
+                    onReadingNowClick = { navController.navigate(Routes.FRIEND_LIST) },
+                    onSeeAllClick = { navigateBottomTab(Routes.STORE) },
                 )
             }
 
@@ -443,11 +427,10 @@ fun DZNavGraph() {
                 Library(
                     uiState = uiState,
                     onSettingsClick = { navController.navigate(Routes.COLLECTIONS) },
-                    onSortClick = { libraryViewModel.onEvent(LibraryEvent.SortClicked) },
                     onBookClick = { book ->
                         libraryViewModel.onEvent(LibraryEvent.BookClicked(book.id))
                     },
-                    onGoalClick = { libraryViewModel.onEvent(LibraryEvent.GoalClicked) }
+                    onSearchClick = { navigateBottomTab(Routes.SEARCH) },
                 )
             }
 
@@ -563,7 +546,6 @@ fun DZNavGraph() {
                     readingViewModel.effects.collect { effect ->
                         when (effect) {
                             ReadingEffect.NavigateBack -> navController.popBackStack()
-                            ReadingEffect.NavigateToSettings -> navController.navigate(Routes.SETTINGS)
                             is ReadingEffect.NavigateToComments -> navController.navigate(Routes.bookReview(effect.bookId))
                         }
                     }
@@ -1041,6 +1023,7 @@ fun DZNavGraph() {
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .navigationBarsPadding()
+                    .padding(horizontal = 24.dp, vertical = 22.dp)
                     .zIndex(2f)
             )
         }

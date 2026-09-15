@@ -1,6 +1,5 @@
 package com.example.dz.presentation.home
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -8,519 +7,339 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.dz.designsystem.components.icons.InkIcons
-import com.example.dz.designsystem.components.ink.InkChip
-import com.example.dz.designsystem.components.ink.InkIconButton
-import com.example.dz.designsystem.components.ink.InkLabel
-import com.example.dz.designsystem.components.ink.InkProgressBar
-import com.example.dz.designsystem.components.ink.InkSectionTitle
-import com.example.dz.designsystem.components.ink.inkCard
-import com.example.dz.designsystem.components.remote.RemoteBookCover
-import com.example.dz.designsystem.theme.InkColors
-import com.example.dz.designsystem.theme.InkShape
-import com.example.dz.designsystem.theme.inkBodyFontFamily
-import com.example.dz.designsystem.theme.inkColors
-import com.example.dz.designsystem.theme.inkDisplayFontFamily
+import com.example.dz.designsystem.components.icons.OrganicIcons
+import com.example.dz.designsystem.components.organic.OrganicAvatarInitial
+import com.example.dz.designsystem.components.organic.OrganicAvatarStack
+import com.example.dz.designsystem.components.organic.OrganicBookCover
+import com.example.dz.designsystem.components.organic.OrganicCoverGradients
+import com.example.dz.designsystem.components.organic.OrganicIconButton
+import com.example.dz.designsystem.components.organic.OrganicProgressRing
+import com.example.dz.designsystem.components.organic.OrganicSectionHeader
+import com.example.dz.designsystem.theme.OrganicColors
+import com.example.dz.designsystem.theme.organicBodyFontFamily
+import com.example.dz.designsystem.theme.organicDisplayFontFamily
 import com.example.dz.domain.model.Book
 import com.example.dz.domain.model.LibraryBook as DomainLibraryBook
-import dz.shared.generated.resources.Res
-import dz.shared.generated.resources.book_cover
-import dz.shared.generated.resources.book_cover_2
-import dz.shared.generated.resources.book_cover_3
-import dz.shared.generated.resources.book_cover_4
-import dz.shared.generated.resources.home_browse
-import dz.shared.generated.resources.home_continue_reading
-import dz.shared.generated.resources.home_for_you
-import dz.shared.generated.resources.home_from_your_circle
-import dz.shared.generated.resources.home_greeting
-import dz.shared.generated.resources.home_see_all
-import dz.shared.generated.resources.home_trending
-import dz.shared.generated.resources.olive_again_book
-import dz.shared.generated.resources.profile_1
-import dz.shared.generated.resources.profile_2
-import dz.shared.generated.resources.profile_3
-import org.jetbrains.compose.resources.DrawableResource
-import org.jetbrains.compose.resources.painterResource
-import org.jetbrains.compose.resources.stringResource
 
-data class HomeBook(
+/** A single "Picked for you" / "New this week" entry — real book, or a design placeholder. */
+private data class HomeBook(
+    val id: String,
     val title: String,
     val author: String,
-    val coverRes: DrawableResource,
-    val rating: String = "4.5",
-    val tags: List<String> = emptyList(),
-    val id: String = title,
-    val coverUrl: String? = null
+    val coverIndex: Int,
+    val coverUrl: String? = null,
+    val price: String? = null,
 )
 
-data class HomeAuthor(
-    val name: String,
-    val avatarRes: DrawableResource,
-    val tags: List<String> = emptyList()
+private val pickedForYouFallback = listOf(
+    HomeBook("archer", "The Archer", "Paulo Coelho", 3),
+    HomeBook("red-at-the-bone", "Red at the Bone", "J. Woodson", 1),
+    HomeBook("bestiary", "Bestiary", "K-Ming Chang", 2),
+    HomeBook("piranesi", "Piranesi", "Susanna Clarke", 9),
+    HomeBook("snow-country", "Snow Country", "Y. Kawabata", 4),
+    HomeBook("the-bear", "The Bear", "Andrew Krivak", 0),
+    HomeBook("mother-thing", "Mother Thing", "A. Hogarth", 8),
 )
 
-data class HomeCategory(
-    val name: String,
-    val iconRes: DrawableResource,
-    val backgroundColor: Color
-)
-
-private val continueReadingBook = HomeBook(
-    title = "Mexican Gothic",
-    author = "Silvia Moreno-Garcia",
-    coverRes = Res.drawable.book_cover,
-    rating = "4.6",
-    tags = listOf("Literary", "Gothic")
-)
-
-private val forYouBooks = listOf(
-    HomeBook("The Archer", "Paulo Coelho", Res.drawable.book_cover_2, "4.4", listOf("Fable")),
-    HomeBook("Red at the Bone", "Jacqueline Woodson", Res.drawable.book_cover_3, "4.5", listOf("Literary")),
-    HomeBook("Bestiary", "K-Ming Chang", Res.drawable.book_cover_4, "4.2", listOf("Myth"))
-)
-
-private val trendingBooks = listOf(
-    HomeBook("Red at the Bone", "Jacqueline Woodson", Res.drawable.book_cover_3, "4.5", listOf("Literary")),
-    HomeBook("Bestiary", "K-Ming Chang", Res.drawable.book_cover_4, "4.2", listOf("Myth"))
-)
-
-private val browseGenres = listOf("Literary", "Fiction", "History", "Romance", "Essays", "Poetry")
-
-private val homeCoverFallbacks = listOf(
-    Res.drawable.book_cover,
-    Res.drawable.book_cover_2,
-    Res.drawable.book_cover_3,
-    Res.drawable.book_cover_4,
-    Res.drawable.olive_again_book
+private val newThisWeek = listOf(
+    HomeBook("the-hacienda", "The Hacienda", "Isabel Cañas", 7, price = "$10.99"),
+    HomeBook("mother-thing-new", "Mother Thing", "Ainslie Hogarth", 5, price = "$9.40"),
 )
 
 @Composable
 fun HomeScreen(
     uiState: HomeUiState = HomeUiState(),
     onKeepReadingClick: () -> Unit = {},
-    onViewAllCategoriesClick: () -> Unit = {},
-    onBookClick: (HomeBook) -> Unit = {},
-    onAuthorClick: (HomeAuthor) -> Unit = {},
-    onGoalsKeepReadingClick: () -> Unit = {},
-    onNotificationsClick: () -> Unit = {},
-    onProfileClick: () -> Unit = {}
+    onBookClick: (String) -> Unit = {},
+    onProfileClick: () -> Unit = {},
+    onSearchClick: () -> Unit = {},
+    onReadingNowClick: () -> Unit = {},
+    onSeeAllClick: () -> Unit = {},
 ) {
-    val colors = inkColors()
-    val displayFont = inkDisplayFontFamily()
-    val bodyFont = inkBodyFontFamily()
-    val domainBooks = uiState.books.mapIndexed { index, book -> book.toHomeBook(index) }
-    val displayForYouBooks = domainBooks.ifEmpty { forYouBooks }
-    val displayTrendingBooks = domainBooks.drop(1).take(2).ifEmpty { trendingBooks }
-    val displayContinueReadingBook = uiState.continueReading?.toHomeBook() ?: continueReadingBook
+    val pickedForYou = uiState.books.mapIndexed { index, book -> book.toHomeBook(index) }
+        .ifEmpty { pickedForYouFallback }
+    val continueBook = uiState.continueReading?.toHomeBook()
+    val continueTitle = continueBook?.title ?: "Mexican Gothic"
     val continueProgress = uiState.continueReading?.progressPercent ?: 62
+    val continueCoverIndex = continueBook?.coverIndex ?: 0
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(colors.paper)
+            .background(OrganicColors.bg)
             .statusBarsPadding()
             .verticalScroll(rememberScrollState())
-            .padding(bottom = 96.dp)
+            .padding(top = 16.dp, bottom = 108.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // header
+        // Greeting
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 22.dp, end = 22.dp, top = 6.dp, bottom = 18.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // profile avatar — opens the (pushed) Profile screen
-            Image(
-                painter = painterResource(Res.drawable.profile_1),
-                contentDescription = "Profile",
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(RoundedCornerShape(InkShape.radiusSm + 2.dp))
-                    .clickable(onClick = onProfileClick)
+            OrganicAvatarInitial(
+                initial = "A",
+                modifier = Modifier.clickableOnce(onProfileClick),
+                size = 46.dp,
             )
-            Column(modifier = Modifier.weight(1f).padding(start = 12.dp)) {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = stringResource(Res.string.home_greeting),
-                    fontFamily = bodyFont,
+                    text = "Good evening,",
+                    fontFamily = organicBodyFontFamily(),
                     fontSize = 12.sp,
-                    color = colors.muted
+                    color = OrganicColors.neutral700
                 )
                 Text(
                     text = "Amelia",
-                    modifier = Modifier.padding(top = 6.dp),
-                    fontFamily = displayFont,
-                    fontWeight = FontWeight.Medium,
+                    fontFamily = organicDisplayFontFamily(),
                     fontSize = 24.sp,
-                    color = colors.ink
+                    lineHeight = 26.sp,
+                    color = OrganicColors.text
                 )
             }
-            InkIconButton(
-                icon = InkIcons.Search,
-                onClick = onViewAllCategoriesClick,
-                colors = colors
+            OrganicIconButton(
+                icon = OrganicIcons.Search,
+                onClick = onSearchClick,
+                size = 42.dp,
+                iconSize = 19.dp,
             )
         }
 
-        Column(modifier = Modifier.padding(horizontal = 22.dp)) {
-            InkLabel(text = stringResource(Res.string.home_continue_reading), colors = colors)
+        // Keep going card
+        Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 12.dp)
-                    .inkCard(colors)
-                    .clickable(onClick = onKeepReadingClick)
-                    .padding(14.dp),
-                horizontalArrangement = Arrangement.spacedBy(14.dp)
+                    .background(OrganicColors.accent200, androidx.compose.foundation.shape.RoundedCornerShape(28.dp))
+                    .clickableOnce(onKeepReadingClick)
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                RemoteBookCover(
-                    coverUrl = displayContinueReadingBook.coverUrl,
-                    fallback = displayContinueReadingBook.coverRes,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .size(width = 52.dp, height = 76.dp)
-                        .shadow(6.dp, RoundedCornerShape(InkShape.cover), clip = true)
+                OrganicBookCover(
+                    modifier = Modifier.size(width = 66.dp, height = 96.dp),
+                    gradient = OrganicCoverGradients.forIndex(continueCoverIndex),
+                    radius = 12.dp,
                 )
-                Column(modifier = Modifier.weight(1f)) {
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
-                        text = displayContinueReadingBook.title,
-                        fontFamily = displayFont,
-                        fontWeight = FontWeight.Medium,
-                        fontSize = 16.sp,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        color = colors.ink
-                    )
-                    Text(
-                        text = displayContinueReadingBook.author,
-                        modifier = Modifier.padding(top = 3.dp),
-                        fontFamily = bodyFont,
-                        fontSize = 12.sp,
-                        color = colors.muted
-                    )
-                    Spacer(modifier = Modifier.weight(1f))
-                    InkProgressBar(
-                        progress = continueProgress / 100f,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = colors
-                    )
-                    Text(
-                        text = buildAnnotatedString {
-                            withStyle(SpanStyle(color = colors.accent, fontWeight = FontWeight.SemiBold)) {
-                                append("$continueProgress%")
-                            }
-                            append(" · 18 min left")
-                        },
-                        modifier = Modifier.padding(top = 7.dp),
-                        fontFamily = bodyFont,
+                        text = "Keep going",
+                        fontFamily = organicBodyFontFamily(),
                         fontSize = 11.sp,
-                        color = colors.muted
+                        letterSpacing = 0.7.sp,
+                        color = OrganicColors.accent800
+                    )
+                    Text(
+                        text = continueTitle,
+                        fontFamily = organicDisplayFontFamily(),
+                        fontSize = 20.sp,
+                        lineHeight = 23.sp,
+                        color = OrganicColors.accent900,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text = "18 min left in Chapter Four",
+                        fontFamily = organicBodyFontFamily(),
+                        fontSize = 12.sp,
+                        color = OrganicColors.accent800
+                    )
+                }
+                OrganicProgressRing(percent = continueProgress, size = 58.dp, innerSize = 44.dp) {
+                    Text(
+                        text = "$continueProgress%",
+                        fontFamily = organicDisplayFontFamily(),
+                        fontSize = 13.sp,
+                        color = OrganicColors.accent900
                     )
                 }
             }
         }
 
-        // for you rail
-        Column(modifier = Modifier.padding(top = 26.dp)) {
-            InkSectionTitle(
-                text = stringResource(Res.string.home_for_you),
-                modifier = Modifier.padding(horizontal = 22.dp),
-                action = stringResource(Res.string.home_see_all),
-                onActionClick = onViewAllCategoriesClick,
-                colors = colors
+        // Picked for you
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            OrganicSectionHeader(
+                title = "Picked for you",
+                actionLabel = "See all",
+                onActionClick = onSeeAllClick,
+                modifier = Modifier.padding(horizontal = 24.dp),
             )
             Row(
                 modifier = Modifier
-                    .padding(top = 14.dp)
                     .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 22.dp),
+                    .padding(horizontal = 24.dp),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                displayForYouBooks.forEach { book ->
-                    RailBookCard(book = book, onClick = { onBookClick(book) }, colors = colors)
-                }
-            }
-        }
-
-        // browse chips
-        Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 26.dp)) {
-            InkLabel(text = stringResource(Res.string.home_browse), colors = colors)
-            Row(
-                modifier = Modifier
-                    .padding(top = 12.dp)
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                browseGenres.forEachIndexed { i, genre ->
-                    Box(modifier = Modifier.clickable(onClick = onViewAllCategoriesClick)) {
-                        InkChip(text = genre, solid = i == 0, colors = colors)
+                pickedForYou.forEach { book ->
+                    Column(
+                        modifier = Modifier.width(112.dp).clickableOnce { onBookClick(book.id) },
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OrganicBookCover(
+                            modifier = Modifier.fillMaxWidth().height(118.dp),
+                            gradient = OrganicCoverGradients.forIndex(book.coverIndex),
+                            radius = 18.dp,
+                            elevation = 4.dp,
+                        )
+                        Text(
+                            text = book.title,
+                            fontFamily = organicBodyFontFamily(),
+                            fontSize = 13.sp,
+                            lineHeight = 16.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            color = OrganicColors.text
+                        )
+                        Text(
+                            text = book.author,
+                            fontFamily = organicBodyFontFamily(),
+                            fontSize = 11.sp,
+                            color = OrganicColors.neutral700,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
                     }
                 }
             }
         }
 
-        // trending now
-        Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 26.dp)) {
-            Text(
-                text = stringResource(Res.string.home_trending),
-                fontFamily = displayFont,
-                fontWeight = FontWeight.Medium,
-                fontSize = 18.sp,
-                color = colors.ink
-            )
-            Spacer(modifier = Modifier.height(7.dp))
-            displayTrendingBooks.forEachIndexed { i, book ->
-                TrendingRow(
-                    book = book,
-                    showDivider = i > 0,
-                    onClick = { onBookClick(book) },
-                    colors = colors
-                )
-            }
-        }
-
-        Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 24.dp)) {
-            InkLabel(text = stringResource(Res.string.home_from_your_circle), colors = colors)
-            Column(
-                modifier = Modifier.padding(top = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                CircleRow(
-                    avatar = Res.drawable.profile_2,
-                    name = "Patricia",
-                    activity = "is reading Olive, Again",
-                    online = true,
-                    colors = colors
-                )
-                CircleRow(
-                    avatar = Res.drawable.profile_3,
-                    name = "Daniel",
-                    activity = "finished Bestiary",
-                    online = false,
-                    colors = colors
-                )
-            }
-        }
-    }
-}
-
-private fun Book.toHomeBook(index: Int): HomeBook =
-    HomeBook(
-        title = title,
-        author = authors.firstOrNull()?.name.orEmpty().ifBlank { "Unknown author" },
-        coverRes = homeCoverFallbacks[index % homeCoverFallbacks.size],
-        rating = rating?.toRatingText() ?: "4.5",
-        tags = categories.take(2).map { it.name },
-        id = id,
-        coverUrl = coverUrl
-    )
-
-private fun DomainLibraryBook.toHomeBook(): HomeBook =
-    book.toHomeBook(index = 0)
-
-private fun Double.toRatingText(): String =
-    ((this * 10).toInt() / 10.0).toString()
-
-@Composable
-private fun RailBookCard(
-    book: HomeBook,
-    onClick: () -> Unit,
-    colors: InkColors,
-) {
-    Column(modifier = Modifier.width(104.dp).clickable(onClick = onClick)) {
-        RemoteBookCover(
-            coverUrl = book.coverUrl,
-            fallback = book.coverRes,
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .size(width = 104.dp, height = 152.dp)
-                .shadow(8.dp, RoundedCornerShape(InkShape.cover), clip = true)
-        )
-        Text(
-            text = book.title,
-            modifier = Modifier.padding(top = 9.dp),
-            fontFamily = inkDisplayFontFamily(),
-            fontWeight = FontWeight.Medium,
-            fontSize = 13.sp,
-            lineHeight = 16.sp,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            color = colors.ink
-        )
-        Text(
-            text = book.author,
-            modifier = Modifier.padding(top = 3.dp),
-            fontFamily = inkBodyFontFamily(),
-            fontSize = 11.sp,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            color = colors.muted
-        )
-    }
-}
-
-@Composable
-private fun TrendingRow(
-    book: HomeBook,
-    showDivider: Boolean,
-    onClick: () -> Unit,
-    colors: InkColors,
-) {
-    Column {
-        if (showDivider) {
-            androidx.compose.material3.HorizontalDivider(thickness = 1.dp, color = colors.line)
-        }
+        // Reading now presence card
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable(onClick = onClick)
-                .padding(vertical = 13.dp),
+                .padding(horizontal = 24.dp)
+                .background(OrganicColors.accent2_200, androidx.compose.foundation.shape.RoundedCornerShape(28.dp))
+                .clickableOnce(onReadingNowClick)
+                .padding(horizontal = 18.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp)
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            RemoteBookCover(
-                coverUrl = book.coverUrl,
-                fallback = book.coverRes,
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .size(width = 46.dp, height = 66.dp)
-                    .clip(RoundedCornerShape(InkShape.cover))
+            OrganicAvatarStack(
+                colors = listOf(OrganicColors.accent2_400, OrganicColors.accent300, OrganicColors.accent2_600),
+                size = 32.dp,
+                overlap = 10.dp,
             )
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = book.title,
-                    fontFamily = inkDisplayFontFamily(),
-                    fontWeight = FontWeight.Medium,
-                    fontSize = 15.sp,
-                    color = colors.ink
-                )
-                Text(
-                    text = book.author,
-                    modifier = Modifier.padding(top = 3.dp),
-                    fontFamily = inkBodyFontFamily(),
-                    fontSize = 12.sp,
-                    color = colors.muted
-                )
-                Row(
-                    modifier = Modifier.padding(top = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(5.dp)
-                ) {
-                    Icon(
-                        imageVector = InkIcons.Star,
-                        contentDescription = null,
-                        tint = colors.accent,
-                        modifier = Modifier.size(12.dp)
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                    Box(
+                        modifier = Modifier
+                            .size(7.dp)
+                            .background(OrganicColors.accent2_700, androidx.compose.foundation.shape.CircleShape)
                     )
                     Text(
-                        text = book.rating,
-                        fontFamily = inkBodyFontFamily(),
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 11.sp,
-                        color = colors.inkSoft
-                    )
-                    Text(
-                        text = "· ${book.tags.firstOrNull().orEmpty()}",
-                        fontFamily = inkBodyFontFamily(),
-                        fontSize = 11.sp,
-                        color = colors.muted
+                        text = "1,284 reading right now",
+                        fontFamily = organicBodyFontFamily(),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp,
+                        color = OrganicColors.accent2_900
                     )
                 }
+                Text(
+                    text = "Patricia is one of them",
+                    fontFamily = organicBodyFontFamily(),
+                    fontSize = 12.sp,
+                    color = OrganicColors.accent2_800
+                )
             }
             Icon(
-                imageVector = InkIcons.Bookmark,
+                imageVector = OrganicIcons.ChevronRight,
                 contentDescription = null,
-                tint = colors.muted,
-                modifier = Modifier.size(17.dp)
+                tint = OrganicColors.accent2_800,
+                modifier = Modifier.size(15.dp)
             )
         }
-    }
-}
 
-@Composable
-private fun CircleRow(
-    avatar: DrawableResource,
-    name: String,
-    activity: String,
-    online: Boolean,
-    colors: InkColors,
-) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Box {
-            Image(
-                painter = painterResource(avatar),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .size(38.dp)
-                    .clip(RoundedCornerShape(InkShape.radiusSm))
+        // New this week
+        Column(verticalArrangement = Arrangement.spacedBy(11.dp)) {
+            OrganicSectionHeader(
+                title = "New this week",
+                actionLabel = "See all",
+                onActionClick = onSeeAllClick,
+                modifier = Modifier.padding(horizontal = 24.dp),
             )
-            if (online) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .offset(x = 2.dp, y = 2.dp)
-                        .size(11.dp)
-                        .clip(CircleShape)
-                        .background(colors.paper)
-                        .padding(2.dp)
-                        .clip(CircleShape)
-                        .background(colors.accent)
-                )
+            Column(
+                modifier = Modifier.padding(horizontal = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                newThisWeek.forEach { book ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth().clickableOnce { onBookClick(book.id) },
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        OrganicBookCover(
+                            modifier = Modifier.size(width = 44.dp, height = 60.dp),
+                            gradient = OrganicCoverGradients.forIndex(book.coverIndex),
+                            radius = 10.dp,
+                        )
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                            Text(
+                                text = book.title,
+                                fontFamily = organicDisplayFontFamily(),
+                                fontSize = 17.sp,
+                                lineHeight = 19.sp,
+                                color = OrganicColors.text
+                            )
+                            Text(
+                                text = book.author,
+                                fontFamily = organicBodyFontFamily(),
+                                fontSize = 12.sp,
+                                color = OrganicColors.neutral700
+                            )
+                            Text(
+                                text = book.price.orEmpty(),
+                                fontFamily = organicBodyFontFamily(),
+                                fontSize = 12.sp,
+                                color = OrganicColors.accent700
+                            )
+                        }
+                        Icon(
+                            imageVector = OrganicIcons.ChevronRight,
+                            contentDescription = null,
+                            tint = OrganicColors.neutral600,
+                            modifier = Modifier.size(15.dp)
+                        )
+                    }
+                }
             }
         }
-        Text(
-            text = buildAnnotatedString {
-                withStyle(SpanStyle(color = colors.ink, fontWeight = FontWeight.SemiBold)) {
-                    append(name)
-                }
-                append(" ")
-                append(activity)
-            },
-            fontFamily = inkBodyFontFamily(),
-            fontSize = 13.sp,
-            color = colors.inkSoft
-        )
     }
 }
 
-@Preview(showBackground = true, widthDp = 375, heightDp = 820)
+private fun Modifier.clickableOnce(onClick: () -> Unit): Modifier =
+    this.clickable(onClick = onClick)
+
+private fun Book.toHomeBook(index: Int): HomeBook = HomeBook(
+    id = id,
+    title = title,
+    author = authors.firstOrNull()?.name.orEmpty().ifBlank { "Unknown author" },
+    coverIndex = index,
+    coverUrl = coverUrl,
+)
+
+private fun DomainLibraryBook.toHomeBook(): HomeBook = book.toHomeBook(index = 0).copy(coverIndex = 0)
+
+@Preview(showBackground = true, widthDp = 390, heightDp = 844)
 @Composable
 fun HomeScreenPreview() {
     HomeScreen()
