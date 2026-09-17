@@ -2,6 +2,8 @@ package com.example.dz
 
 import com.example.dz.data.mapper.BookMapper
 import com.example.dz.data.remote.dto.gutendex.GutendexBookDto
+import com.example.dz.data.remote.dto.openlibrary.OpenLibraryRatingsDto
+import com.example.dz.data.remote.dto.openlibrary.OpenLibraryRatingsSummaryDto
 import com.example.dz.domain.usecase.book.cleanBookText
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -52,6 +54,38 @@ class BookContentMappingTest {
         )
 
         assertNull(BookMapper.fromGutendexBook(dto).textUrl)
+    }
+
+    @Test
+    fun ratingsWithNobodyBehindThemAreNothing() {
+        // OpenLibrary answers for an unrated work with zeroes rather than a 404, and a histogram
+        // of zeroes drawn on screen would read as "rated badly" rather than "not rated".
+        val dto = OpenLibraryRatingsDto(
+            summary = OpenLibraryRatingsSummaryDto(average = 0.0, count = 0),
+            counts = mapOf("1" to 0, "2" to 0, "3" to 0, "4" to 0, "5" to 0),
+        )
+
+        assertNull(BookMapper.fromOpenLibraryRatings(dto))
+    }
+
+    @Test
+    fun ratingsKeepEveryScoreTheyWereGiven() {
+        val dto = OpenLibraryRatingsDto(
+            summary = OpenLibraryRatingsSummaryDto(average = 4.339622641509434, count = 106),
+            counts = mapOf("1" to 3, "2" to 3, "3" to 8, "4" to 33, "5" to 59, "rubbish" to 9),
+        )
+
+        val ratings = BookMapper.fromOpenLibraryRatings(dto)
+
+        assertEquals(106, ratings?.count)
+        assertEquals(59, ratings?.byStar?.get(5))
+        assertEquals(3, ratings?.byStar?.get(1))
+        assertEquals(5, ratings?.byStar?.size, "a key that is not a score is not a score")
+        // Bars are drawn against the most-given score, so the tallest is always full and the
+        // rest are read against it rather than against the total.
+        assertEquals(1f, ratings?.share(5))
+        assertEquals(33f / 59f, ratings?.share(4))
+        assertEquals(0f, ratings?.share(0), "a score nobody could give fills nothing")
     }
 
     @Test

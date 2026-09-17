@@ -8,6 +8,7 @@ import com.example.dz.domain.repository.DownloadRepository
 import com.example.dz.domain.usecase.book.GetBookDetailsUseCase
 import com.example.dz.domain.usecase.book.DownloadBookUseCase
 import com.example.dz.domain.usecase.book.GetBooksByCategoryUseCase
+import com.example.dz.domain.usecase.library.AddToLibraryUseCase
 import com.example.dz.domain.usecase.library.GetLibraryBooksUseCase
 import com.example.dz.presentation.mvi.toPresentationMessage
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -23,13 +24,17 @@ class PrePurchaseViewModel(
     private val getBooksByCategory: GetBooksByCategoryUseCase,
     private val downloadRepository: DownloadRepository,
     private val getLibraryBooks: GetLibraryBooksUseCase,
-    private val downloadBook: DownloadBookUseCase
+    private val downloadBook: DownloadBookUseCase,
+    private val addToLibrary: AddToLibraryUseCase
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(PrePurchaseUiState(bookId = bookId, isLoading = true))
     val uiState = _uiState.asStateFlow()
 
     private val _effects = MutableSharedFlow<PrePurchaseEffect>()
     val effects = _effects.asSharedFlow()
+
+    /** The book as the API gave it, kept because shelving one needs more than its id. */
+    private var book: Book? = null
 
     init {
         load(bookId)
@@ -83,14 +88,30 @@ class PrePurchaseViewModel(
                 if (state.ownership == BookOwnership.NOT_OWNED && !state.isFree) {
                     emitEffect(PrePurchaseEffect.NavigateToPurchase(state.bookId))
                 } else {
-                    emitEffect(PrePurchaseEffect.NavigateToReading(state.bookId))
+                    openReader()
                 }
             }
+            PrePurchaseEvent.ReviewsClicked -> emitEffect(PrePurchaseEffect.NavigateToReviews(bookId))
             PrePurchaseEvent.BookmarkClicked -> emitEffect(PrePurchaseEffect.NavigateToCollections)
             PrePurchaseEvent.DownloadClicked -> download()
             PrePurchaseEvent.AuthorClicked ->
                 _uiState.value.authorId?.let { authorId -> emitEffect(PrePurchaseEffect.NavigateToAuthor(authorId)) }
             is PrePurchaseEvent.RelatedBookClicked -> emitEffect(PrePurchaseEffect.NavigateToBook(event.bookId))
+        }
+    }
+
+    /**
+     * Opening a book is what puts it on the shelf.
+     *
+     * The shelving is waited on rather than fired off beside the navigation: the reader asks the
+     * library for its place in the book as it starts, and a row written a moment too late would
+     * send it back to page one.
+     */
+    private fun openReader() {
+        val bookId = _uiState.value.bookId
+        viewModelScope.launch {
+            book?.let { addToLibrary(it) }
+            emitEffect(PrePurchaseEffect.NavigateToReading(bookId))
         }
     }
 
@@ -107,6 +128,7 @@ class PrePurchaseViewModel(
     }
 
     private suspend fun loadRelated(book: Book) {
+        this.book = book
         val categoryId = book.categories.firstOrNull()?.id
         val relatedBooks = if (categoryId != null) {
             when (val result = getBooksByCategory(categoryId)) {

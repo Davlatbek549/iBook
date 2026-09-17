@@ -1,0 +1,25 @@
+-- The reader's own verdict on a book: a score out of five and, if they felt like it, a note.
+-- One per book, replaced rather than appended, because this is what *you* thought of it and you
+-- only think one thing at a time.
+--
+-- Reviews from anyone else would come from a server. There isn't one, and no catalogue the app
+-- reads carries review text, so nothing here pretends to hold other people's.
+CREATE TABLE book_review (
+    book_id TEXT NOT NULL PRIMARY KEY,
+    stars INTEGER NOT NULL,
+    note TEXT NOT NULL DEFAULT '',
+    written_at INTEGER NOT NULL
+);
+
+selectForBook:
+SELECT * FROM book_review WHERE book_id = ?;
+
+upsert:
+INSERT OR REPLACE INTO book_review(book_id, stars, note, written_at)
+VALUES (?, ?, ?, ?);
+
+deleteForBook:
+DELETE FROM book_review WHERE book_id = ?;
+
+deleteAll:
+DELETE FROM book_review;

@@ -50,6 +50,36 @@ class LocalRepositoriesTest {
     }
 
     @Test
+    fun library_addShelvesABookAndProgressThenSticks() = runBlocking {
+        val database = newDatabase()
+        val local = LibraryLocalDataSource(database)
+        val repository = LocalLibraryRepository(local)
+
+        // This is the whole point: before the book is shelved there is no row to update, so the
+        // progress a reader writes on every page turn goes nowhere.
+        repository.updateReadingProgress("b1", 30)
+        assertNull(local.getLibraryBook("b1"))
+
+        repository.add(book("b1", "First"))
+        repository.updateReadingProgress("b1", 30)
+        assertEquals(30, local.getLibraryBook("b1")?.progressPercent)
+    }
+
+    @Test
+    fun library_addLeavesAShelvedBookAlone() = runBlocking {
+        val database = newDatabase()
+        val local = LibraryLocalDataSource(database)
+        val repository = LocalLibraryRepository(local)
+
+        repository.add(book("b1", "First"))
+        repository.updateReadingProgress("b1", 64)
+
+        // Re-opening a book must not reset how far through it the reader is.
+        repository.add(book("b1", "First"))
+        assertEquals(64, local.getLibraryBook("b1")?.progressPercent)
+    }
+
+    @Test
     fun collection_createGeneratesUniqueIdsForDuplicateTitles() = runBlocking {
         val local = CollectionLocalDataSource(newDatabase())
         val repository = LocalCollectionRepository(local)

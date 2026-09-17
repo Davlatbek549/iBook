@@ -624,6 +624,7 @@ fun DZNavGraph() {
                             is PrePurchaseEffect.NavigateToAuthor -> navController.navigate(Routes.authorDetail(effect.authorId))
                             PrePurchaseEffect.NavigateToCollections -> navController.navigate(Routes.COLLECTIONS)
                             is PrePurchaseEffect.NavigateToBook -> navController.navigate(Routes.prePurchase(effect.bookId))
+                            is PrePurchaseEffect.NavigateToReviews -> navController.navigate(Routes.bookReview(effect.bookId))
                         }
                     }
                 }
@@ -663,7 +664,6 @@ fun DZNavGraph() {
                     bookReviewViewModel.effects.collect { effect ->
                         when (effect) {
                             BookReviewEffect.NavigateBack -> navController.popBackStack()
-                            is BookReviewEffect.NavigateToReading -> navController.navigate(Routes.reading(effect.bookId))
                         }
                     }
                 }

@@ -7,4 +7,5 @@ sealed interface PrePurchaseEffect {
     data class NavigateToAuthor(val authorId: String) : PrePurchaseEffect
     data class NavigateToBook(val bookId: String) : PrePurchaseEffect
     data object NavigateToCollections : PrePurchaseEffect
+    data class NavigateToReviews(val bookId: String) : PrePurchaseEffect
 }

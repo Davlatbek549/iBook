@@ -8,6 +8,7 @@ import com.example.dz.data.local.file.FileStorage
 import com.example.dz.data.repository.DownloadRepositoryImpl
 import com.example.dz.database.DzDatabase
 import com.example.dz.domain.model.Book
+import com.example.dz.domain.model.BookRatings
 import com.example.dz.domain.model.Category
 import com.example.dz.domain.repository.BookRepository
 import kotlinx.coroutines.runBlocking
@@ -96,6 +97,7 @@ private class FakeBookRepository(private val book: Book?, private val text: Stri
     override suspend fun getBooksByCategory(categoryId: String): AppResult<List<Book>> = AppResult.Success(emptyList())
     override suspend fun getBookDetails(bookId: String): AppResult<Book> =
         book?.let { AppResult.Success(it) } ?: AppResult.Error(AppError.NotFound)
+    override suspend fun getBookRatings(bookId: String): AppResult<BookRatings?> = AppResult.Success(null)
     override suspend fun getCategories(): AppResult<List<Category>> = AppResult.Success(emptyList())
     override suspend fun getBookText(textUrl: String): AppResult<String> = AppResult.Success(text)
 }

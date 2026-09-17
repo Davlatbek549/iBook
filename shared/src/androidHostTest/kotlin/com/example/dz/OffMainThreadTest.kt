@@ -7,6 +7,7 @@ import com.example.dz.data.local.LibraryLocalDataSource
 import com.example.dz.data.repository.LocalLibraryRepository
 import com.example.dz.database.DzDatabase
 import com.example.dz.domain.model.Book
+import com.example.dz.domain.model.BookRatings
 import com.example.dz.domain.model.Category
 import com.example.dz.domain.model.DownloadedContent
 import com.example.dz.domain.repository.BookRepository
@@ -82,6 +83,7 @@ private object UnusedBookRepository : BookRepository {
     override suspend fun getHomeBooks(): AppResult<List<Book>> = unused()
     override suspend fun getBooksByCategory(categoryId: String): AppResult<List<Book>> = unused()
     override suspend fun getBookDetails(bookId: String): AppResult<Book> = unused()
+    override suspend fun getBookRatings(bookId: String): AppResult<BookRatings?> = unused()
     override suspend fun getCategories(): AppResult<List<Category>> = unused()
     override suspend fun getBookText(textUrl: String): AppResult<String> = unused()
 }

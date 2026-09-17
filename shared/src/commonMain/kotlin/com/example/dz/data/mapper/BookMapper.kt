@@ -2,9 +2,11 @@ package com.example.dz.data.mapper
 
 import com.example.dz.data.remote.dto.gutendex.GutendexBookDto
 import com.example.dz.data.remote.dto.openlibrary.OpenLibraryBookDto
+import com.example.dz.data.remote.dto.openlibrary.OpenLibraryRatingsDto
 import com.example.dz.data.remote.dto.openlibrary.OpenLibraryWorkDto
 import com.example.dz.domain.model.Author
 import com.example.dz.domain.model.Book
+import com.example.dz.domain.model.BookRatings
 import com.example.dz.domain.model.Category
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -103,6 +105,24 @@ object BookMapper {
             .filter { (type, url) -> type.startsWith("text/plain") && !url.endsWith(".zip") }
             .minByOrNull { (type, _) -> if (type.contains("utf-8", ignoreCase = true)) 0 else 1 }
             ?.value
+
+    /**
+     * Ratings, or nothing.
+     *
+     * A work nobody has rated answers with zeroes rather than an error, and a histogram of zeroes
+     * is a lie told in bar form — so no ratings comes back as no object at all.
+     */
+    fun fromOpenLibraryRatings(dto: OpenLibraryRatingsDto): BookRatings? {
+        val count = dto.summary?.count ?: 0
+        if (count <= 0) return null
+        return BookRatings(
+            average = dto.summary?.average ?: 0.0,
+            count = count,
+            byStar = dto.counts.mapNotNull { (star, howMany) ->
+                star.toIntOrNull()?.takeIf { it in 1..5 }?.let { it to howMany }
+            }.toMap(),
+        )
+    }
 
     fun openLibraryWorkIdFromDomainId(bookId: String): String =
         bookId.removePrefix(OPEN_LIBRARY_PREFIX)

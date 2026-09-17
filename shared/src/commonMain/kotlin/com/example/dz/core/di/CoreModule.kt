@@ -5,6 +5,7 @@ import com.example.dz.data.local.GoalLocalDataSource
 import com.example.dz.data.local.LibraryLocalDataSource
 import com.example.dz.data.local.LocalDataSource
 import com.example.dz.data.local.LocalDataSourceImpl
+import com.example.dz.data.local.ReviewLocalDataSource
 import com.example.dz.data.local.db.createDatabase
 import com.example.dz.data.remote.api.ApiConfig
 import com.example.dz.data.remote.api.AuthApi
@@ -22,6 +23,7 @@ import com.example.dz.data.repository.LocalCollectionRepository
 import com.example.dz.data.repository.LocalGoalRepository
 import com.example.dz.data.repository.LocalReaderPreferencesRepository
 import com.example.dz.data.repository.LocalReadingPositionRepository
+import com.example.dz.data.repository.LocalReviewRepository
 import com.example.dz.data.repository.LocalLibraryRepository
 import com.example.dz.data.repository.MembershipRepositoryImpl
 import com.example.dz.data.repository.NotificationRepositoryImpl
@@ -39,6 +41,7 @@ import com.example.dz.domain.repository.DownloadRepository
 import com.example.dz.domain.repository.GoalRepository
 import com.example.dz.domain.repository.ReaderPreferencesRepository
 import com.example.dz.domain.repository.ReadingPositionRepository
+import com.example.dz.domain.repository.ReviewRepository
 import com.example.dz.domain.repository.LibraryRepository
 import com.example.dz.domain.repository.MembershipRepository
 import com.example.dz.domain.repository.NotificationRepository
@@ -59,6 +62,7 @@ import com.example.dz.domain.usecase.auth.VerifyEmailUseCase
 import com.example.dz.domain.usecase.book.BookPaginator
 import com.example.dz.domain.usecase.book.GetBookContentUseCase
 import com.example.dz.domain.usecase.book.GetBookDetailsUseCase
+import com.example.dz.domain.usecase.book.GetBookRatingsUseCase
 import com.example.dz.domain.usecase.book.GetBooksByCategoryUseCase
 import com.example.dz.domain.usecase.book.GetCategoriesUseCase
 import com.example.dz.domain.usecase.book.GetHomeBooksUseCase
@@ -75,6 +79,7 @@ import com.example.dz.domain.usecase.collection.GetCollectionsUseCase
 import com.example.dz.domain.usecase.collection.UpdateCollectionUseCase
 import com.example.dz.domain.usecase.goal.GetReadingGoalUseCase
 import com.example.dz.domain.usecase.goal.RecordReadingSessionUseCase
+import com.example.dz.domain.usecase.library.AddToLibraryUseCase
 import com.example.dz.domain.usecase.library.GetContinueReadingUseCase
 import com.example.dz.domain.usecase.library.GetLibraryBooksUseCase
 import com.example.dz.domain.usecase.library.UpdateReadingProgressUseCase
@@ -85,6 +90,9 @@ import com.example.dz.domain.usecase.notification.MarkNotificationAsReadUseCase
 import com.example.dz.domain.usecase.payment.GetPaymentMethodsUseCase
 import com.example.dz.domain.usecase.payment.GetPurchaseDetailsUseCase
 import com.example.dz.domain.usecase.payment.PurchaseBookUseCase
+import com.example.dz.domain.usecase.review.DeleteMyReviewUseCase
+import com.example.dz.domain.usecase.review.GetMyReviewUseCase
+import com.example.dz.domain.usecase.review.SaveMyReviewUseCase
 import com.example.dz.domain.usecase.social.GetFriendDetailsUseCase
 import com.example.dz.domain.usecase.social.GetFriendsUseCase
 import com.example.dz.domain.usecase.social.InviteFriendUseCase
@@ -156,6 +164,7 @@ val coreModule = module {
     single { LibraryLocalDataSource(get()) }
     single { GoalLocalDataSource(get()) }
     single { CollectionLocalDataSource(get()) }
+    single { ReviewLocalDataSource(get()) }
 
     // ── App backend API (our own dz-server) ─────────────────────────────────
     single { ApiConfig() }
@@ -183,11 +192,12 @@ val coreModule = module {
     single<GoalRepository> { LocalGoalRepository(get()) }
     single<ReaderPreferencesRepository> { LocalReaderPreferencesRepository(get()) }
     single<ReadingPositionRepository> { LocalReadingPositionRepository(get()) }
+    single<ReviewRepository> { LocalReviewRepository(get()) }
     single<CollectionRepository> { LocalCollectionRepository(get()) }
 
     // ── Offline downloads (Phase 3) ──────────────────────────────────────────
     single<DownloadRepository> { DownloadRepositoryImpl(get(), get(), get()) }
-    single<DeviceDataRepository> { LocalDeviceDataRepository(get(), get(), get(), get()) }
+    single<DeviceDataRepository> { LocalDeviceDataRepository(get(), get(), get(), get(), get(), get()) }
 
     // Domain use cases
     factory { LoginUseCase(get()) }
@@ -208,12 +218,17 @@ val coreModule = module {
     factory { GetHomeBooksUseCase(get()) }
     factory { GetBooksByCategoryUseCase(get()) }
     factory { GetBookDetailsUseCase(get()) }
+    factory { GetBookRatingsUseCase(get()) }
+    factory { GetMyReviewUseCase(get()) }
+    factory { SaveMyReviewUseCase(get()) }
+    factory { DeleteMyReviewUseCase(get()) }
     factory { GetCategoriesUseCase(get()) }
     factory { BookPaginator() }
     factory { GetBookContentUseCase(repository = get(), downloadRepository = get()) }
     factory { DownloadBookUseCase(get()) }
     factory { DeleteDownloadUseCase(get()) }
 
+    factory { AddToLibraryUseCase(get()) }
     factory { GetLibraryBooksUseCase(get()) }
     factory { GetContinueReadingUseCase(get()) }
     factory { GetReadingGoalUseCase(get(), get()) }
@@ -259,8 +274,8 @@ val coreModule = module {
     factory { SearchViewModel(get(), get()) }
     factory { StoreViewModel(get(), get()) }
     factory { (authorId: String) -> AuthorDetailViewModel(authorId) }
-    factory { (bookId: String) -> PrePurchaseViewModel(bookId, get(), get(), get(), get(), get()) }
-    factory { (bookId: String) -> BookReviewViewModel(bookId, get()) }
+    factory { (bookId: String) -> PrePurchaseViewModel(bookId, get(), get(), get(), get(), get(), get()) }
+    factory { (bookId: String) -> BookReviewViewModel(bookId, get(), get(), get(), get(), get()) }
     factory { (categoryId: String) -> CategoryDetailViewModel(categoryId, get(), get()) }
 
     factory { CollectionsViewModel(get()) }

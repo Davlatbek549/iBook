@@ -9,6 +9,7 @@ import com.example.dz.data.remote.api.KtorOpenLibraryApi
 import com.example.dz.data.remote.api.OpenLibraryApi
 import com.example.dz.data.remote.api.createRemoteHttpClient
 import com.example.dz.domain.model.Book
+import com.example.dz.domain.model.BookRatings
 import com.example.dz.domain.model.Category
 import com.example.dz.domain.repository.BookRepository
 import io.ktor.client.HttpClient
@@ -69,6 +70,17 @@ class RemoteBookRepository(
                         ?.let(BookMapper::fromOpenLibraryBook)
                 }.getOrNull()
                 BookMapper.mergeOpenLibrary(work, searchRow)
+            }
+        }
+
+    override suspend fun getBookRatings(bookId: String): AppResult<BookRatings?> =
+        runRemote {
+            // Gutenberg has no ratings to ask for, so it is not asked.
+            if (bookId.startsWith(GUTENDEX_PREFIX)) {
+                null
+            } else {
+                val workId = BookMapper.openLibraryWorkIdFromDomainId(bookId)
+                BookMapper.fromOpenLibraryRatings(openLibraryApi.getWorkRatings(workId))
             }
         }
 

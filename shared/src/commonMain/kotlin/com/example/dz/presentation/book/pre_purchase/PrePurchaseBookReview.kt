@@ -37,6 +37,8 @@ import com.example.dz.designsystem.components.organic.ORGANIC_GUTTER
 import com.example.dz.designsystem.components.organic.OrganicBookCover
 import com.example.dz.designsystem.components.organic.OrganicCircleIconButton
 import com.example.dz.designsystem.components.organic.OrganicCoverCard
+import com.example.dz.designsystem.components.organic.OrganicCard
+import com.example.dz.designsystem.components.organic.OrganicRowChevron
 import com.example.dz.designsystem.components.organic.OrganicScreen
 import com.example.dz.designsystem.components.organic.OrganicSectionHeader
 import com.example.dz.designsystem.components.organic.OrganicSkeleton
@@ -65,6 +67,9 @@ import dz.shared.generated.resources.book_read_again
 import dz.shared.generated.resources.book_read_free
 import dz.shared.generated.resources.book_start_reading
 import dz.shared.generated.resources.nav_back
+import dz.shared.generated.resources.book_ratings_reviews
+import dz.shared.generated.resources.book_rating_of
+import dz.shared.generated.resources.book_ratings_unknown
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -198,6 +203,14 @@ fun PrePurchaseScreen(
                 DetailsBlock(
                     uiState = uiState,
                     modifier = Modifier.padding(horizontal = ORGANIC_GUTTER),
+                )
+            }
+
+            item(key = "reviews") {
+                ReviewsRow(
+                    uiState = uiState,
+                    modifier = Modifier.padding(horizontal = ORGANIC_GUTTER),
+                    onClick = { onEvent(PrePurchaseEvent.ReviewsClicked) },
                 )
             }
 
@@ -350,6 +363,59 @@ private fun DetailsBlock(
                     overflow = TextOverflow.Ellipsis
                 )
             }
+        }
+    }
+}
+
+/**
+ * The way through to the ratings, and to leaving one.
+ *
+ * The score shown here is the one that came with the search row, which is often missing even for a
+ * well-rated book — Death's End has a hundred ratings and no `ratings_average` on its row. So when
+ * there is no number the line says where the row leads instead of saying nobody has rated it: the
+ * reviews screen asks the ratings endpoint itself and is the one that actually knows.
+ */
+@Composable
+private fun ReviewsRow(
+    uiState: PrePurchaseUiState,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    val subtitle = uiState.rating?.let { rating ->
+        uiState.ratingCount
+            ?.let { count -> stringResource(Res.string.book_rating_of, rating, count) }
+            ?: rating
+    } ?: stringResource(Res.string.book_ratings_unknown)
+
+    OrganicCard(
+        modifier = modifier.fillMaxWidth(),
+        elevated = true,
+        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 16.dp),
+        onClick = onClick,
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(3.dp)
+            ) {
+                Text(
+                    text = stringResource(Res.string.book_ratings_reviews),
+                    fontFamily = organicBodyFontFamily(),
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 15.sp,
+                    color = OrganicColors.text
+                )
+                Text(
+                    text = subtitle,
+                    fontFamily = organicBodyFontFamily(),
+                    fontSize = 13.sp,
+                    color = OrganicColors.neutral700
+                )
+            }
+            OrganicRowChevron()
         }
     }
 }

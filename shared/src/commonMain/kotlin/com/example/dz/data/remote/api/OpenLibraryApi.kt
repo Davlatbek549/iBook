@@ -1,5 +1,6 @@
 package com.example.dz.data.remote.api
 
+import com.example.dz.data.remote.dto.openlibrary.OpenLibraryRatingsDto
 import com.example.dz.data.remote.dto.openlibrary.OpenLibrarySearchResponseDto
 import com.example.dz.data.remote.dto.openlibrary.OpenLibraryWorkDto
 import io.ktor.client.HttpClient
@@ -20,6 +21,9 @@ interface OpenLibraryApi {
      * ask twice.
      */
     suspend fun searchByWorkKey(workId: String): OpenLibrarySearchResponseDto
+
+    /** Every score a work has been given, and how many gave each. */
+    suspend fun getWorkRatings(workId: String): OpenLibraryRatingsDto
 
     companion object {
         const val DEFAULT_LIMIT = 20
@@ -50,4 +54,7 @@ class KtorOpenLibraryApi(
             parameter("q", "key:/works/${workId.removePrefix("/works/")}")
             parameter("limit", 1)
         }.body()
+
+    override suspend fun getWorkRatings(workId: String): OpenLibraryRatingsDto =
+        client.get("$baseUrl/works/${workId.removePrefix("/works/")}/ratings.json").body()
 }

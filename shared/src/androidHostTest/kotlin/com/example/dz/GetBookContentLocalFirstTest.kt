@@ -3,6 +3,7 @@ package com.example.dz
 import com.example.dz.core.error.AppError
 import com.example.dz.core.result.AppResult
 import com.example.dz.domain.model.Book
+import com.example.dz.domain.model.BookRatings
 import com.example.dz.domain.model.Category
 import com.example.dz.domain.model.DownloadedContent
 import com.example.dz.domain.repository.BookRepository
@@ -68,6 +69,7 @@ private class RecordingBookRepository(
     override suspend fun getHomeBooks(): AppResult<List<Book>> = AppResult.Success(emptyList())
     override suspend fun getBooksByCategory(categoryId: String): AppResult<List<Book>> = AppResult.Success(emptyList())
     override suspend fun getBookDetails(bookId: String): AppResult<Book> = AppResult.Success(book)
+    override suspend fun getBookRatings(bookId: String): AppResult<BookRatings?> = AppResult.Success(null)
     override suspend fun getCategories(): AppResult<List<Category>> = AppResult.Success(emptyList())
     override suspend fun getBookText(textUrl: String): AppResult<String> {
         textFetched = true

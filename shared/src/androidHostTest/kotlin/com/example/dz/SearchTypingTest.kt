@@ -3,6 +3,7 @@ package com.example.dz
 import com.example.dz.core.error.AppError
 import com.example.dz.core.result.AppResult
 import com.example.dz.domain.model.Book
+import com.example.dz.domain.model.BookRatings
 import com.example.dz.domain.model.Category
 import com.example.dz.domain.repository.BookRepository
 import com.example.dz.domain.usecase.book.GetCategoriesUseCase
@@ -47,6 +48,8 @@ class SearchTypingTest {
             delay(latencyFor(query))
             return AppResult.Success(listOf(Book(id = "result-for-$query", title = query)))
         }
+
+        override suspend fun getBookRatings(bookId: String): AppResult<BookRatings?> = AppResult.Success(null)
 
         override suspend fun getCategories(): AppResult<List<Category>> = AppResult.Success(emptyList())
 

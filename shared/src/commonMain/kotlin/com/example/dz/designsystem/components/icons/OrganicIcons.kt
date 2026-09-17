@@ -30,6 +30,9 @@ object OrganicIcons {
     /** The trailing chevron, drawn a touch heavier because it renders at 15px. */
     private const val STROKE_CHEVRON = 2.6f
 
+    /** A star is drawn small and has five inside corners; 2.4 closes them up. */
+    private const val STROKE_STAR = 1.8f
+
     /** The tick on a filled badge, where the heavier weight reads against the fill. */
     private const val STROKE_CHECK = 3f
 
@@ -256,6 +259,20 @@ object OrganicIcons {
         }
     }
 
+    /** An unearned star — the empty half of a rating. */
+    val Star: ImageVector by lazy {
+        organicIcon("OrganicStar") {
+            stroke(STROKE_STAR) { star() }
+        }
+    }
+
+    /** A given star. */
+    val StarFilled: ImageVector by lazy {
+        organicIcon("OrganicStarFilled") {
+            path(fill = INK) { star() }
+        }
+    }
+
     /**
      * The reader's bookmark — a ribbon with a notch cut out of its foot.
      *
@@ -310,6 +327,21 @@ object OrganicIcons {
                 lineToRelative(7f, 7f)
             }
         }
+    }
+
+    /** The five-pointed star both rating glyphs are cut from. */
+    private fun PathBuilder.star() {
+        moveTo(12f, 2.6f)
+        lineTo(14.9f, 8.5f)
+        lineTo(21.4f, 9.4f)
+        lineTo(16.7f, 14f)
+        lineTo(17.8f, 20.4f)
+        lineTo(12f, 17.4f)
+        lineTo(6.2f, 20.4f)
+        lineTo(7.3f, 14f)
+        lineTo(2.6f, 9.4f)
+        lineTo(9.1f, 8.5f)
+        close()
     }
 
     private fun PathBuilder.circle(cx: Float, cy: Float, r: Float) {
