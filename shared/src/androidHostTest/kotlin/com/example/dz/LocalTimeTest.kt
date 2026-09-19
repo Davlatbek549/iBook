@@ -1,6 +1,8 @@
 package com.example.dz
 
+import com.example.dz.core.time.LocalDate
 import com.example.dz.core.time.TimeOfDay
+import com.example.dz.core.time.localDate
 import com.example.dz.core.time.localDayKey
 import com.example.dz.core.time.localHourOfDay
 import com.example.dz.core.time.localUtcOffsetMillis
@@ -66,6 +68,21 @@ class LocalTimeTest {
 
         assertEquals(DAY_IN_2026, localDayKey(lateEvening))
         assertEquals(DAY_IN_2026 + 1, localDayKey(justAfterMidnight))
+    }
+
+    /** Epoch millis for noon local time on the day [daysSinceEpoch]. */
+    private fun atLocalNoonOnDay(daysSinceEpoch: Long): Long {
+        val approximate = daysSinceEpoch * MILLIS_PER_DAY + 12 * MILLIS_PER_HOUR
+        return approximate - localUtcOffsetMillis(approximate)
+    }
+
+    @Test
+    fun aDayKeyTurnsBackIntoTheDateItCameFrom() {
+        assertEquals(LocalDate(2026, 2, 16), localDate(atLocalNoonOnDay(20_500)))
+        assertEquals(LocalDate(2026, 9, 17), localDate(atLocalNoonOnDay(20_713)))
+        // A leap day, and a date before the epoch, are where this arithmetic usually goes wrong.
+        assertEquals(LocalDate(2000, 2, 29), localDate(atLocalNoonOnDay(11_016)))
+        assertEquals(LocalDate(1969, 12, 31), localDate(atLocalNoonOnDay(-1)))
     }
 
     private companion object {

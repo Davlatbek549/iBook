@@ -1,0 +1,8 @@
+-- v4 -> v5: the reader's own review of a book. Nothing held one before; the reviews screen showed
+-- a rating and a histogram that were written into the source.
+CREATE TABLE book_review (
+    book_id TEXT NOT NULL PRIMARY KEY,
+    stars INTEGER NOT NULL,
+    note TEXT NOT NULL DEFAULT '',
+    written_at INTEGER NOT NULL
+);

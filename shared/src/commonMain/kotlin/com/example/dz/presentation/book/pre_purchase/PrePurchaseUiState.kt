@@ -1,58 +1,95 @@
 package com.example.dz.presentation.book.pre_purchase
 
 import com.example.dz.domain.model.Book
-import dz.shared.generated.resources.Res
-import dz.shared.generated.resources.book_cover
-import org.jetbrains.compose.resources.DrawableResource
+
+/**
+ * Where the reader stands with this book, which is what the primary button has to say.
+ *
+ * A free book counts as owned the moment it is opened — there is nothing to buy — so the button
+ * offers to read it rather than to pay for it.
+ */
+enum class BookOwnership { NOT_OWNED, NOT_STARTED, IN_PROGRESS, FINISHED }
 
 data class PrePurchaseUiState(
     val bookId: String = "",
     val title: String = "",
     val author: String = "",
     val authorId: String? = null,
-    val rating: String = "4.6",
-    val reviews: String = "",
+    /** Null when the source has no rating, rather than a number invented to fill the pill. */
+    val rating: String? = null,
+    val ratingCount: Int? = null,
     val overview: String = "",
-    val price: String = "$12.99",
-    val pages: String = "320",
-    val readTime: String = "6h 20m",
-    val language: String = "EN",
-    val tags: List<String> = listOf("Literary", "Gothic"),
-    val coverRes: DrawableResource = Res.drawable.book_cover,
+    val price: String? = null,
+    val isFree: Boolean = false,
+    val pages: Int? = null,
+    /** Roughly how long it takes to read, from its length. Approximate, and labelled as such. */
+    val minutesToRead: Int? = null,
+    val genre: String? = null,
+    val publisher: String? = null,
+    val firstPublishYear: Int? = null,
+    val downloadCount: Int? = null,
+    val language: String? = null,
     val coverUrl: String? = null,
     val relatedBooks: List<PrePurchaseRelatedBookUi> = emptyList(),
-    val isFavorite: Boolean = false,
+    val ownership: BookOwnership = BookOwnership.NOT_OWNED,
+    val progressPercent: Int = 0,
     val isDownloaded: Boolean = false,
+    val isDownloading: Boolean = false,
     val isLoading: Boolean = false,
     val errorMessage: String? = null
 )
 
 data class PrePurchaseRelatedBookUi(
     val id: String,
-    val coverRes: DrawableResource = Res.drawable.book_cover,
-    val coverUrl: String? = null
+    val title: String,
+    val coverUrl: String? = null,
 )
 
 fun Book.toPrePurchaseUiState(relatedBooks: List<Book> = emptyList()): PrePurchaseUiState =
     PrePurchaseUiState(
         bookId = id,
         title = title,
-        author = authors.firstOrNull()?.name.orEmpty().ifBlank { "Unknown author" },
+        author = authors.firstOrNull()?.name.orEmpty(),
         authorId = authors.firstOrNull()?.id,
-        rating = rating?.toRatingText() ?: "4.6",
-        reviews = reviewCount?.toString().orEmpty(),
+        rating = rating?.toRatingText(),
+        ratingCount = reviewCount,
         overview = description.orEmpty(),
-        price = price ?: if (isFree) "$0.00" else "$12.99",
-        pages = pageCount?.toString() ?: "320",
-        language = language?.uppercase() ?: "EN",
-        tags = categories.map { it.name }.ifEmpty { listOf("Literary", "Gothic") },
-        coverRes = Res.drawable.book_cover,
+        price = price,
+        isFree = isFree,
+        pages = pageCount,
+        minutesToRead = pageCount?.let { it * MINUTES_PER_PAGE },
+        genre = categories.firstOrNull()?.name?.toDisplayCategory(),
+        publisher = publisher,
+        firstPublishYear = firstPublishYear,
+        downloadCount = downloadCount,
+        language = language?.uppercase(),
         coverUrl = coverUrl,
         relatedBooks = relatedBooks.map { it.toPrePurchaseRelatedBookUi() }
     )
 
 private fun Book.toPrePurchaseRelatedBookUi(): PrePurchaseRelatedBookUi =
-    PrePurchaseRelatedBookUi(id = id, coverUrl = coverUrl)
+    PrePurchaseRelatedBookUi(id = id, title = title, coverUrl = coverUrl)
 
-private fun Double.toRatingText(): String =
-    ((this * 10).toInt() / 10.0).toString()
+/**
+ * Catalogue subjects arrive in library cataloguing style — "Courtship -- Fiction", "Fiction,
+ * general" — which reads as a database field rather than a genre. This takes the first real part
+ * and gives it a capital.
+ */
+private fun String.toDisplayCategory(): String =
+    split(" -- ", "--", ",")
+        .firstOrNull { it.isNotBlank() }
+        ?.trim()
+        ?.replaceFirstChar { it.uppercase() }
+        ?: this
+
+/**
+ * A page a minute and a half. Every reader is different, which is why the screen says "about" and
+ * never presents this as the book's own fact.
+ */
+private const val MINUTES_PER_PAGE = 2
+
+/** One decimal place — "4.6", not "4.5999999". */
+private fun Double.toRatingText(): String {
+    val tenths = (this * 10).toInt()
+    return "${tenths / 10}.${tenths % 10}"
+}

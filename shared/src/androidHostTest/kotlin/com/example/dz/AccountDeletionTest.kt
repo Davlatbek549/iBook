@@ -5,7 +5,9 @@ import com.example.dz.core.auth.MailedCodeKind
 import com.example.dz.core.error.AppError
 import com.example.dz.core.result.AppResult
 import com.example.dz.data.local.CollectionLocalDataSource
+import com.example.dz.data.local.GoalLocalDataSource
 import com.example.dz.data.local.LibraryLocalDataSource
+import com.example.dz.data.local.ReviewLocalDataSource
 import com.example.dz.data.local.LocalDataSource
 import com.example.dz.data.local.LocalDataSourceImpl
 import com.example.dz.data.remote.api.KtorAuthApi
@@ -13,6 +15,7 @@ import com.example.dz.data.repository.LocalDeviceDataRepository
 import com.example.dz.data.repository.RemoteAuthRepository
 import com.example.dz.database.DzDatabase
 import com.example.dz.domain.model.Book
+import com.example.dz.domain.model.BookReview
 import com.example.dz.domain.model.Collection
 import com.example.dz.domain.model.LibraryBook
 import com.example.dz.domain.model.User
@@ -120,16 +123,19 @@ class AccountDeletionTest {
     }
 
     @Test
-    fun `erasing takes the library, collections, downloads and account settings`() =
+    fun `erasing takes the library, collections, downloads, reading and account settings`() =
         runTest(dispatcher) {
             val database = newDatabase()
             val library = LibraryLocalDataSource(database)
             val collections = CollectionLocalDataSource(database)
+            val sessions = GoalLocalDataSource(database)
+            val reviews = ReviewLocalDataSource(database)
             val files = FakeFileStorage()
             val local = signedIn().apply {
                 saveSetting("profile_books_read", "12")
                 saveSetting("purchase_status_b1", "Success")
                 saveSetting(MailedCodeKind.EmailVerification.lastSentSettingKey, "1")
+                saveSetting("reader_page_b1", "42")
                 setOnboardingCompleted(true)
                 saveSetting("unrelated_to_any_account", "kept")
             }
@@ -138,16 +144,22 @@ class AccountDeletionTest {
             library.upsert(LibraryBook(book = book), addedAt = 1L)
             library.setDownload("b1", downloaded = true, path = files.save("b1", "text"))
             collections.create(Collection(id = "c1", title = "Favourites", books = listOf(book)), 1L)
+            sessions.recordSession("b1", dayKey = 1, startedAt = 1L, seconds = 300L)
+            reviews.save(BookReview(bookId = "b1", stars = 4, note = "Slow start.", writtenAt = 1L))
 
-            LocalDeviceDataRepository(library, collections, files, local).eraseAccountData()
+            LocalDeviceDataRepository(library, collections, sessions, reviews, files, local)
+                .eraseAccountData()
 
             assertTrue(library.getLibraryBooks().isEmpty())
             assertTrue(collections.getCollections().isEmpty())
             assertTrue(files.files.isEmpty(), "a downloaded book is the account's too")
+            assertEquals(0L, sessions.secondsOnDay(1), "what they read is theirs")
+            assertNull(reviews.getReview("b1"), "what they thought of it is theirs")
             assertFalse(local.isLoggedIn())
             assertEquals("", local.getSetting("profile_books_read"))
             assertEquals("", local.getSetting("purchase_status_b1"))
             assertEquals("", local.getSetting(MailedCodeKind.EmailVerification.lastSentSettingKey))
+            assertEquals("", local.getSetting("reader_page_b1"), "where they got to is theirs")
             // The device's own history is not the account's to take.
             assertTrue(local.isOnboardingCompleted(), "the next reader here has seen onboarding too")
             assertEquals("kept", local.getSetting("unrelated_to_any_account"))

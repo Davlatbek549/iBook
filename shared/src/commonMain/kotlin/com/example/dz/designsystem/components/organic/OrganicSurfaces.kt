@@ -349,15 +349,19 @@ fun OrganicCoverCard(
             maxLines = 2,
             overflow = TextOverflow.Ellipsis
         )
-        Text(
-            text = author,
-            modifier = Modifier.offset(y = (-6).dp),
-            fontFamily = organicBodyFontFamily(),
-            fontSize = 11.sp,
-            color = OrganicColors.neutral700,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
+        // An unknown author leaves no gap: an empty line still takes its height, and a column of
+        // covers with a blank strip under each reads as a loading state.
+        if (author.isNotBlank()) {
+            Text(
+                text = author,
+                modifier = Modifier.offset(y = (-6).dp),
+                fontFamily = organicBodyFontFamily(),
+                fontSize = 11.sp,
+                color = OrganicColors.neutral700,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
     }
 }
 

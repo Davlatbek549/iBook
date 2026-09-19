@@ -2,9 +2,11 @@ package com.example.dz.data.mapper
 
 import com.example.dz.data.remote.dto.gutendex.GutendexBookDto
 import com.example.dz.data.remote.dto.openlibrary.OpenLibraryBookDto
+import com.example.dz.data.remote.dto.openlibrary.OpenLibraryRatingsDto
 import com.example.dz.data.remote.dto.openlibrary.OpenLibraryWorkDto
 import com.example.dz.domain.model.Author
 import com.example.dz.domain.model.Book
+import com.example.dz.domain.model.BookRatings
 import com.example.dz.domain.model.Category
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -32,6 +34,7 @@ object BookMapper {
             firstPublishYear = dto.firstPublishYear,
             pageCount = dto.pageCount,
             language = dto.languages.firstOrNull(),
+            publisher = dto.publisher.firstOrNull(),
             isFree = true
         )
     }
@@ -47,6 +50,28 @@ object BookMapper {
             categories = dto.subjects.take(MAX_CATEGORIES).map(::categoryFromName),
             firstPublishYear = dto.firstPublishDate?.firstFourDigitYear(),
             isFree = true
+        )
+    }
+
+    /**
+     * Folds the search row's numbers into the canonical work record.
+     *
+     * Neither OpenLibrary endpoint is enough on its own: the work has the description and subjects
+     * but no rating, length or publisher, and the search row has those but a thinner description.
+     * Work wins wherever both speak.
+     */
+    fun mergeOpenLibrary(work: Book, searchRow: Book?): Book {
+        if (searchRow == null) return work
+        return work.copy(
+            authors = work.authors.ifEmpty { searchRow.authors },
+            coverUrl = work.coverUrl ?: searchRow.coverUrl,
+            categories = work.categories.ifEmpty { searchRow.categories },
+            rating = searchRow.rating,
+            reviewCount = searchRow.reviewCount,
+            firstPublishYear = work.firstPublishYear ?: searchRow.firstPublishYear,
+            pageCount = searchRow.pageCount,
+            language = work.language ?: searchRow.language,
+            publisher = searchRow.publisher,
         )
     }
 
@@ -66,6 +91,7 @@ object BookMapper {
             description = dto.summaries.firstOrNull(),
             categories = dto.subjects.take(MAX_CATEGORIES).map(::categoryFromName),
             language = dto.languages.firstOrNull(),
+            downloadCount = dto.downloadCount,
             isFree = true,
             textUrl = dto.plainTextUrl()
         )
@@ -79,6 +105,24 @@ object BookMapper {
             .filter { (type, url) -> type.startsWith("text/plain") && !url.endsWith(".zip") }
             .minByOrNull { (type, _) -> if (type.contains("utf-8", ignoreCase = true)) 0 else 1 }
             ?.value
+
+    /**
+     * Ratings, or nothing.
+     *
+     * A work nobody has rated answers with zeroes rather than an error, and a histogram of zeroes
+     * is a lie told in bar form — so no ratings comes back as no object at all.
+     */
+    fun fromOpenLibraryRatings(dto: OpenLibraryRatingsDto): BookRatings? {
+        val count = dto.summary?.count ?: 0
+        if (count <= 0) return null
+        return BookRatings(
+            average = dto.summary?.average ?: 0.0,
+            count = count,
+            byStar = dto.counts.mapNotNull { (star, howMany) ->
+                star.toIntOrNull()?.takeIf { it in 1..5 }?.let { it to howMany }
+            }.toMap(),
+        )
+    }
 
     fun openLibraryWorkIdFromDomainId(bookId: String): String =
         bookId.removePrefix(OPEN_LIBRARY_PREFIX)

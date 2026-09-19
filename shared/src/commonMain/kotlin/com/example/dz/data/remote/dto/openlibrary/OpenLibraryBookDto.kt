@@ -24,5 +24,6 @@ data class OpenLibraryBookDto(
     @SerialName("ratings_count")
     val reviewCount: Int? = null,
     @SerialName("subject")
-    val subjects: List<String> = emptyList()
+    val subjects: List<String> = emptyList(),
+    val publisher: List<String> = emptyList()
 )

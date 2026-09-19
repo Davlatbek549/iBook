@@ -6,7 +6,10 @@ import com.example.dz.core.error.AppError
 import com.example.dz.core.result.AppResult
 import com.example.dz.core.time.currentEpochMillis
 import com.example.dz.domain.model.BookContent
+import com.example.dz.domain.model.ReaderPreferences
 import com.example.dz.domain.repository.DownloadRepository
+import com.example.dz.domain.repository.ReaderPreferencesRepository
+import com.example.dz.domain.repository.ReadingPositionRepository
 import com.example.dz.domain.usecase.book.DeleteDownloadUseCase
 import com.example.dz.domain.usecase.book.DownloadBookUseCase
 import com.example.dz.domain.usecase.book.GetBookContentUseCase
@@ -28,7 +31,9 @@ class ReadingViewModel(
     private val downloadBook: DownloadBookUseCase,
     private val deleteDownload: DeleteDownloadUseCase,
     private val downloadRepository: DownloadRepository,
-    private val recordReadingSession: RecordReadingSessionUseCase
+    private val recordReadingSession: RecordReadingSessionUseCase,
+    private val readerPreferences: ReaderPreferencesRepository,
+    private val readingPosition: ReadingPositionRepository
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(ReadingUiState(bookId = bookId, isLoading = true))
     val uiState = _uiState.asStateFlow()
@@ -40,6 +45,9 @@ class ReadingViewModel(
     private var unrecordedSince = currentEpochMillis()
 
     init {
+        // Read before the first frame: a page that waited for its own type size would show at the
+        // default size and then jump.
+        _uiState.update { it.copy(preferences = readerPreferences.get()) }
         load()
         refreshDownloadState()
         trackReadingTime()
@@ -52,11 +60,30 @@ class ReadingViewModel(
                 viewModelScope.launch { flushReadingTime() }
                 emitEffect(ReadingEffect.NavigateBack)
             }
-            ReadingEvent.MenuClicked -> emitEffect(ReadingEffect.NavigateToSettings)
+            // The display sheet lives over the page rather than on its own screen: the handoff
+            // dismisses it by tapping outside, and the page stays visible behind it.
+            ReadingEvent.MenuClicked -> _uiState.update { it.copy(showDisplaySheet = true) }
+            ReadingEvent.DisplaySheetDismissed -> _uiState.update { it.copy(showDisplaySheet = false) }
+            ReadingEvent.PageTapped -> _uiState.update { it.copy(chromeVisible = !it.chromeVisible) }
+            // The size is shown while the slider moves and written when it stops: a drag across
+            // the scale is one write to the store rather than one per pixel it passes.
+            is ReadingEvent.FontScaleChanged -> _uiState.update { state ->
+                state.copy(
+                    preferences = state.preferences.copy(
+                        fontScale = event.scale.coerceIn(
+                            ReaderPreferences.MIN_FONT_SCALE,
+                            ReaderPreferences.MAX_FONT_SCALE,
+                        )
+                    )
+                )
+            }
+
+            ReadingEvent.FontScaleCommitted -> readerPreferences.save(_uiState.value.preferences)
+            is ReadingEvent.PageThemeChanged -> updatePreferences { it.copy(pageTheme = event.theme) }
+            is ReadingEvent.SerifChanged -> updatePreferences { it.copy(useSerif = event.useSerif) }
             ReadingEvent.CommentsClicked -> emitEffect(ReadingEffect.NavigateToComments(bookId))
-            ReadingEvent.BookmarkToggled -> _uiState.update { it.copy(bookmarked = !it.bookmarked) }
-            ReadingEvent.NextPageClicked -> movePage(1)
-            ReadingEvent.PreviousPageClicked -> movePage(-1)
+            is ReadingEvent.BookmarkToggled -> toggleBookmark(event.pinned)
+            is ReadingEvent.PageSettled -> settleAt(event.offset)
             ReadingEvent.RetryClicked -> load()
             ReadingEvent.DownloadClicked -> download()
             ReadingEvent.DownloadSuccessDismissed ->
@@ -121,31 +148,58 @@ class ReadingViewModel(
             when (val result = getBookContent(bookId)) {
                 is AppResult.Success -> applyContent(result.data)
                 is AppResult.Error -> _uiState.update {
-                    it.copy(isLoading = false, errorMessage = result.error.toPresentationMessage())
+                    it.copy(
+                        isLoading = false,
+                        // "Not found" here never means a missing book — the reader was opened from
+                        // one. It means this title has no full text behind it, which is the case
+                        // for everything that came from OpenLibrary rather than Gutenberg.
+                        errorMessage = when (result.error) {
+                            AppError.NotFound -> NO_TEXT_MESSAGE
+                            else -> result.error.toPresentationMessage()
+                        }
+                    )
                 }
             }
         }
     }
 
+    /** Opens the book where it was left rather than at its first word. */
     private fun applyContent(content: BookContent) {
+        val resumed = readingPosition.lastOffset(bookId).coerceIn(0, content.text.length)
         _uiState.update {
             it.copy(
                 bookTitle = content.title,
-                pages = content.pages,
-                currentPage = 1,
-                totalPages = content.pageCount,
+                text = content.text,
+                offset = resumed,
+                bookmarkOffset = readingPosition.bookmark(bookId)
+                    ?.takeIf { offset -> offset <= content.text.length },
                 isLoading = false,
                 errorMessage = null
             )
         }
     }
 
-    private fun movePage(delta: Int) {
+    /** Pins where the reader is, or clears the pin. */
+    private fun toggleBookmark(pinned: Boolean) {
+        _uiState.update { state ->
+            val offset = state.offset.takeIf { pinned }
+            readingPosition.saveBookmark(bookId, offset)
+            state.copy(bookmarkOffset = offset)
+        }
+    }
+
+    /**
+     * The reader came to rest somewhere new.
+     *
+     * The offset is written every time, since it is a single key-value write and losing it means
+     * losing someone's place. The library's percentage goes with it, which is a database write, but
+     * it only happens when a page settles — a swipe that is flung through ten pages settles once.
+     */
+    private fun settleAt(offset: Int) {
         val state = _uiState.value
-        if (state.totalPages <= 0) return
-        val target = (state.currentPage + delta).coerceIn(1, state.totalPages)
-        if (target == state.currentPage) return
-        _uiState.update { it.copy(currentPage = target) }
+        if (offset == state.offset) return
+        readingPosition.saveLastOffset(bookId, offset)
+        _uiState.update { it.copy(offset = offset) }
         persistProgress()
     }
 
@@ -166,6 +220,15 @@ class ReadingViewModel(
      * includes time the app spends in the background with the book still open. Fixing that needs
      * platform lifecycle observation rather than a timer.
      */
+    /** Preferences are written as they change — there is no Save on the display sheet. */
+    private fun updatePreferences(change: (ReaderPreferences) -> ReaderPreferences) {
+        _uiState.update { state ->
+            val updated = change(state.preferences)
+            readerPreferences.save(updated)
+            state.copy(preferences = updated)
+        }
+    }
+
     private fun trackReadingTime() {
         viewModelScope.launch {
             while (true) {
@@ -190,6 +253,8 @@ class ReadingViewModel(
     }
 
     private companion object {
+        const val NO_TEXT_MESSAGE = "This book doesn't have a readable copy yet."
+
         /** One small insert a minute; at most a minute is lost if the process dies. */
         const val SESSION_FLUSH_MILLIS = 60_000L
         const val MILLIS_PER_SECOND = 1_000L

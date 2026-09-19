@@ -30,6 +30,9 @@ object OrganicIcons {
     /** The trailing chevron, drawn a touch heavier because it renders at 15px. */
     private const val STROKE_CHEVRON = 2.6f
 
+    /** A star is drawn small and has five inside corners; 2.4 closes them up. */
+    private const val STROKE_STAR = 1.8f
+
     /** The tick on a filled badge, where the heavier weight reads against the fill. */
     private const val STROKE_CHECK = 3f
 
@@ -166,6 +169,61 @@ object OrganicIcons {
 
     // ── Row and header affordances ────────────────────────────────────────────
 
+    /** Arrow into a tray — saving a book to the device. */
+    val Download: ImageVector by lazy {
+        organicIcon("OrganicDownload") {
+            stroke {
+                moveTo(12f, 4f)
+                verticalLineToRelative(10.5f)
+                moveTo(7.5f, 10.5f)
+                lineTo(12f, 15f)
+                lineToRelative(4.5f, -4.5f)
+                moveTo(5f, 19.5f)
+                horizontalLineToRelative(14f)
+            }
+        }
+    }
+
+    /** A large A beside a small one — the reader's type control. */
+    val TextSize: ImageVector by lazy {
+        organicIcon("OrganicTextSize") {
+            stroke {
+                // Small A
+                moveTo(3f, 15.5f)
+                lineTo(6.2f, 7.5f)
+                lineTo(9.4f, 15.5f)
+                moveTo(4.3f, 12.6f)
+                horizontalLineToRelative(3.8f)
+            }
+            stroke {
+                // Large A
+                moveTo(12.6f, 19f)
+                lineTo(17.3f, 5.5f)
+                lineTo(22f, 19f)
+                moveTo(14.4f, 14.2f)
+                horizontalLineToRelative(5.8f)
+            }
+        }
+    }
+
+    /** Speech bubble — notes other readers left on a page. */
+    val Chat: ImageVector by lazy {
+        organicIcon("OrganicChat") {
+            stroke {
+                moveTo(4f, 17.5f)
+                verticalLineTo(6.5f)
+                curveToRelative(0f, -1.1f, 0.9f, -2f, 2f, -2f)
+                horizontalLineToRelative(12f)
+                curveToRelative(1.1f, 0f, 2f, 0.9f, 2f, 2f)
+                verticalLineToRelative(7f)
+                curveToRelative(0f, 1.1f, -0.9f, 2f, -2f, 2f)
+                horizontalLineTo(8.5f)
+                lineTo(4f, 20f)
+                close()
+            }
+        }
+    }
+
     /** Cross, for removing one thing from a list without leaving the screen. */
     val Close: ImageVector by lazy {
         organicIcon("OrganicClose") {
@@ -201,6 +259,54 @@ object OrganicIcons {
         }
     }
 
+    /** An unearned star — the empty half of a rating. */
+    val Star: ImageVector by lazy {
+        organicIcon("OrganicStar") {
+            stroke(STROKE_STAR) { star() }
+        }
+    }
+
+    /** A given star. */
+    val StarFilled: ImageVector by lazy {
+        organicIcon("OrganicStarFilled") {
+            path(fill = INK) { star() }
+        }
+    }
+
+    /**
+     * The reader's bookmark — a ribbon with a notch cut out of its foot.
+     *
+     * Drawn as a stroke so the empty state reads as an outline, and filled by the caller's tint
+     * when a page is actually pinned; one shape covers both states, which keeps the button from
+     * changing silhouette when it is pressed.
+     */
+    val Bookmark: ImageVector by lazy {
+        organicIcon("OrganicBookmark") {
+            stroke {
+                moveTo(7f, 4f)
+                horizontalLineToRelative(10f)
+                verticalLineToRelative(16.5f)
+                lineToRelative(-5f, -4f)
+                lineToRelative(-5f, 4f)
+                close()
+            }
+        }
+    }
+
+    /** The same ribbon, solid — the pinned state. */
+    val BookmarkFilled: ImageVector by lazy {
+        organicIcon("OrganicBookmarkFilled") {
+            path(fill = INK) {
+                moveTo(7f, 4f)
+                horizontalLineToRelative(10f)
+                verticalLineToRelative(16.5f)
+                lineToRelative(-5f, -4f)
+                lineToRelative(-5f, 4f)
+                close()
+            }
+        }
+    }
+
     /** Trailing chevron on every list row and tappable card. */
     val ChevronRight: ImageVector by lazy {
         organicIcon("OrganicChevronRight") {
@@ -221,6 +327,21 @@ object OrganicIcons {
                 lineToRelative(7f, 7f)
             }
         }
+    }
+
+    /** The five-pointed star both rating glyphs are cut from. */
+    private fun PathBuilder.star() {
+        moveTo(12f, 2.6f)
+        lineTo(14.9f, 8.5f)
+        lineTo(21.4f, 9.4f)
+        lineTo(16.7f, 14f)
+        lineTo(17.8f, 20.4f)
+        lineTo(12f, 17.4f)
+        lineTo(6.2f, 20.4f)
+        lineTo(7.3f, 14f)
+        lineTo(2.6f, 9.4f)
+        lineTo(9.1f, 8.5f)
+        close()
     }
 
     private fun PathBuilder.circle(cx: Float, cy: Float, r: Float) {

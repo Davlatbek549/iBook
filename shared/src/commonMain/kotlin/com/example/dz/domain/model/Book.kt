@@ -12,6 +12,9 @@ data class Book(
     val firstPublishYear: Int? = null,
     val pageCount: Int? = null,
     val language: String? = null,
+    val publisher: String? = null,
+    /** Gutenberg's download count — the only popularity signal either catalogue gives. */
+    val downloadCount: Int? = null,
     val price: String? = null,
     val isFree: Boolean = false,
     /** Remote URL to the full plain-text body, when the source exposes one (e.g. Gutendex). */

@@ -27,6 +27,9 @@ private val USER_DATA_PREFIXES = listOf(
     "unread_",
     "notif_read_",
     "code_sent_at_",
+    // Where the reader had got to in each book, which page they pinned, and how they like a page
+    // set. All of it is theirs.
+    "reader_",
 )
 
 class LocalDataSourceImpl(private val settings: Settings) : LocalDataSource {

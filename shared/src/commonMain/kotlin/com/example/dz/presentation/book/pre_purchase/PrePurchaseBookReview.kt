@@ -3,350 +3,552 @@ package com.example.dz.presentation.book.pre_purchase
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.dz.designsystem.components.icons.InkIcons
-import com.example.dz.designsystem.components.ink.InkChip
-import com.example.dz.designsystem.components.ink.InkIconButton
-import com.example.dz.designsystem.components.ink.InkLabel
-import com.example.dz.designsystem.components.ink.inkCard
-import com.example.dz.designsystem.components.remote.RemoteBookCover
-import com.example.dz.designsystem.theme.InkColors
-import com.example.dz.designsystem.theme.InkShape
-import com.example.dz.designsystem.theme.inkBodyFontFamily
-import com.example.dz.designsystem.theme.inkColors
-import com.example.dz.designsystem.theme.inkDisplayFontFamily
+import com.example.dz.designsystem.components.icons.OrganicIcons
+import com.example.dz.designsystem.components.organic.ORGANIC_GUTTER
+import com.example.dz.designsystem.components.organic.OrganicBookCover
+import com.example.dz.designsystem.components.organic.OrganicCircleIconButton
+import com.example.dz.designsystem.components.organic.OrganicCoverCard
+import com.example.dz.designsystem.components.organic.OrganicCard
+import com.example.dz.designsystem.components.organic.OrganicRowChevron
+import com.example.dz.designsystem.components.organic.OrganicScreen
+import com.example.dz.designsystem.components.organic.OrganicSectionHeader
+import com.example.dz.designsystem.components.organic.OrganicSkeleton
+import com.example.dz.designsystem.theme.OrganicColors
+import com.example.dz.designsystem.theme.OrganicShape
+import com.example.dz.designsystem.theme.organicBodyFontFamily
+import com.example.dz.designsystem.theme.organicHeadingFontFamily
+import com.example.dz.presentation.common.uniqueLazyKeys
 import dz.shared.generated.resources.Res
-import dz.shared.generated.resources.detail_about
-import dz.shared.generated.resources.detail_available_offline
-import dz.shared.generated.resources.detail_buy_now
-import dz.shared.generated.resources.detail_meta_lang
-import dz.shared.generated.resources.detail_meta_pages
-import dz.shared.generated.resources.detail_meta_rating
-import dz.shared.generated.resources.detail_meta_time
-import dz.shared.generated.resources.detail_more_like_this
-import dz.shared.generated.resources.detail_price
+import dz.shared.generated.resources.book_about_duration
+import dz.shared.generated.resources.book_continue_reading
+import dz.shared.generated.resources.book_details
+import dz.shared.generated.resources.book_downloads
+import dz.shared.generated.resources.book_hours_minutes
+import dz.shared.generated.resources.book_language
+import dz.shared.generated.resources.book_length
+import dz.shared.generated.resources.book_minutes
+import dz.shared.generated.resources.book_published
+import dz.shared.generated.resources.book_publisher
+import dz.shared.generated.resources.book_download
+import dz.shared.generated.resources.book_downloaded
+import dz.shared.generated.resources.book_file_to_shelf
+import dz.shared.generated.resources.book_more_like_this
+import dz.shared.generated.resources.book_pages
+import dz.shared.generated.resources.book_read_again
+import dz.shared.generated.resources.book_read_free
+import dz.shared.generated.resources.book_start_reading
+import dz.shared.generated.resources.nav_back
+import dz.shared.generated.resources.book_ratings_reviews
+import dz.shared.generated.resources.book_rating_of
+import dz.shared.generated.resources.book_ratings_unknown
 import org.jetbrains.compose.resources.stringResource
 
-private val previewUiState = PrePurchaseUiState(
-    bookId = "mexican-gothic",
-    title = "Mexican Gothic",
-    author = "Silvia Moreno-Garcia",
-    overview = "Placeholder overview for preview only.",
-)
-
+/**
+ * Book detail — the cover centred, what the book is, and one thing to do with it.
+ *
+ * Everything about the layout is symmetrical until the description, which is where the design stops
+ * centring and starts reading like a page. Geometry from `dz-all-screens.html`.
+ *
+ * The primary button says what is actually true of this book for this reader: buy it, start it,
+ * carry on, or read it again.
+ */
 @Composable
 fun PrePurchaseScreen(
-    uiState: PrePurchaseUiState = previewUiState,
+    uiState: PrePurchaseUiState = PrePurchaseUiState(),
     onEvent: (PrePurchaseEvent) -> Unit = {},
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
-    val book = uiState
-    val colors = inkColors()
-    val displayFont = inkDisplayFontFamily()
-    val bodyFont = inkBodyFontFamily()
+    val relatedKeys = uiState.relatedBooks.uniqueLazyKeys { it.id }
 
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(colors.paper)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .verticalScroll(rememberScrollState())
-                .padding(bottom = 140.dp)
+    if (uiState.isLoading) {
+        BookDetailSkeleton(modifier = modifier, onBack = { onEvent(PrePurchaseEvent.BackClicked) })
+        return
+    }
+
+    OrganicScreen(modifier = modifier) {
+        LazyColumn(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(top = 12.dp, bottom = 30.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            // top bar
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 22.dp, end = 22.dp, top = 4.dp, bottom = 8.dp)
-            ) {
-                InkIconButton(icon = InkIcons.Back, onClick = { onEvent(PrePurchaseEvent.BackClicked) }, colors = colors)
-                Spacer(modifier = Modifier.weight(1f))
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    InkIconButton(icon = InkIcons.Share, onClick = { onEvent(PrePurchaseEvent.ShareClicked) }, colors = colors)
-                    InkIconButton(
-                        icon = InkIcons.Bookmark,
-                        onClick = { onEvent(PrePurchaseEvent.FavoriteClicked) },
-                        colors = colors
+            item(key = "bar") {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = ORGANIC_GUTTER),
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OrganicCircleIconButton(
+                        icon = OrganicIcons.ChevronLeft,
+                        onClick = { onEvent(PrePurchaseEvent.BackClicked) },
+                        contentDescription = stringResource(Res.string.nav_back),
+                    )
+                    Box(modifier = Modifier.weight(1f))
+                    OrganicCircleIconButton(
+                        icon = OrganicIcons.Plus,
+                        onClick = { onEvent(PrePurchaseEvent.BookmarkClicked) },
+                        contentDescription = stringResource(Res.string.book_file_to_shelf),
+                        background = OrganicColors.accent200,
+                        tint = OrganicColors.accent800,
                     )
                 }
             }
 
-            // hero
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 22.dp, end = 22.dp, top = 18.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                RemoteBookCover(
-                    coverUrl = book.coverUrl,
-                    fallback = book.coverRes,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
+            item(key = "cover") {
+                Column(
                     modifier = Modifier
-                        .size(width = 132.dp, height = 196.dp)
-                        .shadow(16.dp, RoundedCornerShape(InkShape.cover + 2.dp), clip = true)
-                )
-                Text(
-                    text = book.title,
-                    modifier = Modifier.padding(top = 22.dp),
-                    fontFamily = displayFont,
-                    fontWeight = FontWeight.Medium,
-                    fontSize = 25.sp,
-                    lineHeight = 29.sp,
-                    textAlign = TextAlign.Center,
-                    color = colors.ink
-                )
-                Text(
-                    text = book.author,
-                    modifier = Modifier
-                        .padding(top = 7.dp)
-                        .clickable { onEvent(PrePurchaseEvent.AuthorClicked) },
-                    fontFamily = bodyFont,
-                    fontSize = 13.sp,
-                    color = colors.muted
-                )
-                Row(
-                    modifier = Modifier.padding(top = 14.dp),
-                    horizontalArrangement = Arrangement.spacedBy(7.dp)
+                        .fillMaxWidth()
+                        .padding(horizontal = ORGANIC_GUTTER),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    book.tags.forEach { tag ->
-                        Box(modifier = Modifier.clickable { onEvent(PrePurchaseEvent.TagClicked) }) {
-                            InkChip(text = tag, solid = true, colors = colors)
+                    OrganicBookCover(
+                        title = uiState.title,
+                        coverUrl = uiState.coverUrl,
+                        width = 132.dp,
+                        height = 194.dp,
+                        cornerRadius = 20.dp,
+                        elevated = true,
+                    )
+                    Text(
+                        text = uiState.title,
+                        fontFamily = organicHeadingFontFamily(),
+                        fontWeight = FontWeight.Normal,
+                        fontSize = 26.sp,
+                        lineHeight = 29.9.sp,
+                        color = OrganicColors.text,
+                        textAlign = TextAlign.Center
+                    )
+                    if (uiState.author.isNotBlank()) {
+                        Text(
+                            text = uiState.author,
+                            modifier = Modifier.clickable(role = Role.Button) {
+                                onEvent(PrePurchaseEvent.AuthorClicked)
+                            },
+                            fontFamily = organicBodyFontFamily(),
+                            fontSize = 14.sp,
+                            color = OrganicColors.neutral700,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                    MetaPills(uiState = uiState)
+                }
+            }
+
+            if (uiState.overview.isNotBlank()) {
+                item(key = "overview") {
+                    Text(
+                        text = uiState.overview,
+                        modifier = Modifier.padding(horizontal = ORGANIC_GUTTER),
+                        fontFamily = organicBodyFontFamily(),
+                        fontSize = 15.sp,
+                        lineHeight = 24.75.sp,
+                        color = OrganicColors.neutral800
+                    )
+                }
+            }
+
+            item(key = "actions") {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = ORGANIC_GUTTER),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    PrimaryAction(
+                        uiState = uiState,
+                        modifier = Modifier.weight(1f),
+                        onClick = { onEvent(PrePurchaseEvent.PrimaryActionClicked) },
+                    )
+                    DownloadAction(
+                        isDownloaded = uiState.isDownloaded,
+                        isDownloading = uiState.isDownloading,
+                        onClick = { onEvent(PrePurchaseEvent.DownloadClicked) },
+                    )
+                }
+            }
+
+            item(key = "details") {
+                DetailsBlock(
+                    uiState = uiState,
+                    modifier = Modifier.padding(horizontal = ORGANIC_GUTTER),
+                )
+            }
+
+            item(key = "reviews") {
+                ReviewsRow(
+                    uiState = uiState,
+                    modifier = Modifier.padding(horizontal = ORGANIC_GUTTER),
+                    onClick = { onEvent(PrePurchaseEvent.ReviewsClicked) },
+                )
+            }
+
+            if (uiState.relatedBooks.isNotEmpty()) {
+                item(key = "related-header") {
+                    OrganicSectionHeader(
+                        title = stringResource(Res.string.book_more_like_this),
+                        modifier = Modifier.padding(horizontal = ORGANIC_GUTTER),
+                    )
+                }
+                item(key = "related") {
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = ORGANIC_GUTTER),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        items(uiState.relatedBooks.size, key = { relatedKeys[it] }) { index ->
+                            val related = uiState.relatedBooks[index]
+                            OrganicCoverCard(
+                                title = related.title,
+                                author = "",
+                                coverUrl = related.coverUrl,
+                                onClick = { onEvent(PrePurchaseEvent.RelatedBookClicked(related.id)) },
+                            )
                         }
                     }
                 }
             }
+        }
+    }
+}
 
-            // meta strip
-            Row(
-                modifier = Modifier
-                    .padding(start = 22.dp, end = 22.dp, top = 24.dp)
-                    .fillMaxWidth()
-                    .height(IntrinsicSize.Min)
-                    .inkCard(colors)
-                    .padding(vertical = 16.dp)
+/**
+ * The screen's own shape, greyed out, while the book is still being fetched.
+ *
+ * It mirrors the real layout — cover, title, author, pills, prose, button — so nothing jumps when
+ * the content lands. The back button is live throughout: a reader who opened the wrong book should
+ * not have to wait for it to arrive before leaving.
+ */
+@Composable
+private fun BookDetailSkeleton(
+    modifier: Modifier = Modifier,
+    onBack: () -> Unit,
+) {
+    OrganicScreen(modifier = modifier) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = ORGANIC_GUTTER)
+                .padding(top = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
+        ) {
+            OrganicCircleIconButton(
+                icon = OrganicIcons.ChevronLeft,
+                onClick = onBack,
+                contentDescription = stringResource(Res.string.nav_back),
+            )
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                MetaCell(value = "${book.rating} ★", label = stringResource(Res.string.detail_meta_rating), colors = colors, modifier = Modifier.weight(1f))
-                VerticalDivider(modifier = Modifier.fillMaxHeight(), thickness = 1.dp, color = colors.line)
-                MetaCell(value = book.pages, label = stringResource(Res.string.detail_meta_pages), colors = colors, modifier = Modifier.weight(1f))
-                VerticalDivider(modifier = Modifier.fillMaxHeight(), thickness = 1.dp, color = colors.line)
-                MetaCell(value = book.readTime, label = stringResource(Res.string.detail_meta_time), colors = colors, modifier = Modifier.weight(1f))
-                VerticalDivider(modifier = Modifier.fillMaxHeight(), thickness = 1.dp, color = colors.line)
-                MetaCell(value = book.language, label = stringResource(Res.string.detail_meta_lang), colors = colors, modifier = Modifier.weight(1f))
-            }
-
-            // about
-            Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 24.dp)) {
-                InkLabel(text = stringResource(Res.string.detail_about), colors = colors)
-                Text(
-                    text = book.overview,
-                    modifier = Modifier.padding(top = 12.dp),
-                    fontFamily = bodyFont,
-                    fontSize = 14.sp,
-                    lineHeight = 24.5.sp,
-                    color = colors.inkSoft
+                OrganicSkeleton(
+                    modifier = Modifier.width(132.dp).height(194.dp),
+                    cornerRadius = 20.dp,
                 )
-            }
-
-            // more like this
-            Column(modifier = Modifier.padding(top = 22.dp)) {
-                Text(
-                    text = stringResource(Res.string.detail_more_like_this),
-                    modifier = Modifier.padding(horizontal = 22.dp),
-                    fontFamily = displayFont,
-                    fontWeight = FontWeight.Medium,
-                    fontSize = 16.sp,
-                    color = colors.ink
-                )
-                Row(
-                    modifier = Modifier
-                        .padding(top = 12.dp)
-                        .horizontalScroll(rememberScrollState())
-                        .padding(horizontal = 22.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    book.relatedBooks.forEach { related ->
-                        RemoteBookCover(
-                            coverUrl = related.coverUrl,
-                            fallback = related.coverRes,
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier
-                                .size(width = 64.dp, height = 94.dp)
-                                .shadow(6.dp, RoundedCornerShape(InkShape.cover), clip = true)
-                                .clickable { onEvent(PrePurchaseEvent.RelatedBookClicked(related.id)) }
+                OrganicSkeleton(modifier = Modifier.fillMaxWidth(0.7f).height(26.dp))
+                OrganicSkeleton(modifier = Modifier.fillMaxWidth(0.4f).height(16.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    repeat(3) {
+                        OrganicSkeleton(
+                            modifier = Modifier.width(72.dp).height(30.dp),
+                            cornerRadius = OrganicShape.pill,
                         )
                     }
                 }
             }
-        }
-
-        // buy bar
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .background(colors.paper)
-        ) {
-            if (book.isDownloaded) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(colors.alt)
-                        .padding(vertical = 8.dp),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = InkIcons.Done,
-                        contentDescription = null,
-                        tint = colors.accent,
-                        modifier = Modifier.size(13.dp)
-                    )
-                    Text(
-                        text = stringResource(Res.string.detail_available_offline),
-                        modifier = Modifier.padding(start = 6.dp),
-                        fontFamily = bodyFont,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 11.sp,
-                        letterSpacing = 0.4.sp,
-                        color = colors.accent
+            Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                repeat(4) { line ->
+                    OrganicSkeleton(
+                        // The last line of a paragraph is short, so the block reads as prose
+                        // rather than as a grey rectangle.
+                        modifier = Modifier
+                            .fillMaxWidth(if (line == 3) 0.55f else 1f)
+                            .height(14.dp),
+                        cornerRadius = OrganicShape.radiusSm,
                     )
                 }
             }
-            HorizontalDivider(thickness = 1.dp, color = colors.line)
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .padding(start = 22.dp, end = 22.dp, top = 14.dp, bottom = 18.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                Column {
-                    Text(
-                        text = stringResource(Res.string.detail_price).uppercase(),
-                        fontFamily = bodyFont,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 10.sp,
-                        letterSpacing = 0.6.sp,
-                        color = colors.muted
-                    )
-                    Text(
-                        text = book.price,
-                        modifier = Modifier.padding(top = 4.dp),
-                        fontFamily = displayFont,
-                        fontWeight = FontWeight.Medium,
-                        fontSize = 22.sp,
-                        color = colors.ink
-                    )
-                }
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(52.dp)
-                        .clip(RoundedCornerShape(InkShape.radiusSm + 2.dp))
-                        .background(colors.accent)
-                        .clickable { onEvent(PrePurchaseEvent.PurchaseClicked) },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = stringResource(Res.string.detail_buy_now),
-                        fontFamily = bodyFont,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 15.sp,
-                        color = colors.onAccent
-                    )
-                }
-                Box(
-                    modifier = Modifier
-                        .size(52.dp)
-                        .clip(RoundedCornerShape(InkShape.radiusSm + 2.dp))
-                        .border(1.dp, colors.line, RoundedCornerShape(InkShape.radiusSm + 2.dp))
-                        .clickable { onEvent(PrePurchaseEvent.ViewSampleClicked) },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = InkIcons.BookOpen,
-                        contentDescription = null,
-                        tint = colors.ink,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-            }
+            OrganicSkeleton(
+                modifier = Modifier.fillMaxWidth().height(58.dp),
+                cornerRadius = OrganicShape.pill,
+            )
         }
     }
 }
 
+/** "6h 20m", or just minutes for anything short. */
 @Composable
-private fun MetaCell(
-    value: String,
-    label: String,
-    colors: InkColors,
+private fun readingTimeText(minutes: Int): String =
+    if (minutes >= 60) {
+        stringResource(Res.string.book_hours_minutes, minutes / 60, minutes % 60)
+    } else {
+        stringResource(Res.string.book_minutes, minutes)
+    }
+
+/** 12,345 becomes 12k — a pill has no room for the exact figure and no need for it. */
+private fun Int.toCompactCount(): String = when {
+    this >= 1_000_000 -> "${this / 1_000_000}m"
+    this >= 1_000 -> "${this / 1_000}k"
+    else -> toString()
+}
+
+/**
+ * The facts that belong in a list rather than a pill — who published it, when, how long, what
+ * language. Each row appears only if the catalogue carries it, so this whole block disappears for
+ * a record that carries none.
+ */
+@Composable
+private fun DetailsBlock(
+    uiState: PrePurchaseUiState,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally
+    val rows = buildList {
+        uiState.publisher?.let { add(stringResource(Res.string.book_publisher) to it) }
+        uiState.firstPublishYear?.let { add(stringResource(Res.string.book_published) to it.toString()) }
+        uiState.pages?.let { add(stringResource(Res.string.book_length) to stringResource(Res.string.book_pages, it)) }
+        uiState.language?.let { add(stringResource(Res.string.book_language) to it) }
+    }
+    if (rows.isEmpty()) return
+
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        OrganicSectionHeader(title = stringResource(Res.string.book_details))
+        rows.forEach { (label, value) ->
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = label,
+                    modifier = Modifier.weight(1f),
+                    fontFamily = organicBodyFontFamily(),
+                    fontSize = 14.sp,
+                    color = OrganicColors.neutral700
+                )
+                Text(
+                    text = value,
+                    modifier = Modifier.weight(1.4f),
+                    fontFamily = organicBodyFontFamily(),
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp,
+                    color = OrganicColors.text,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
+
+/**
+ * The way through to the ratings, and to leaving one.
+ *
+ * The score shown here is the one that came with the search row, which is often missing even for a
+ * well-rated book — Death's End has a hundred ratings and no `ratings_average` on its row. So when
+ * there is no number the line says where the row leads instead of saying nobody has rated it: the
+ * reviews screen asks the ratings endpoint itself and is the one that actually knows.
+ */
+@Composable
+private fun ReviewsRow(
+    uiState: PrePurchaseUiState,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    val subtitle = uiState.rating?.let { rating ->
+        uiState.ratingCount
+            ?.let { count -> stringResource(Res.string.book_rating_of, rating, count) }
+            ?: rating
+    } ?: stringResource(Res.string.book_ratings_unknown)
+
+    OrganicCard(
+        modifier = modifier.fillMaxWidth(),
+        elevated = true,
+        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 16.dp),
+        onClick = onClick,
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(3.dp)
+            ) {
+                Text(
+                    text = stringResource(Res.string.book_ratings_reviews),
+                    fontFamily = organicBodyFontFamily(),
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 15.sp,
+                    color = OrganicColors.text
+                )
+                Text(
+                    text = subtitle,
+                    fontFamily = organicBodyFontFamily(),
+                    fontSize = 13.sp,
+                    color = OrganicColors.neutral700
+                )
+            }
+            OrganicRowChevron()
+        }
+    }
+}
+
+/**
+ * Rating, length and genre as pills — each one only when the source actually carries it. An
+ * unrated book shows two pills rather than a made-up score.
+ */
+@Composable
+private fun MetaPills(uiState: PrePurchaseUiState) {
+    val pills = buildList {
+        uiState.rating?.let { add("★ $it" to true) }
+        uiState.minutesToRead?.let {
+            add(stringResource(Res.string.book_about_duration, readingTimeText(it)) to false)
+        }
+        uiState.pages?.let { add(stringResource(Res.string.book_pages, it) to false) }
+        // Gutenberg gives no rating and no length; how often a book has been downloaded is the
+        // one popularity signal it does give, and it is a real number.
+        uiState.downloadCount?.let { add(stringResource(Res.string.book_downloads, it.toCompactCount()) to false) }
+        uiState.genre?.let { add(it to false) }
+    }
+    if (pills.isEmpty()) return
+
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        pills.forEach { (label, isRating) ->
+            Text(
+                text = label,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(OrganicShape.pill))
+                    .background(
+                        if (isRating) OrganicColors.accent2_200 else OrganicColors.neutral200
+                    )
+                    .padding(horizontal = 14.dp, vertical = 7.dp),
+                fontFamily = organicBodyFontFamily(),
+                fontSize = 12.sp,
+                color = if (isRating) OrganicColors.accent2_900 else OrganicColors.text,
+                maxLines = 1
+            )
+        }
+    }
+}
+
+/** Buy, start, carry on, or read again — whichever this book actually is for this reader. */
+@Composable
+private fun PrimaryAction(
+    uiState: PrePurchaseUiState,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    val label = when {
+        uiState.ownership == BookOwnership.IN_PROGRESS -> stringResource(Res.string.book_continue_reading)
+        uiState.ownership == BookOwnership.FINISHED -> stringResource(Res.string.book_read_again)
+        uiState.ownership == BookOwnership.NOT_STARTED -> stringResource(Res.string.book_start_reading)
+        uiState.isFree -> stringResource(Res.string.book_read_free)
+        // Only a book that must be paid for shows a price, and only if the source gave one.
+        else -> uiState.price ?: stringResource(Res.string.book_start_reading)
+    }
+
+    Row(
+        modifier = modifier
+            .height(58.dp)
+            .shadow(
+                elevation = 6.dp,
+                shape = RoundedCornerShape(OrganicShape.pill),
+                ambientColor = OrganicColors.shadow.copy(alpha = 0.16f),
+                spotColor = OrganicColors.shadow.copy(alpha = 0.16f)
+            )
+            .clip(RoundedCornerShape(OrganicShape.pill))
+            .background(OrganicColors.accent)
+            .clickable(role = Role.Button, onClick = onClick),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            text = value,
-            fontFamily = inkDisplayFontFamily(),
-            fontWeight = FontWeight.Medium,
+            text = label,
+            fontFamily = organicBodyFontFamily(),
+            fontWeight = FontWeight.SemiBold,
             fontSize = 16.sp,
-            color = colors.ink
-        )
-        Text(
-            text = label.uppercase(),
-            modifier = Modifier.padding(top = 5.dp),
-            fontFamily = inkBodyFontFamily(),
-            fontWeight = FontWeight.Medium,
-            fontSize = 10.sp,
-            letterSpacing = 0.8.sp,
-            color = colors.muted
+            color = Color.White
         )
     }
 }
 
-@Preview(showBackground = true, widthDp = 375, heightDp = 820)
+/**
+ * The outlined circle beside the primary action. It is the one place the Organic system draws a
+ * hairline, and the design draws it that way: an outline reads as secondary next to a filled pill.
+ */
+@Composable
+private fun DownloadAction(
+    isDownloaded: Boolean,
+    isDownloading: Boolean,
+    onClick: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .size(58.dp)
+            .clip(RoundedCornerShape(OrganicShape.pill))
+            .background(if (isDownloaded) OrganicColors.accent2_200 else Color.Transparent)
+            .then(
+                if (isDownloaded) {
+                    Modifier
+                } else {
+                    Modifier.border(1.dp, OrganicColors.neutral400, RoundedCornerShape(OrganicShape.pill))
+                }
+            )
+            .clickable(enabled = !isDownloading && !isDownloaded, role = Role.Button, onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        when {
+            isDownloading -> CircularProgressIndicator(
+                modifier = Modifier.size(20.dp),
+                color = OrganicColors.neutral800,
+                strokeWidth = 2.dp
+            )
+
+            isDownloaded -> Icon(
+                imageVector = OrganicIcons.Check,
+                contentDescription = stringResource(Res.string.book_downloaded),
+                tint = OrganicColors.accent2_900,
+                modifier = Modifier.size(20.dp)
+            )
+
+            else -> Icon(
+                imageVector = OrganicIcons.Download,
+                contentDescription = stringResource(Res.string.book_download),
+                tint = OrganicColors.neutral800,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+    }
+}
+
+@Preview
 @Composable
 fun PrePurchaseScreenPreview() {
     PrePurchaseScreen()

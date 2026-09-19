@@ -3,6 +3,7 @@ package com.example.dz.data.repository
 import com.example.dz.core.result.AppResult
 import com.example.dz.core.time.currentEpochMillis
 import com.example.dz.data.local.LibraryLocalDataSource
+import com.example.dz.domain.model.Book
 import com.example.dz.domain.model.LibraryBook
 import com.example.dz.domain.model.ReadingProgress
 import com.example.dz.domain.repository.LibraryRepository
@@ -22,6 +23,18 @@ class LocalLibraryRepository(
     private val library: LibraryLocalDataSource,
     private val io: CoroutineDispatcher = Dispatchers.IO,
 ) : LibraryRepository {
+
+    /**
+     * `upsert` is INSERT OR REPLACE, so calling it on a book already on the shelf would throw away
+     * how far through it the reader is and whether it is downloaded. The row is only written when
+     * there is no row.
+     */
+    override suspend fun add(book: Book): AppResult<Unit> = withContext(io) {
+        if (library.getLibraryBook(book.id) == null) {
+            library.upsert(LibraryBook(book = book), addedAt = currentEpochMillis())
+        }
+        AppResult.Success(Unit)
+    }
 
     override suspend fun getLibraryBooks(): AppResult<List<LibraryBook>> = withContext(io) {
         AppResult.Success(library.getLibraryBooks())
