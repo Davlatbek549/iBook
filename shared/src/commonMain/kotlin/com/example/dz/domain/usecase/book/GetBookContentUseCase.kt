@@ -191,10 +191,12 @@ private const val COLUMN_GAP = "   "
  * blocks, which means the offsets the reader keeps its place with no longer line up with the
  * string they were measured against. Characters cost nothing and keep one text throughout.
  *
- * Two em spaces rather than a run of ordinary ones, because iOS trims the leading spaces off a
- * line and the indent simply disappears. An em space is a character in its own right and survives.
+ * Non-breaking spaces. Ordinary ones are trimmed off the start of a line on iOS and the indent
+ * disappears with them; so, it turns out, are em spaces. A non-breaking space is not a place a
+ * line may be broken, so no layout treats it as whitespace to be tidied away — which is why it is
+ * what the web has always indented with. Six of them come to about an em and a half.
  */
-private const val PARAGRAPH_INDENT = "\u2003\u2003"
+private const val PARAGRAPH_INDENT = "\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0"
 
 private const val PARAGRAPH_SPLIT = "\n\n"
 
