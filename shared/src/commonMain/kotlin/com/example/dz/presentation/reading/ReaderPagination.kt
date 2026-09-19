@@ -207,5 +207,10 @@ private const val MIN_WINDOW = 400
 /** How much headroom to add when the line cap turns out to be short of what the page holds. */
 private const val MORE_LINES = 4
 
-/** How often the cut so far is handed back — often enough to be read from, rarely enough to be cheap. */
-private const val PAGES_PER_REPORT = 10
+/**
+ * How often the cut so far is handed back.
+ *
+ * Every page: handing back a list costs nothing beside measuring one, and it means the reader
+ * opens on the first page the moment there is a first page rather than ten pages later.
+ */
+private const val PAGES_PER_REPORT = 1
