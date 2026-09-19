@@ -29,7 +29,8 @@ class GetBookContentLocalFirstTest {
 
         assertTrue(result is AppResult.Success, "got $result")
         assertEquals("Offline Title", result.data.title)
-        assertTrue(result.data.pages.isNotEmpty())
+        // Each is long enough to be prose, so each opens with the two em spaces a paragraph opens with.
+        assertEquals("\u2003\u2003Local paragraph one.\n\u2003\u2003Local paragraph two.", result.data.text)
         assertFalse(network.textFetched, "should not fetch from network when downloaded")
         Unit
     }

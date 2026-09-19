@@ -59,7 +59,6 @@ import com.example.dz.domain.usecase.auth.ResendVerificationCodeUseCase
 import com.example.dz.domain.usecase.auth.ResetPasswordUseCase
 import com.example.dz.domain.usecase.auth.SignUpUseCase
 import com.example.dz.domain.usecase.auth.VerifyEmailUseCase
-import com.example.dz.domain.usecase.book.BookPaginator
 import com.example.dz.domain.usecase.book.GetBookContentUseCase
 import com.example.dz.domain.usecase.book.GetBookDetailsUseCase
 import com.example.dz.domain.usecase.book.GetBookRatingsUseCase
@@ -223,7 +222,6 @@ val coreModule = module {
     factory { SaveMyReviewUseCase(get()) }
     factory { DeleteMyReviewUseCase(get()) }
     factory { GetCategoriesUseCase(get()) }
-    factory { BookPaginator() }
     factory { GetBookContentUseCase(repository = get(), downloadRepository = get()) }
     factory { DownloadBookUseCase(get()) }
     factory { DeleteDownloadUseCase(get()) }

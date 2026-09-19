@@ -106,11 +106,14 @@ class PrePurchaseViewModel(
      * The shelving is waited on rather than fired off beside the navigation: the reader asks the
      * library for its place in the book as it starts, and a row written a moment too late would
      * send it back to page one.
+     *
+     * A book with no text behind it is not shelved. The reader opens on "this book doesn't have a
+     * readable copy yet", and a shelf full of books nobody can open is worse than an empty one.
      */
     private fun openReader() {
         val bookId = _uiState.value.bookId
         viewModelScope.launch {
-            book?.let { addToLibrary(it) }
+            book?.takeIf { it.textUrl != null }?.let { addToLibrary(it) }
             emitEffect(PrePurchaseEffect.NavigateToReading(bookId))
         }
     }

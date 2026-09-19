@@ -82,11 +82,8 @@ class ReadingViewModel(
             is ReadingEvent.PageThemeChanged -> updatePreferences { it.copy(pageTheme = event.theme) }
             is ReadingEvent.SerifChanged -> updatePreferences { it.copy(useSerif = event.useSerif) }
             ReadingEvent.CommentsClicked -> emitEffect(ReadingEffect.NavigateToComments(bookId))
-            ReadingEvent.BookmarkToggled -> toggleBookmark()
-            ReadingEvent.NextPageClicked -> movePage(1)
-            ReadingEvent.PreviousPageClicked -> movePage(-1)
-            is ReadingEvent.ProgressScrubbed -> scrubTo(event.fraction)
-            ReadingEvent.ProgressScrubFinished -> persistProgress()
+            is ReadingEvent.BookmarkToggled -> toggleBookmark(event.pinned)
+            is ReadingEvent.PageSettled -> settleAt(event.offset)
             ReadingEvent.RetryClicked -> load()
             ReadingEvent.DownloadClicked -> download()
             ReadingEvent.DownloadSuccessDismissed ->
@@ -166,62 +163,43 @@ class ReadingViewModel(
         }
     }
 
-    /**
-     * Opens the book where it was left rather than at page one.
-     *
-     * Pages are cut on a fixed number of characters, so a page number means the same thing in every
-     * session and at every type size — which is what makes storing one worth doing.
-     */
+    /** Opens the book where it was left rather than at its first word. */
     private fun applyContent(content: BookContent) {
-        val resumed = readingPosition.lastPage(bookId).coerceIn(1, maxOf(content.pageCount, 1))
+        val resumed = readingPosition.lastOffset(bookId).coerceIn(0, content.text.length)
         _uiState.update {
             it.copy(
                 bookTitle = content.title,
-                pages = content.pages,
-                currentPage = resumed,
-                totalPages = content.pageCount,
-                bookmarkedPage = readingPosition.bookmark(bookId)
-                    ?.takeIf { page -> page <= content.pageCount },
+                text = content.text,
+                offset = resumed,
+                bookmarkOffset = readingPosition.bookmark(bookId)
+                    ?.takeIf { offset -> offset <= content.text.length },
                 isLoading = false,
                 errorMessage = null
             )
         }
     }
 
-    /** Pins the page being read, or unpins it when it is already the pinned one. */
-    private fun toggleBookmark() {
+    /** Pins where the reader is, or clears the pin. */
+    private fun toggleBookmark(pinned: Boolean) {
         _uiState.update { state ->
-            val pinned = if (state.bookmarked) null else state.currentPage
-            readingPosition.saveBookmark(bookId, pinned)
-            state.copy(bookmarkedPage = pinned)
+            val offset = state.offset.takeIf { pinned }
+            readingPosition.saveBookmark(bookId, offset)
+            state.copy(bookmarkOffset = offset)
         }
     }
 
     /**
-     * Dragging the progress bar.
+     * The reader came to rest somewhere new.
      *
-     * The page follows the finger, but only the local position is written while it moves; the
-     * library's percentage is written once on release, so a drag across a six-hundred-page book is
-     * one database write rather than six hundred.
+     * The offset is written every time, since it is a single key-value write and losing it means
+     * losing someone's place. The library's percentage goes with it, which is a database write, but
+     * it only happens when a page settles — a swipe that is flung through ten pages settles once.
      */
-    private fun scrubTo(fraction: Float) {
+    private fun settleAt(offset: Int) {
         val state = _uiState.value
-        if (state.totalPages <= 0) return
-        val target = (fraction.coerceIn(0f, 1f) * state.totalPages)
-            .toInt()
-            .coerceIn(0, state.totalPages - 1) + 1
-        if (target == state.currentPage) return
-        readingPosition.saveLastPage(bookId, target)
-        _uiState.update { it.copy(currentPage = target) }
-    }
-
-    private fun movePage(delta: Int) {
-        val state = _uiState.value
-        if (state.totalPages <= 0) return
-        val target = (state.currentPage + delta).coerceIn(1, state.totalPages)
-        if (target == state.currentPage) return
-        readingPosition.saveLastPage(bookId, target)
-        _uiState.update { it.copy(currentPage = target) }
+        if (offset == state.offset) return
+        readingPosition.saveLastOffset(bookId, offset)
+        _uiState.update { it.copy(offset = offset) }
         persistProgress()
     }
 

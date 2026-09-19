@@ -111,7 +111,10 @@ class BookContentMappingTest {
     fun cleanBookTextFallsBackWhenNoMarkersPresent() {
         val raw = "Just plain text\r\n\r\n\r\n\r\nwith extra blank lines."
         val cleaned = cleanBookText(raw)
-        assertEquals("Just plain text\n\nwith extra blank lines.", cleaned)
+        // The blank line between them is gone — a paragraph break is an indent now, not an empty
+        // line. The first half is too short to be a sentence, so it is read as a title and left
+        // where it is; the second is long enough to be prose and opens like one.
+        assertEquals("Just plain text\n${INDENT}with extra blank lines.", cleaned)
     }
 
     @Test
@@ -120,10 +123,40 @@ class BookContentMappingTest {
             "stood, in the year 1584, the chateau of Monsieur St. Aubert."
 
         assertEquals(
-            "On the pleasant banks of the Garonne, in the province of Gascony, " +
+            INDENT +
+                "On the pleasant banks of the Garonne, in the province of Gascony, " +
                 "stood, in the year 1584, the chateau of Monsieur St. Aubert.",
             cleanBookText(raw)
         )
+    }
+
+    @Test
+    fun cleanBookTextIndentsEveryProseParagraphAndNothingElse() {
+        val prose = "She paid the driver, refused his help with the trunk, and stood at the gate."
+        val raw = "CHAPTER FOUR\n\n$prose\n\n$prose\n\nTHE END"
+
+        assertEquals(
+            "CHAPTER FOUR\n$INDENT$prose\n$INDENT$prose\nTHE END",
+            cleanBookText(raw),
+            "a heading is short because the book meant it to be"
+        )
+    }
+
+    @Test
+    fun cleanBookTextDropsTheUnderscoresGutenbergSetsItalicsWith() {
+        val raw = "The catastrophe of _Mansfield Park_ is admittedly theatrical, and the hero is insipid."
+
+        assertEquals(
+            INDENT + "The catastrophe of Mansfield Park is admittedly theatrical, and the hero is insipid.",
+            cleanBookText(raw)
+        )
+    }
+
+    @Test
+    fun cleanBookTextKeepsAnUnderscoreInsideAWord() {
+        val raw = "The configuration key is written snake_case in every example given below here."
+
+        assertEquals(INDENT + raw, cleanBookText(raw))
     }
 
     @Test
@@ -131,5 +164,10 @@ class BookContentMappingTest {
         // A contents list: every line is short, so every break is the book's own.
         val raw = "VOLUME I\nCHAPTER I\nCHAPTER II\nCHAPTER III"
         assertEquals(raw, cleanBookText(raw))
+    }
+
+    private companion object {
+        /** The two em spaces a new paragraph opens with. */
+        const val INDENT = "\u2003\u2003"
     }
 }
