@@ -81,6 +81,7 @@ class ReadingViewModel(
             ReadingEvent.FontScaleCommitted -> readerPreferences.save(_uiState.value.preferences)
             is ReadingEvent.PageThemeChanged -> updatePreferences { it.copy(pageTheme = event.theme) }
             is ReadingEvent.SerifChanged -> updatePreferences { it.copy(useSerif = event.useSerif) }
+            is ReadingEvent.PageTurnChanged -> updatePreferences { it.copy(pageTurn = event.pageTurn) }
             ReadingEvent.CommentsClicked -> emitEffect(ReadingEffect.NavigateToComments(bookId))
             is ReadingEvent.BookmarkToggled -> toggleBookmark(event.pinned)
             is ReadingEvent.PageSettled -> settleAt(event.offset)

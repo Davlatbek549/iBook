@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
+import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -46,6 +47,10 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
@@ -72,6 +77,7 @@ import com.example.dz.designsystem.theme.OrganicShape
 import com.example.dz.designsystem.theme.organicBodyFontFamily
 import com.example.dz.designsystem.theme.organicSerifFontFamily
 import com.example.dz.domain.model.PageTheme
+import com.example.dz.domain.model.PageTurn
 import dz.shared.generated.resources.Res
 import dz.shared.generated.resources.book_download
 import dz.shared.generated.resources.book_downloaded
@@ -300,28 +306,102 @@ private fun ReaderPages(
             return@BoxWithConstraints
         }
 
-        HorizontalPager(
-            state = pagerState,
-            modifier = Modifier
-                .fillMaxSize()
-                // A tap anywhere shows or hides the chrome. Turning a page is a swipe now, so the
-                // tap does not have to be shared out between three parts of the screen.
-                .pointerInput(Unit) {
-                    detectTapGestures { onEvent(ReadingEvent.PageTapped) }
-                },
-            key = { it },
-        ) { index ->
-            Text(
-                text = pagination.pageText(index),
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = PAGE_GUTTER)
-                    .padding(top = PAGE_TOP, bottom = PAGE_BOTTOM),
-                style = style,
-            )
+        // A tap anywhere shows or hides the chrome. Turning a page is a swipe, so the tap does
+        // not have to be shared out between parts of the screen.
+        val pagerModifier = Modifier
+            .fillMaxSize()
+            .pointerInput(Unit) {
+                detectTapGestures { onEvent(ReadingEvent.PageTapped) }
+            }
+
+        if (uiState.preferences.pageTurn == PageTurn.SCROLL) {
+            VerticalPager(state = pagerState, modifier = pagerModifier, key = { it }) { index ->
+                PageOfText(pagination.pageText(index), style)
+            }
+        } else {
+            HorizontalPager(state = pagerState, modifier = pagerModifier, key = { it }) { index ->
+                PageOfText(
+                    text = pagination.pageText(index),
+                    style = style,
+                    modifier = if (uiState.preferences.pageTurn == PageTurn.CURL) {
+                        Modifier.turningSheet({ pagerState.offsetOfPage(index) }, page.ink)
+                    } else {
+                        Modifier
+                    },
+                )
+            }
         }
     }
 }
+
+/** One page's worth of words, set in the margins the page is measured against. */
+@Composable
+private fun PageOfText(
+    text: String,
+    style: TextStyle,
+    modifier: Modifier = Modifier,
+) {
+    Text(
+        text = text,
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = PAGE_GUTTER)
+            .padding(top = PAGE_TOP, bottom = PAGE_BOTTOM),
+        style = style,
+    )
+}
+
+/**
+ * Where a page sits relative to the one being read: 0 when it is the page, 1 when it is the next
+ * one to the right, -1 when it is the one behind. Fractions in between are a swipe in progress.
+ *
+ * Compose grew a `getOffsetFractionForPage` for this after the version here, and its sign is the
+ * other way round from what reads naturally for a book, so this says it once in the book's terms.
+ */
+private fun PagerState.offsetOfPage(page: Int): Float =
+    (page - currentPage) - currentPageOffsetFraction
+
+/**
+ * Turns a page like paper rather than sliding it.
+ *
+ * A book's right-hand sheet is hinged at the spine, so that is where this one turns: a page still
+ * to the right of centre is rotated about its own left edge, swinging flat as it arrives and
+ * lifting away as it leaves. The page beneath it barely moves — fifteen percent of the swipe, so
+ * it reads as the sheet underneath rather than a second thing sliding — and darkens as it is
+ * covered, with a soft shadow falling from the hinge across it.
+ *
+ * [offsetOf] is read in the draw and layer phases rather than in composition, so a swipe moves the
+ * page without recomposing a word of it.
+ */
+private fun Modifier.turningSheet(offsetOf: () -> Float, ink: Color): Modifier = this
+    .graphicsLayer {
+        val offset = offsetOf().coerceIn(-1f, 1f)
+        if (offset > 0f) {
+            // The sheet on the right, swinging on the spine.
+            transformOrigin = TransformOrigin(0f, 0.5f)
+            cameraDistance = SHEET_CAMERA_DISTANCE * density
+            rotationY = offset * SHEET_TURN_DEGREES
+        } else {
+            // The sheet underneath: mostly still, and dimmer the more of it is covered.
+            translationX = -offset * size.width * SHEET_PARALLAX
+            alpha = 1f + offset * SHEET_DIM
+        }
+    }
+    .drawWithContent {
+        drawContent()
+        val offset = offsetOf().coerceIn(-1f, 1f)
+        if (offset <= 0f) return@drawWithContent
+        // The shadow the lifted sheet casts back down the gutter it is hinged on.
+        val width = size.width * SHEET_SHADOW_WIDTH
+        drawRect(
+            brush = Brush.horizontalGradient(
+                colors = listOf(ink.copy(alpha = SHEET_SHADOW_ALPHA * offset), Color.Transparent),
+                startX = 0f,
+                endX = width,
+            ),
+            size = Size(width, size.height),
+        )
+    }
 
 /** Back, the book's name, and the pin for the page you are on. */
 @Composable
@@ -822,6 +902,16 @@ private const val ICON_FRACTION = 0.45f
 
 /** Long enough that dragging the size slider starts one pagination, not forty. */
 private const val REPAGINATE_DELAY_MILLIS = 180L
+
+/** How far the hinged sheet swings, and how it is seen — shallow enough to stay readable. */
+private const val SHEET_TURN_DEGREES = 42f
+private const val SHEET_CAMERA_DISTANCE = 14f
+
+/** How much of the swipe the sheet underneath takes, how far it dims, and the shadow on it. */
+private const val SHEET_PARALLAX = 0.85f
+private const val SHEET_DIM = 0.3f
+private const val SHEET_SHADOW_WIDTH = 0.18f
+private const val SHEET_SHADOW_ALPHA = 0.22f
 
 private const val SUCCESS_DWELL_MILLIS = 1_800L
 private const val ERROR_DWELL_MILLIS = 3_500L

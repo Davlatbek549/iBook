@@ -8,6 +8,16 @@ package com.example.dz.domain.model
 enum class PageTheme { CREAM, PAPER, SAGE, NIGHT }
 
 /**
+ * How one page gives way to the next.
+ *
+ * [SLIDE] is the plain one: the next page comes in from the side. [CURL] is the same swipe set
+ * like a book — the right-hand sheet is hinged at the spine and swings over, with the page beneath
+ * barely moving and darkening as it is covered. [SCROLL] turns the book on its side: pages are
+ * stacked downwards and a swipe up brings the next one.
+ */
+enum class PageTurn { SLIDE, CURL, SCROLL }
+
+/**
  * How the reader wants their pages set: how big, on what ground, in which face.
  *
  * Device-side, as the handoff specifies — this is about one person's eyes and one screen, not
@@ -18,6 +28,7 @@ data class ReaderPreferences(
     val pageTheme: PageTheme = PageTheme.CREAM,
     /** The serif is the alternative voice for long reading; Figtree is the app's own. */
     val useSerif: Boolean = false,
+    val pageTurn: PageTurn = PageTurn.SLIDE,
 ) {
     /** Body size in sp, from the design's 17sp base. */
     val bodySizeSp: Float get() = BASE_BODY_SP * fontScale

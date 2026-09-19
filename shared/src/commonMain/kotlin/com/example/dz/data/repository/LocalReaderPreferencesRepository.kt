@@ -2,6 +2,7 @@ package com.example.dz.data.repository
 
 import com.example.dz.data.local.LocalDataSource
 import com.example.dz.domain.model.PageTheme
+import com.example.dz.domain.model.PageTurn
 import com.example.dz.domain.model.ReaderPreferences
 import com.example.dz.domain.repository.ReaderPreferencesRepository
 
@@ -28,6 +29,10 @@ class LocalReaderPreferencesRepository(
             fontScale = scale.coerceIn(ReaderPreferences.MIN_FONT_SCALE, ReaderPreferences.MAX_FONT_SCALE),
             pageTheme = theme,
             useSerif = local.getSetting(KEY_SERIF) == true.toString(),
+            pageTurn = local.getSetting(KEY_PAGE_TURN)
+                .takeIf { it.isNotBlank() }
+                ?.let { name -> PageTurn.entries.firstOrNull { it.name == name } }
+                ?: PageTurn.SLIDE,
         )
     }
 
@@ -35,11 +40,13 @@ class LocalReaderPreferencesRepository(
         local.saveSetting(KEY_FONT_SCALE, preferences.fontScale.toString())
         local.saveSetting(KEY_PAGE_THEME, preferences.pageTheme.name)
         local.saveSetting(KEY_SERIF, preferences.useSerif.toString())
+        local.saveSetting(KEY_PAGE_TURN, preferences.pageTurn.name)
     }
 
     private companion object {
         const val KEY_FONT_SCALE = "reader_font_scale"
         const val KEY_PAGE_THEME = "reader_page_theme"
         const val KEY_SERIF = "reader_serif"
+        const val KEY_PAGE_TURN = "reader_page_turn"
     }
 }
