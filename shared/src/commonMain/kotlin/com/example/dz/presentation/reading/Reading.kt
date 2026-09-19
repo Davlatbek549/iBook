@@ -189,7 +189,7 @@ fun ReadingScreen(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .navigationBarsPadding()
-                    .padding(bottom = 34.dp)
+                    .padding(bottom = PAGE_NUMBER_DROP)
                     .alpha(1f - chromeAlpha),
                 fontFamily = organicBodyFontFamily(),
                 fontSize = 12.sp,
@@ -438,7 +438,7 @@ private fun ProgressRow(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 28.dp)
-            .padding(top = 18.dp)
+            .padding(top = 10.dp)
             .alpha(alpha),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -529,7 +529,7 @@ private fun ReaderActions(
             .fillMaxWidth()
             .navigationBarsPadding()
             .padding(horizontal = 28.dp)
-            .padding(top = 18.dp, bottom = 30.dp)
+            .padding(top = 12.dp, bottom = 12.dp)
             .alpha(alpha),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -798,10 +798,21 @@ private fun PageSkeleton(cutSoFar: Int? = null) {
 private const val LINE_HEIGHT_RATIO = 1.45f
 private const val CHROME_FADE_MILLIS = 180
 
-/** The margins a page is set in, and therefore what the text is measured against. */
+/**
+ * The margins a page is set in, and therefore what the text is measured against.
+ *
+ * The foot is kept short. Everything below the page — the progress row, the tools, the home
+ * indicator — holds its place whether the chrome is showing or not, because a page that grew when
+ * the chrome went would have to be cut again with somebody mid-sentence on it. That reserved band
+ * is already most of what stands between the last line and the foot of the screen, so the page
+ * itself does not add to it.
+ */
 private val PAGE_GUTTER = 28.dp
 private val PAGE_TOP = 26.dp
-private val PAGE_BOTTOM = 24.dp
+private val PAGE_BOTTOM = 8.dp
+
+/** How far the page number sits above the foot of the screen, over the home indicator. */
+private val PAGE_NUMBER_DROP = 19.dp
 
 private val ACTION_SIZE = 46.dp
 private val SCRUB_TARGET_HEIGHT = 24.dp
