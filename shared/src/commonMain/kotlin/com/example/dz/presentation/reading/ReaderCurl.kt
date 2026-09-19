@@ -1,13 +1,13 @@
 package com.example.dz.presentation.reading
 
-import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.VectorConverter
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.pager.PagerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -19,7 +19,6 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Matrix
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.clipPath
@@ -31,6 +30,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextStyle
 import com.example.dz.designsystem.components.organic.OrganicPageColors
 import kotlinx.coroutines.launch
+import kotlin.math.PI
+import kotlin.math.atan2
 import kotlin.math.hypot
 
 /**
@@ -44,12 +45,16 @@ import kotlin.math.hypot
  * Everything past the fold is the back of the sheet — the same page reflected, so its words come
  * out mirrored and show through the paper, exactly as they do when a real page is half over.
  *
- * The pager is still the authority on which page is being read even though it draws nothing here;
- * a completed turn tells it to move, so the progress bar, the count and the pin all go on working.
+ * There is no pager behind this one, so it does not borrow a pager's page index: it is told which
+ * page is being read and says when that has changed. A pager whose layout is not composed cannot
+ * be scrolled — asking it to waits for a layout that never comes — which is exactly the shape of
+ * the bug this replaced, a turn that finished on screen and then never committed.
  */
 @Composable
 internal fun CurlingPages(
-    pagerState: PagerState,
+    index: Int,
+    pageCount: Int,
+    onIndexChange: (Int) -> Unit,
     pageText: (Int) -> String,
     style: TextStyle,
     page: OrganicPageColors,
@@ -58,62 +63,88 @@ internal fun CurlingPages(
 ) {
     val scope = rememberCoroutineScope()
     val sheet = rememberGraphicsLayer()
-    val finger = remember { Animatable(Offset.Zero, Offset.VectorConverter) }
+    // The finger is plain state, written straight from the gesture. It used to be an Animatable
+    // snapped to from a coroutine launched per drag event, which is a race for every frame of a
+    // swipe; the animation on release is the only part that needs to be driven over time.
+    var finger by remember { mutableStateOf(Offset.Zero) }
     var turn by remember { mutableStateOf<Turn?>(null) }
 
-    val current = pagerState.currentPage
     val live = turn
-    // Which sheet is on top, and which is being uncovered beneath it.
-    val topPage = if (live?.direction == Direction.BACK) current - 1 else current
-    val underPage = if (live?.direction == Direction.BACK) current else current + 1
+    // Fixed when the turn starts, not read off [index] each frame: the page moves the moment a
+    // turn completes, and a sheet that swapped its own face at that moment would flash.
+    val topPage = live?.topPage ?: index
+    val underPage = live?.underPage ?: (index + 1)
 
     Box(
         modifier = modifier
             .fillMaxSize()
             .pointerInput(Unit) { detectTapGestures { onTap() } }
-            .pointerInput(pagerState) {
+            .pointerInput(pageCount, index) {
                 detectDragGestures(
                     onDragStart = { start ->
                         // The sheet is always hinged at the right edge; where along it decides
                         // whether the fold comes out vertical or diagonal.
-                        turn = Turn(
-                            origin = Offset(size.width.toFloat(), start.y),
-                            direction = null,
-                        )
-                        scope.launch { finger.snapTo(start) }
+                        turn = Turn(origin = Offset(size.width.toFloat(), start.y))
+                        finger = start
                     },
                     onDrag = { change, delta ->
                         change.consume()
                         val started = turn ?: return@detectDragGestures
-                        // The first real movement says which way the book is going.
-                        val direction = started.direction ?: when {
-                            delta.x < 0f && current < pagerState.pageCount - 1 -> Direction.FORWARD
-                            delta.x > 0f && current > 0 -> Direction.BACK
-                            else -> null
+                        // The first real movement says which way the book is going, and fixes
+                        // which two pages this turn is between.
+                        if (started.direction == null) {
+                            turn = when {
+                                delta.x < 0f && index < pageCount - 1 -> started.copy(
+                                    direction = Direction.FORWARD,
+                                    topPage = index,
+                                    underPage = index + 1,
+                                )
+
+                                delta.x > 0f && index > 0 -> started.copy(
+                                    direction = Direction.BACK,
+                                    topPage = index - 1,
+                                    underPage = index,
+                                )
+
+                                else -> started
+                            }
                         }
-                        turn = started.copy(direction = direction)
-                        if (direction != null) scope.launch { finger.snapTo(change.position) }
+                        finger = change.position
                     },
                     onDragEnd = {
                         val ending = turn ?: return@detectDragGestures
                         scope.launch {
-                            finishTurn(ending, finger, size.width.toFloat(), pagerState)
-                            turn = null
+                            finishTurn(
+                                turn = ending,
+                                from = finger,
+                                width = size.width.toFloat(),
+                                pageCount = pageCount,
+                                onFinger = { finger = it },
+                                onLanded = onIndexChange,
+                                onDone = { turn = null },
+                            )
                         }
                     },
                     onDragCancel = {
                         val ending = turn ?: return@detectDragGestures
+                        val from = finger
                         scope.launch {
-                            finger.animateTo(ending.origin, tween(SETTLE_MILLIS))
+                            animate(Offset.VectorConverter, from, ending.origin, animationSpec = tween(SETTLE_MILLIS)) { value, _ ->
+                                finger = value
+                            }
                             turn = null
                         }
                     },
                 )
             }
     ) {
-        // The page being uncovered lies underneath, plain.
-        if (underPage in 0 until pagerState.pageCount) {
-            PageOfText(pageText(underPage), style)
+        // The page being uncovered lies underneath, plain. Both sheets carry their own ground:
+        // paper is not transparent, and without it the page beneath reads straight through the
+        // one on top of it.
+        if (underPage in 0 until pageCount) {
+            Box(Modifier.fillMaxSize().background(page.ground)) {
+                PageOfText(pageText(underPage), style)
+            }
         }
 
         // The sheet on top is recorded once and then drawn twice: the part still lying down, and
@@ -123,11 +154,15 @@ internal fun CurlingPages(
                 .fillMaxSize()
                 .drawWithContent {
                     sheet.record { this@drawWithContent.drawContent() }
-                    val fold = live?.foldOrNull(finger.value)
+                    val fold = live?.foldOrNull(finger)
                     if (fold == null) drawLayer(sheet) else drawFoldedSheet(sheet, fold, page)
                 }
+                // After the recording, not before: the ground has to be part of what the sheet
+                // is, or it paints over the page underneath and the sheet's own layer comes out
+                // transparent.
+                .background(page.ground)
         ) {
-            if (topPage in 0 until pagerState.pageCount) {
+            if (topPage in 0 until pageCount) {
                 PageOfText(pageText(topPage), style)
             }
         }
@@ -136,7 +171,13 @@ internal fun CurlingPages(
 
 private enum class Direction { FORWARD, BACK }
 
-private data class Turn(val origin: Offset, val direction: Direction?) {
+private data class Turn(
+    val origin: Offset,
+    val direction: Direction? = null,
+    /** Fixed when the direction is, so the pager moving underneath cannot change the faces. */
+    val topPage: Int = 0,
+    val underPage: Int = 0,
+) {
     /** No direction yet, or a finger still on the hinge, means the sheet is simply lying flat. */
     fun foldOrNull(finger: Offset): Fold? {
         if (direction == null) return null
@@ -161,6 +202,9 @@ private data class Fold(val origin: Offset, val finger: Offset) {
 
     /** Along the crease itself. */
     val along: Offset get() = Offset(-across.y, across.x)
+
+    /** The crease's own angle, which is how far the world is turned to lay it flat. */
+    val creaseDegrees: Float get() = atan2(along.y, along.x) * 180f / PI.toFloat()
 }
 
 /**
@@ -191,7 +235,15 @@ private fun DrawScope.drawFoldedSheet(sheet: GraphicsLayer, fold: Fold, page: Or
     val raised = bounds.keepSideOf(fold.middle, fold.across, keepPositive = false)
     if (raised.isEmpty()) return
     val path = raised.toPath()
-    withTransform({ transform(reflectionAcross(fold)) }) {
+    // Reflection across the crease, said with the canvas's own moves: turn the world until the
+    // crease lies flat, flip over it, turn the world back. The calls read backwards because the
+    // last one issued is the first one the geometry meets.
+    val crease = fold.creaseDegrees
+    withTransform({
+        rotate(crease, fold.middle)
+        scale(1f, -1f, fold.middle)
+        rotate(-crease, fold.middle)
+    }) {
         clipPath(path) {
             drawLayer(sheet)
             // Paper is not glass: the words on the far face come through it, not off it.
@@ -226,30 +278,6 @@ private fun DrawScope.drawFoldShadow(fold: Fold, page: OrganicPageColors) {
                 end = fold.middle - direction * FOLD_SHADOW_PX,
             )
         )
-    }
-}
-
-/**
- * Reflection across the crease.
- *
- * Written straight into the matrix rather than built from a translate-rotate-scale-rotate-translate
- * sandwich: the sandwich is four chances to get an order wrong, and this is the same thing said
- * once.
- */
-private fun reflectionAcross(fold: Fold): Matrix {
-    val along = fold.along.normalised()
-    val a = along.x * along.x - along.y * along.y
-    val b = 2f * along.x * along.y
-    val middle = fold.middle
-
-    return Matrix().apply {
-        this[0, 0] = a
-        this[1, 0] = b
-        this[0, 1] = b
-        this[1, 1] = -a
-        // Put the crease back through the middle point after reflecting about the origin.
-        this[0, 3] = middle.x - (a * middle.x + b * middle.y)
-        this[1, 3] = middle.y - (b * middle.x - a * middle.y)
     }
 }
 
@@ -304,12 +332,19 @@ private operator fun Offset.times(scale: Float) = Offset(x * scale, y * scale)
  */
 private suspend fun finishTurn(
     turn: Turn,
-    finger: Animatable<Offset, *>,
+    from: Offset,
     width: Float,
-    pagerState: PagerState,
+    pageCount: Int,
+    onFinger: (Offset) -> Unit,
+    onLanded: (Int) -> Unit,
+    onDone: () -> Unit,
 ) {
-    val direction = turn.direction ?: return
-    val carried = turn.origin.x - finger.value.x
+    val direction = turn.direction
+    if (direction == null) {
+        onDone()
+        return
+    }
+    val carried = turn.origin.x - from.x
     val goesOver = when (direction) {
         Direction.FORWARD -> carried > width * TURN_THRESHOLD
         Direction.BACK -> carried < width * (1f - TURN_THRESHOLD)
@@ -317,19 +352,20 @@ private suspend fun finishTurn(
 
     val target = when {
         // Off the left edge entirely, so the sheet is fully over before the page index moves.
-        goesOver && direction == Direction.FORWARD -> Offset(-width, finger.value.y)
+        goesOver && direction == Direction.FORWARD -> Offset(-width, from.y)
         goesOver && direction == Direction.BACK -> turn.origin
         direction == Direction.FORWARD -> turn.origin
-        else -> Offset(-width, finger.value.y)
+        else -> Offset(-width, from.y)
     }
-    finger.animateTo(target, tween(SETTLE_MILLIS))
+    animate(Offset.VectorConverter, from, target, animationSpec = tween(SETTLE_MILLIS)) { value, _ ->
+        onFinger(value)
+    }
 
-    if (!goesOver) return
-    val landing = when (direction) {
-        Direction.FORWARD -> pagerState.currentPage + 1
-        Direction.BACK -> pagerState.currentPage - 1
+    if (goesOver) {
+        val landing = if (direction == Direction.FORWARD) turn.underPage else turn.topPage
+        if (landing in 0 until pageCount) onLanded(landing)
     }
-    if (landing in 0 until pagerState.pageCount) pagerState.scrollToPage(landing)
+    onDone()
 }
 
 /** Below this the fold is too small to be a fold, and the sheet is simply lying down. */

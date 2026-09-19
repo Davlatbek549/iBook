@@ -33,6 +33,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -116,6 +117,7 @@ fun ReadingScreen(
     modifier: Modifier = Modifier,
 ) {
     val page = uiState.preferences.pageTheme.colors()
+    val scope = rememberCoroutineScope()
     val chromeAlpha by animateFloatAsState(
         targetValue = if (uiState.chromeVisible) 1f else 0f,
         animationSpec = tween(CHROME_FADE_MILLIS),
@@ -129,7 +131,15 @@ fun ReadingScreen(
     // Cut fresh for each book: a pagination belongs to one text at one size on one screen.
     var pagination by remember(uiState.text) { mutableStateOf(ReaderPagination.Empty) }
     val pagerState = rememberPagerState(pageCount = { pagination.pageCount })
-    val pinnedHere = pagination.holds(uiState.bookmarkOffset, pagerState.currentPage)
+    // Paper turns have no pager behind them — a pager whose layout is never composed cannot be
+    // scrolled — so the page being read is held here, where every way of turning can reach it.
+    val turnsByHand = uiState.preferences.pageTurn == PageTurn.CURL
+    var handPage by remember(uiState.text) { mutableIntStateOf(0) }
+    val pageIndex = if (turnsByHand) handPage else pagerState.currentPage
+    val goToPage: (Int) -> Unit = { target ->
+        if (turnsByHand) handPage = target else scope.launch { pagerState.scrollToPage(target) }
+    }
+    val pinnedHere = pagination.holds(uiState.bookmarkOffset, pageIndex)
 
     Box(
         modifier = modifier
@@ -159,6 +169,8 @@ fun ReadingScreen(
                         page = page,
                         pagination = pagination,
                         pagerState = pagerState,
+                        pageIndex = pageIndex,
+                        goToPage = goToPage,
                         onPaginated = { pagination = it },
                         onEvent = onEvent,
                     )
@@ -171,7 +183,8 @@ fun ReadingScreen(
                     uiState = uiState,
                     page = page,
                     pagination = pagination,
-                    pagerState = pagerState,
+                    pageIndex = pageIndex,
+                    goToPage = goToPage,
                     alpha = chromeAlpha,
                 )
                 ReaderActions(
@@ -187,7 +200,7 @@ fun ReadingScreen(
         // it has a number at the foot of every page. It takes the chrome's place as that fades.
         if (uiState.hasText && pagination !== ReaderPagination.Empty) {
             Text(
-                text = (pagerState.currentPage + 1).toString(),
+                text = (pageIndex + 1).toString(),
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .navigationBarsPadding()
@@ -224,6 +237,8 @@ private fun ReaderPages(
     page: OrganicPageColors,
     pagination: ReaderPagination,
     pagerState: PagerState,
+    pageIndex: Int,
+    goToPage: (Int) -> Unit,
     onPaginated: (ReaderPagination) -> Unit,
     onEvent: (ReadingEvent) -> Unit,
 ) {
@@ -288,11 +303,12 @@ private fun ReaderPages(
         // cut anew, which is what keeps a size change from also being a jump. Only then is the
         // pager listened to: a freshly cut book sits on page one until it is told otherwise, and
         // reporting that as a place the reader went would write away the place they were at.
-        LaunchedEffect(cut) {
+        val turnsByHand = uiState.preferences.pageTurn == PageTurn.CURL
+        LaunchedEffect(cut, turnsByHand) {
             snapshotFlow { pagination }.first { it.covers(uiState.offset) }
             val target = pagination.pageOf(uiState.offset)
-            if (pagerState.currentPage != target) pagerState.scrollToPage(target)
-            snapshotFlow { pagerState.settledPage }
+            if (pageIndex != target) goToPage(target)
+            snapshotFlow { if (turnsByHand) pageIndex else pagerState.settledPage }
                 .drop(1)
                 .collect { index -> onEvent(ReadingEvent.PageSettled(pagination.startOf(index))) }
         }
@@ -314,7 +330,9 @@ private fun ReaderPages(
             // Paper does not slide, so this one is not a pager: it draws the sheet it is turning
             // and tells the pager where the reader landed once the turn is done.
             PageTurn.CURL -> CurlingPages(
-                pagerState = pagerState,
+                index = pageIndex,
+                pageCount = pagination.pageCount,
+                onIndexChange = goToPage,
                 pageText = pagination::pageText,
                 style = style,
                 page = page,
@@ -447,19 +465,19 @@ private fun ProgressRow(
     uiState: ReadingUiState,
     page: OrganicPageColors,
     pagination: ReaderPagination,
-    pagerState: PagerState,
+    pageIndex: Int,
+    goToPage: (Int) -> Unit,
     alpha: Float,
 ) {
-    val scope = rememberCoroutineScope()
     val pageCount = pagination.pageCount
-    val current = pagerState.currentPage
+    val current = pageIndex
     val bookmarkAt = uiState.bookmarkOffset
         ?.takeIf { pageCount > 1 }
         ?.let { pagination.pageOf(it).toFloat() / (pageCount - 1) }
 
     fun scrubTo(fraction: Float) {
         val target = (fraction.coerceIn(0f, 1f) * (pageCount - 1)).toInt().coerceIn(0, pageCount - 1)
-        if (target != pagerState.currentPage) scope.launch { pagerState.scrollToPage(target) }
+        if (target != pageIndex) goToPage(target)
     }
 
     Row(
