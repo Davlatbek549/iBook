@@ -43,6 +43,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -143,7 +144,16 @@ fun ReadingScreen(
                 onEvent = onEvent,
             )
 
-            Box(modifier = Modifier.weight(1f)) {
+            // With the chrome gone, the band the header sat in is empty and the page slides
+            // down into it. A draw-time move, not a layout one: the page keeps the size it was
+            // cut for, so nothing is re-cut and nobody loses their place mid-sentence — the same
+            // words simply sit lower, nearer the foot of the screen.
+            val headerPx = with(LocalDensity.current) { READER_HEADER_HEIGHT.toPx() }
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .graphicsLayer { translationY = headerPx * (1f - chromeAlpha) }
+            ) {
                 when {
                     uiState.isLoading -> PageSkeleton()
                     uiState.errorMessage != null -> PageError(
@@ -335,6 +345,7 @@ private fun ReaderHeader(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .height(READER_HEADER_HEIGHT)
             .padding(start = 24.dp, end = 24.dp, top = 12.dp)
             .alpha(alpha),
         horizontalArrangement = Arrangement.spacedBy(14.dp),
@@ -438,7 +449,7 @@ private fun ProgressRow(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 28.dp)
-            .padding(top = 10.dp)
+            .padding(top = 6.dp)
             .alpha(alpha),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -529,7 +540,7 @@ private fun ReaderActions(
             .fillMaxWidth()
             .navigationBarsPadding()
             .padding(horizontal = 28.dp)
-            .padding(top = 12.dp, bottom = 12.dp)
+            .padding(top = 10.dp, bottom = 4.dp)
             .alpha(alpha),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -809,13 +820,22 @@ private const val CHROME_FADE_MILLIS = 180
  */
 private val PAGE_GUTTER = 28.dp
 private val PAGE_TOP = 26.dp
-private val PAGE_BOTTOM = 8.dp
+private val PAGE_BOTTOM = 6.dp
 
 /** How far the page number sits above the foot of the screen, over the home indicator. */
-private val PAGE_NUMBER_DROP = 19.dp
+private val PAGE_NUMBER_DROP = 9.dp
+
+/**
+ * The band the header occupies, and therefore how far the page slides when the header fades.
+ *
+ * Declared here and given to the header as its height, so the two cannot drift apart: if the page
+ * slid further than the header is tall it would open a gap above the text instead of closing one
+ * below it.
+ */
+private val READER_HEADER_HEIGHT = 50.dp
 
 private val ACTION_SIZE = 46.dp
-private val SCRUB_TARGET_HEIGHT = 24.dp
+private val SCRUB_TARGET_HEIGHT = 22.dp
 
 /** How much of a round button its glyph fills, at every size the reader draws one. */
 private const val ICON_FRACTION = 0.45f
