@@ -54,8 +54,6 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
-import androidx.compose.ui.text.style.Hyphens
-import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Constraints
@@ -89,11 +87,10 @@ import dz.shared.generated.resources.reader_comments
 import dz.shared.generated.resources.reader_display_options
 import dz.shared.generated.resources.reader_page_of
 import dz.shared.generated.resources.reader_try_again
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -229,9 +226,7 @@ private fun ReaderPages(
     onEvent: (ReadingEvent) -> Unit,
 ) {
     val density = LocalDensity.current
-    // Its own measurer, uncached: every measurement during a pagination is of different text, so a
-    // cache would only hold pages nobody will ask for again.
-    val measurer = rememberTextMeasurer(cacheSize = 0)
+    val measurer = rememberTextMeasurer()
 
     val face = if (uiState.preferences.useSerif) organicSerifFontFamily() else organicBodyFontFamily()
     val bodySize = uiState.preferences.bodySizeSp.sp
@@ -248,31 +243,42 @@ private fun ReaderPages(
         // choosing breaks for a whole paragraph rather than greedily line by line, so without
         // this the hyphens above are simply never used.
         textAlign = TextAlign.Justify,
-        hyphens = Hyphens.Auto,
-        lineBreak = LineBreak.Paragraph,
+        hyphens = readerHyphens(),
+        lineBreak = readerLineBreak(),
     )
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize().clipToBounds()) {
         val textWidth = with(density) { (maxWidth - PAGE_GUTTER * 2).roundToPx() }
         val textHeight = with(density) { (maxHeight - PAGE_TOP - PAGE_BOTTOM).roundToPx() }
+        val lineHeightPx = with(density) { (bodySize * LINE_HEIGHT_RATIO).toPx() }
 
-        LaunchedEffect(
+        // One cut of one book, at one size, on one screen. Everything below hangs off it rather
+        // than off the pagination itself, which arrives in instalments.
+        val cut = remember(
             uiState.text,
             uiState.preferences.fontScale,
             uiState.preferences.useSerif,
             textWidth,
             textHeight,
-        ) {
+        ) { Any() }
+
+        LaunchedEffect(cut) {
             delay(REPAGINATE_DELAY_MILLIS)
+            // Measured on the main thread on purpose. Text layout off it is minutes slower on
+            // iOS — cutting a novel there never finished — so the cut runs here and yields
+            // between pages instead, which keeps the screen answering while it works.
             onPaginated(
-                withContext(Dispatchers.Default) {
-                    paginateForViewport(
-                        text = uiState.text,
-                        measurer = measurer,
-                        style = style,
-                        constraints = Constraints(maxWidth = textWidth, maxHeight = textHeight),
-                    )
-                }
+                paginateForViewport(
+                    text = uiState.text,
+                    measurer = measurer,
+                    style = style,
+                    constraints = Constraints(maxWidth = textWidth, maxHeight = textHeight),
+                    lineHeightPx = lineHeightPx,
+                    // Hand the pages back as they are found. Cutting a long novel is not
+                    // instant, and there is no reason to hold someone at a blank screen once
+                    // the page they are on has been found.
+                    onProgress = { onPaginated(it) },
+                )
             )
         }
 
@@ -280,7 +286,8 @@ private fun ReaderPages(
         // cut anew, which is what keeps a size change from also being a jump. Only then is the
         // pager listened to: a freshly cut book sits on page one until it is told otherwise, and
         // reporting that as a place the reader went would write away the place they were at.
-        LaunchedEffect(pagination) {
+        LaunchedEffect(cut) {
+            snapshotFlow { pagination }.first { it.covers(uiState.offset) }
             val target = pagination.pageOf(uiState.offset)
             if (pagerState.currentPage != target) pagerState.scrollToPage(target)
             snapshotFlow { pagerState.settledPage }
@@ -288,8 +295,8 @@ private fun ReaderPages(
                 .collect { index -> onEvent(ReadingEvent.PageSettled(pagination.startOf(index))) }
         }
 
-        if (pagination === ReaderPagination.Empty) {
-            PageSkeleton()
+        if (!pagination.covers(uiState.offset)) {
+            PageSkeleton(cutSoFar = pagination.pageCount.takeIf { it > 1 })
             return@BoxWithConstraints
         }
 
@@ -453,7 +460,13 @@ private fun ProgressRow(
                 },
             contentAlignment = Alignment.Center
         ) {
-            val filled = if (pageCount > 1) (current + 1).toFloat() / pageCount else 1f
+            // While the count is still growing the bar follows the text instead of the pages —
+            // the same fraction, and one that does not slide backwards as more pages are found.
+            val filled = when {
+                !pagination.isComplete -> uiState.progress
+                pageCount > 1 -> (current + 1).toFloat() / pageCount
+                else -> 1f
+            }
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -470,7 +483,13 @@ private fun ProgressRow(
             )
         }
         Text(
-            text = stringResource(Res.string.reader_page_of, current + 1, pageCount),
+            // A total that is still being counted is not a total, so until the last page is found
+            // the reader is told which page they are on and nothing they would have to unlearn.
+            text = if (pagination.isComplete) {
+                stringResource(Res.string.reader_page_of, current + 1, pageCount)
+            } else {
+                (current + 1).toString()
+            },
             fontFamily = organicBodyFontFamily(),
             fontSize = 12.sp,
             color = page.ink.copy(alpha = 0.7f)
@@ -733,9 +752,14 @@ private fun ReaderCircleButton(
     }
 }
 
-/** A page's worth of grey lines while the book's text is still being fetched, or cut. */
+/**
+ * A page's worth of grey lines while the book's text is still being fetched, or cut.
+ *
+ * [cutSoFar] is shown once there is something to show: a book long enough to keep somebody waiting
+ * is a book where a still screen looks broken and a rising number does not.
+ */
 @Composable
-private fun PageSkeleton() {
+private fun PageSkeleton(cutSoFar: Int? = null) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -749,6 +773,15 @@ private fun PageSkeleton() {
                     .fillMaxWidth(if (line % 4 == 3) 0.6f else 1f)
                     .height(14.dp),
                 cornerRadius = OrganicShape.radiusSm,
+            )
+        }
+        cutSoFar?.let { pages ->
+            Text(
+                text = pages.toString(),
+                modifier = Modifier.padding(top = 12.dp),
+                fontFamily = organicBodyFontFamily(),
+                fontSize = 12.sp,
+                color = OrganicColors.neutral700
             )
         }
     }
