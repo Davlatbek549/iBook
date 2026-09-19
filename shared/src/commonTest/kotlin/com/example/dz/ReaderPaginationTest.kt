@@ -1,6 +1,7 @@
 package com.example.dz
 
 import com.example.dz.presentation.reading.ReaderPagination
+import com.example.dz.presentation.reading.wholeWord
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -51,6 +52,34 @@ class ReaderPaginationTest {
 
         assertEquals(1, pagination.pageOf(21))
         assertEquals(1, larger.pageOf(21), "21 is inside the second page of the bigger type too")
+    }
+
+    @Test
+    fun aPageNeverEndsInTheMiddleOfAWord() {
+        val line = "the author had improved her general"
+
+        // "improved" would have been hyphenated across the break; the whole word goes over.
+        assertEquals(
+            line.indexOf("improved"),
+            wholeWord(line, end = line.indexOf("improved") + 2, floor = 0)
+        )
+    }
+
+    @Test
+    fun aBreakThatAlreadyFallsBetweenWordsIsLeftAlone() {
+        val line = "the author had improved her general"
+        val betweenWords = line.indexOf("improved")
+
+        assertEquals(betweenWords, wholeWord(line, end = betweenWords, floor = 0))
+        assertEquals(line.length, wholeWord(line, end = line.length, floor = 0))
+    }
+
+    @Test
+    fun aWordLongerThanThePageIsLeftBroken() {
+        val unbroken = "Llanfairpwllgwyngyllgogerychwyrndrobwllllantysiliogogogoch"
+
+        // Backing up would make a page with nothing on it, so the break stays where it fell.
+        assertEquals(20, wholeWord(unbroken, end = 20, floor = 0))
     }
 
     @Test

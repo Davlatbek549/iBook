@@ -112,6 +112,7 @@ suspend fun paginateForViewport(
 
             if (next == -1) continue
             if (next <= cursor) next = minOf(text.length, cursor + 1)
+            next = wholeWord(text, end = next, floor = cursor)
         }
 
         // A page never opens on a blank line: the break above often lands just before the one that
@@ -122,6 +123,25 @@ suspend fun paginateForViewport(
     }
 
     return ReaderPagination(text = text, starts = starts)
+}
+
+/**
+ * Pulls a page break back off the middle of a word.
+ *
+ * Hyphenation breaks lines inside words, and the hyphen it draws is the layout's, not the text's.
+ * When such a break is also a page break there is nothing to draw the hyphen on — the page would
+ * simply end in "im" and the next would open on "proved" — so the whole word goes over instead.
+ *
+ * [floor] is where the page started: a single word longer than a whole page has nowhere to go, and
+ * is left broken rather than made into a page that holds nothing.
+ */
+internal fun wholeWord(text: String, end: Int, floor: Int): Int {
+    if (end <= floor || end >= text.length) return end
+    if (text[end - 1].isWhitespace() || text[end].isWhitespace()) return end
+
+    var start = end
+    while (start > floor && !text[start - 1].isWhitespace()) start--
+    return if (start > floor) start else end
 }
 
 /**

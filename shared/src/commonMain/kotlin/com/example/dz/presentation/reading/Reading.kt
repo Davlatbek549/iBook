@@ -54,6 +54,8 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.Hyphens
+import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Constraints
@@ -238,6 +240,16 @@ private fun ReaderPages(
         fontSize = bodySize,
         lineHeight = bodySize * LINE_HEIGHT_RATIO,
         color = page.ink,
+        // Both edges flush, the way a book is set. Hyphenation comes with it rather than after
+        // it: justifying a forty-character line without leave to break a word stretches the
+        // spaces instead, and a page of that has rivers running down it.
+        //
+        // The line-break strategy has to be asked for too. Android only hyphenates when it is
+        // choosing breaks for a whole paragraph rather than greedily line by line, so without
+        // this the hyphens above are simply never used.
+        textAlign = TextAlign.Justify,
+        hyphens = Hyphens.Auto,
+        lineBreak = LineBreak.Paragraph,
     )
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize().clipToBounds()) {
@@ -742,8 +754,15 @@ private fun PageSkeleton() {
     }
 }
 
-/** Line height 1.8 at every size — the design's setting, and what makes a long page readable. */
-private const val LINE_HEIGHT_RATIO = 1.8f
+/**
+ * Leading, as a multiple of the type size.
+ *
+ * The handoff asks for 1.8, which is a web figure; set on a page it leaves the lines swimming and
+ * costs about a quarter of what the screen could hold. Printed books run nearer 1.35, and the
+ * reader's own references measure about 1.38 — this sits just above them, because a phone is read
+ * at arm's length and in worse light than a book is.
+ */
+private const val LINE_HEIGHT_RATIO = 1.45f
 private const val CHROME_FADE_MILLIS = 180
 
 /** The margins a page is set in, and therefore what the text is measured against. */
