@@ -13,6 +13,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
@@ -69,6 +70,13 @@ internal fun CurlingPages(
     var finger by remember { mutableStateOf(Offset.Zero) }
     var turn by remember { mutableStateOf<Turn?>(null) }
 
+    // Read through the gesture rather than keyed into it. The page count climbs as the book is
+    // cut — a page at a time — and the page being read changes at the end of every turn; keying
+    // the gesture on either tears it down and builds it again mid-swipe, which strands the sheet
+    // half turned with nothing left running to finish or let go of it.
+    val liveIndex by rememberUpdatedState(index)
+    val liveCount by rememberUpdatedState(pageCount)
+
     val live = turn
     // Fixed when the turn starts, not read off [index] each frame: the page moves the moment a
     // turn completes, and a sheet that swapped its own face at that moment would flash.
@@ -79,12 +87,12 @@ internal fun CurlingPages(
         modifier = modifier
             .fillMaxSize()
             .pointerInput(Unit) { detectTapGestures { onTap() } }
-            .pointerInput(pageCount, index) {
+            .pointerInput(Unit) {
                 detectDragGestures(
                     onDragStart = { start ->
                         // The sheet is always hinged at the right edge; where along it decides
                         // whether the fold comes out vertical or diagonal.
-                        turn = Turn(origin = Offset(size.width.toFloat(), start.y))
+                        turn = Turn(origin = Offset(size.width.toFloat(), start.y), grab = start)
                         finger = start
                     },
                     onDrag = { change, delta ->
@@ -94,16 +102,16 @@ internal fun CurlingPages(
                         // which two pages this turn is between.
                         if (started.direction == null) {
                             turn = when {
-                                delta.x < 0f && index < pageCount - 1 -> started.copy(
+                                delta.x < 0f && liveIndex < liveCount - 1 -> started.copy(
                                     direction = Direction.FORWARD,
-                                    topPage = index,
-                                    underPage = index + 1,
+                                    topPage = liveIndex,
+                                    underPage = liveIndex + 1,
                                 )
 
-                                delta.x > 0f && index > 0 -> started.copy(
+                                delta.x > 0f && liveIndex > 0 -> started.copy(
                                     direction = Direction.BACK,
-                                    topPage = index - 1,
-                                    underPage = index,
+                                    topPage = liveIndex - 1,
+                                    underPage = liveIndex,
                                 )
 
                                 else -> started
@@ -118,7 +126,7 @@ internal fun CurlingPages(
                                 turn = ending,
                                 from = finger,
                                 width = size.width.toFloat(),
-                                pageCount = pageCount,
+                                pageCount = liveCount,
                                 onFinger = { finger = it },
                                 onLanded = onIndexChange,
                                 onDone = { turn = null },
@@ -154,7 +162,7 @@ internal fun CurlingPages(
                 .fillMaxSize()
                 .drawWithContent {
                     sheet.record { this@drawWithContent.drawContent() }
-                    val fold = live?.foldOrNull(finger)
+                    val fold = live?.foldOrNull(finger, size.width)
                     if (fold == null) drawLayer(sheet) else drawFoldedSheet(sheet, fold, page)
                 }
                 // After the recording, not before: the ground has to be part of what the sheet
@@ -173,17 +181,49 @@ private enum class Direction { FORWARD, BACK }
 
 private data class Turn(
     val origin: Offset,
+    /** Where the finger went down, which is what a turn back is measured from. */
+    val grab: Offset,
     val direction: Direction? = null,
-    /** Fixed when the direction is, so the pager moving underneath cannot change the faces. */
+    /** Fixed when the direction is, so the page moving underneath cannot change the faces. */
     val topPage: Int = 0,
     val underPage: Int = 0,
 ) {
-    /** No direction yet, or a finger still on the hinge, means the sheet is simply lying flat. */
-    fun foldOrNull(finger: Offset): Fold? {
+    /**
+     * Where the held corner of the sheet is.
+     *
+     * Going forward the corner is under the finger, because that is where it was taken from: the
+     * sheet's right edge is where the finger came down on it.
+     *
+     * Going back it is not. The sheet being pulled back is already folded away off the left side,
+     * and its corner is out there — nowhere near the finger. Following the finger's position would
+     * drop a crease into the middle of the page the instant it was touched, so the corner is moved
+     * by how far the hand has travelled instead, starting from where the sheet is lying: no jump
+     * on touch, and the page unfolds out of the left edge as it is pulled over.
+     *
+     * At twice the hand's pace, because a crease sits halfway between the corner and its hinge:
+     * carrying a corner from one edge to the other moves the crease only half a page. Matched one
+     * for one, a hand crossing the whole screen would leave the sheet standing upright in the
+     * middle of the book — which is the turn back feeling wrong. At twice, a hand crossing the
+     * screen lays the page flat, which is what a hand crossing the screen ought to do.
+     */
+    fun corner(finger: Offset, width: Float): Offset = when (direction) {
+        Direction.BACK -> Offset(-width + (finger.x - grab.x) * 2f, finger.y)
+        else -> finger
+    }
+
+    /** How far the sheet has been carried, as a fraction of the page, whichever way it is going. */
+    fun carried(finger: Offset, width: Float): Float = when (direction) {
+        Direction.BACK -> (finger.x - grab.x) / width
+        else -> (origin.x - finger.x) / width
+    }
+
+    /** No direction yet, or a corner still on the hinge, means the sheet is simply lying flat. */
+    fun foldOrNull(finger: Offset, width: Float): Fold? {
         if (direction == null) return null
-        val axis = finger - origin
+        val corner = corner(finger, width)
+        val axis = corner - origin
         if (hypot(axis.x, axis.y) < MIN_FOLD_PX) return null
-        return Fold(origin = origin, finger = finger)
+        return Fold(origin = origin, finger = corner)
     }
 }
 
@@ -344,18 +384,16 @@ private suspend fun finishTurn(
         onDone()
         return
     }
-    val carried = turn.origin.x - from.x
-    val goesOver = when (direction) {
-        Direction.FORWARD -> carried > width * TURN_THRESHOLD
-        Direction.BACK -> carried < width * (1f - TURN_THRESHOLD)
-    }
+    // The same measure either way: how much of a page the sheet has been carried across.
+    val goesOver = turn.carried(from, width) > TURN_THRESHOLD
 
+    // Animated in finger terms, since that is what the corner is derived from. Laid flat means
+    // the finger has carried a whole page; folded away means it has carried none.
     val target = when {
-        // Off the left edge entirely, so the sheet is fully over before the page index moves.
-        goesOver && direction == Direction.FORWARD -> Offset(-width, from.y)
-        goesOver && direction == Direction.BACK -> turn.origin
+        direction == Direction.FORWARD && goesOver -> Offset(-width, from.y)
         direction == Direction.FORWARD -> turn.origin
-        else -> Offset(-width, from.y)
+        goesOver -> Offset(turn.grab.x + width, from.y)
+        else -> Offset(turn.grab.x, from.y)
     }
     animate(Offset.VectorConverter, from, target, animationSpec = tween(SETTLE_MILLIS)) { value, _ ->
         onFinger(value)
