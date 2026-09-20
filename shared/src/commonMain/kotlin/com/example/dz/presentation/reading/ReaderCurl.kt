@@ -59,6 +59,8 @@ internal fun CurlingPages(
     pageText: (Int) -> String,
     style: TextStyle,
     page: OrganicPageColors,
+    /** How far the page area sits from the top and foot of the screen this sheet covers. */
+    textPadding: PageInset,
     onTap: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -151,7 +153,7 @@ internal fun CurlingPages(
         // one on top of it.
         if (underPage in 0 until pageCount) {
             Box(Modifier.fillMaxSize().background(page.ground)) {
-                PageOfText(pageText(underPage), style)
+                PageOfText(pageText(underPage), style, textPadding)
             }
         }
 
@@ -171,7 +173,7 @@ internal fun CurlingPages(
                 .background(page.ground)
         ) {
             if (topPage in 0 until pageCount) {
-                PageOfText(pageText(topPage), style)
+                PageOfText(pageText(topPage), style, textPadding)
             }
         }
     }

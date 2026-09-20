@@ -51,7 +51,10 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -74,6 +77,7 @@ import com.example.dz.designsystem.theme.OrganicShape
 import com.example.dz.designsystem.theme.organicBodyFontFamily
 import com.example.dz.designsystem.theme.organicSerifFontFamily
 import com.example.dz.domain.model.PageTheme
+import com.example.dz.domain.model.ReaderPreferences
 import com.example.dz.domain.model.PageTurn
 import dz.shared.generated.resources.Res
 import dz.shared.generated.resources.book_download
@@ -140,12 +144,29 @@ fun ReadingScreen(
         if (turnsByHand) handPage = target else scope.launch { pagerState.scrollToPage(target) }
     }
     val pinnedHere = pagination.holds(uiState.bookmarkOffset, pageIndex)
+    val density = LocalDensity.current
+    val screenHeightPx = LocalWindowInfo.current.containerSize.height.toFloat()
+    var pageInset by remember { mutableStateOf(PageInset()) }
 
     Box(
         modifier = modifier
             .fillMaxSize()
             .background(page.ground)
     ) {
+        // Under the chrome and over everything else: the sheet covers the screen edge to edge.
+        if (turnsByHand && uiState.hasText && pagination.covers(uiState.offset)) {
+            CurlingPages(
+                index = pageIndex,
+                pageCount = pagination.pageCount,
+                onIndexChange = goToPage,
+                pageText = pagination::pageText,
+                style = readerTextStyle(uiState.preferences, page),
+                page = page,
+                textPadding = pageInset,
+                onTap = { onEvent(ReadingEvent.PageTapped) },
+            )
+        }
+
         Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
             ReaderHeader(
                 uiState = uiState,
@@ -155,7 +176,23 @@ fun ReadingScreen(
                 onEvent = onEvent,
             )
 
-            Box(modifier = Modifier.weight(1f)) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    // A turning sheet is drawn over the whole screen, but its words have to stay
+                    // where they were measured. Rather than adding up the header, the chrome and
+                    // two window insets and hoping the sum keeps matching the layout, the page
+                    // area says where it is and the sheet is told.
+                    .onGloballyPositioned { area ->
+                        val top = area.positionInRoot().y
+                        pageInset = with(density) {
+                            PageInset(
+                                top = top.toDp(),
+                                bottom = (screenHeightPx - top - area.size.height).toDp(),
+                            )
+                        }
+                    }
+            ) {
                 when {
                     uiState.isLoading -> PageSkeleton()
                     uiState.errorMessage != null -> PageError(
@@ -245,24 +282,8 @@ private fun ReaderPages(
     val density = LocalDensity.current
     val measurer = rememberTextMeasurer()
 
-    val face = if (uiState.preferences.useSerif) organicSerifFontFamily() else organicBodyFontFamily()
     val bodySize = uiState.preferences.bodySizeSp.sp
-    val style = TextStyle(
-        fontFamily = face,
-        fontSize = bodySize,
-        lineHeight = bodySize * LINE_HEIGHT_RATIO,
-        color = page.ink,
-        // Both edges flush, the way a book is set. Hyphenation comes with it rather than after
-        // it: justifying a forty-character line without leave to break a word stretches the
-        // spaces instead, and a page of that has rivers running down it.
-        //
-        // The line-break strategy has to be asked for too. Android only hyphenates when it is
-        // choosing breaks for a whole paragraph rather than greedily line by line, so without
-        // this the hyphens above are simply never used.
-        textAlign = TextAlign.Justify,
-        hyphens = readerHyphens(),
-        lineBreak = readerLineBreak(),
-    )
+    val style = readerTextStyle(uiState.preferences, page)
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize().clipToBounds()) {
         val textWidth = with(density) { (maxWidth - PAGE_GUTTER * 2).roundToPx() }
@@ -329,15 +350,10 @@ private fun ReaderPages(
         when (uiState.preferences.pageTurn) {
             // Paper does not slide, so this one is not a pager: it draws the sheet it is turning
             // and tells the pager where the reader landed once the turn is done.
-            PageTurn.CURL -> CurlingPages(
-                index = pageIndex,
-                pageCount = pagination.pageCount,
-                onIndexChange = goToPage,
-                pageText = pagination::pageText,
-                style = style,
-                page = page,
-                onTap = { onEvent(ReadingEvent.PageTapped) },
-            )
+            // Paper turns are drawn over the whole screen instead, so the sheet rolls from the
+            // top of the glass to the bottom rather than stopping at a band of chrome. Nothing is
+            // drawn here for it; the pagination above is what this pass is for.
+            PageTurn.CURL -> Unit
 
             PageTurn.SCROLL ->
                 VerticalPager(state = pagerState, modifier = pagerModifier, key = { it }) { index ->
@@ -352,17 +368,58 @@ private fun ReaderPages(
     }
 }
 
+/**
+ * How the book is set, for whoever is drawing it.
+ *
+ * Shared because a page is drawn in two places now: inside the reader's own column for the modes
+ * that slide or scroll, and over the whole screen for the one that folds. Set twice, the two would
+ * drift, and a sheet measured with one and drawn with the other cuts its pages in the wrong place.
+ */
+@Composable
+internal fun readerTextStyle(preferences: ReaderPreferences, page: OrganicPageColors): TextStyle {
+    val bodySize = preferences.bodySizeSp.sp
+    return TextStyle(
+        fontFamily = if (preferences.useSerif) organicSerifFontFamily() else organicBodyFontFamily(),
+        fontSize = bodySize,
+        lineHeight = bodySize * LINE_HEIGHT_RATIO,
+        color = page.ink,
+        // Both edges flush, the way a book is set. Hyphenation comes with it rather than after
+        // it: justifying a forty-character line without leave to break a word stretches the
+        // spaces instead, and a page of that has rivers running down it.
+        //
+        // The line-break strategy has to be asked for too. Android only hyphenates when it is
+        // choosing breaks for a whole paragraph rather than greedily line by line, so without
+        // this the hyphens above are simply never used.
+        textAlign = TextAlign.Justify,
+        hyphens = readerHyphens(),
+        lineBreak = readerLineBreak(),
+    )
+}
+
+/**
+ * Where the page area sits on the screen, measured rather than added up.
+ *
+ * A sheet drawn over the whole screen still has to put its words where the pagination measured
+ * them, and the distance from the glass to the page is a header, a row of chrome and two window
+ * insets deep. Asking the layout is one number that cannot fall out of step; adding those four up
+ * by hand is four that can.
+ */
+internal data class PageInset(val top: Dp = 0.dp, val bottom: Dp = 0.dp)
+
 /** One page's worth of words, set in the margins the page is measured against. */
 @Composable
 internal fun PageOfText(
     text: String,
     style: TextStyle,
+    /** Non-zero when the sheet covers more of the screen than the page area does. */
+    inset: PageInset = PageInset(),
     modifier: Modifier = Modifier,
 ) {
     Text(
         text = text,
         modifier = modifier
             .fillMaxSize()
+            .padding(top = inset.top, bottom = inset.bottom)
             .padding(horizontal = PAGE_GUTTER)
             .padding(top = PAGE_TOP, bottom = PAGE_BOTTOM),
         style = style,
