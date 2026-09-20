@@ -20,9 +20,8 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
@@ -67,11 +66,14 @@ internal fun CurlingPages(
     page: OrganicPageColors,
     /** How far the page area sits from the top and foot of the screen this sheet covers. */
     textPadding: PageInset,
+    /** How far the page number has taken the chrome's place, as the chrome fades out. */
+    numberAlpha: Float,
     onTap: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val scope = rememberCoroutineScope()
     val sheet = rememberGraphicsLayer()
+    val recorded = remember { Recorded() }
     // The finger is plain state, written straight from the gesture. It used to be an Animatable
     // snapped to from a coroutine launched per drag event, which is a race for every frame of a
     // swipe; the animation on release is the only part that needs to be driven over time.
@@ -159,7 +161,7 @@ internal fun CurlingPages(
         // one on top of it.
         if (underPage in 0 until pageCount) {
             Box(Modifier.fillMaxSize().background(page.ground)) {
-                PageOfText(pageText(underPage), style, textPadding)
+                PageOfText(pageText(underPage), style, textPadding, underPage + 1, numberAlpha)
             }
         }
 
@@ -169,9 +171,29 @@ internal fun CurlingPages(
             modifier = Modifier
                 .fillMaxSize()
                 .drawWithContent {
-                    sheet.record { this@drawWithContent.drawContent() }
                     val fold = live?.foldOrNull(finger, size.width)
-                    if (fold == null) drawLayer(sheet) else drawFoldedSheet(sheet, fold, page)
+                    if (fold == null) {
+                        // Lying flat there is nothing to draw twice, so there is no reason to
+                        // keep a copy of it either.
+                        recorded.turn = null
+                        drawContent()
+                        return@drawWithContent
+                    }
+                    // A page is taken once and drawn from all the way over. What is on it cannot
+                    // change while it is in the air — the faces were fixed when the turn began —
+                    // so the copy is taken on the first frame of the turn and used for the rest.
+                    // Taken every frame instead, every frame pays to set a whole page of type,
+                    // and that is a page of type per frame of a swipe.
+                    if (recorded.turn !== live ||
+                        recorded.width != size.width ||
+                        recorded.height != size.height
+                    ) {
+                        sheet.record { this@drawWithContent.drawContent() }
+                        recorded.turn = live
+                        recorded.width = size.width
+                        recorded.height = size.height
+                    }
+                    drawFoldedSheet(sheet, fold, page)
                 }
                 // After the recording, not before: the ground has to be part of what the sheet
                 // is, or it paints over the page underneath and the sheet's own layer comes out
@@ -179,13 +201,20 @@ internal fun CurlingPages(
                 .background(page.ground)
         ) {
             if (topPage in 0 until pageCount) {
-                PageOfText(pageText(topPage), style, textPadding)
+                PageOfText(pageText(topPage), style, textPadding, topPage + 1, numberAlpha)
             }
         }
     }
 }
 
 private enum class Direction { FORWARD, BACK }
+
+/** Which turn the top sheet's copy was taken for, so it is not taken again for the same one. */
+private class Recorded {
+    var turn: Turn? = null
+    var width = 0f
+    var height = 0f
+}
 
 private data class Turn(
     val origin: Offset,
@@ -277,35 +306,42 @@ private data class Fold(val origin: Offset, val finger: Offset) {
  * above never doubles back on itself and the bands can simply be painted in order.
  */
 private fun DrawScope.drawFoldedSheet(sheet: GraphicsLayer, fold: Fold, page: OrganicPageColors) {
-    val bounds = listOf(
-        Offset.Zero,
-        Offset(size.width, 0f),
-        Offset(size.width, size.height),
-        Offset(0f, size.height),
-    )
-
-    // The part of the sheet still lying down is the far side of the crease from the held point.
-    val lyingDown = bounds.keepSideOf(fold.middle, fold.across, keepPositive = true)
-    if (lyingDown.isNotEmpty()) {
-        clipPath(lyingDown.toPath()) { drawLayer(sheet) }
-    }
-
-    val raised = bounds.keepSideOf(fold.middle, fold.across, keepPositive = false)
-    if (raised.isEmpty()) return
-
+    val middle = fold.middle
     val direction = fold.across.normalised()
-    // How much paper is over the fold: the fold line sits half way between the held point and where
-    // it has been dragged to, so the held point is this far back along the sheet from it.
+    // How much paper is over the fold: the fold line sits half way between the held point and
+    // where it has been dragged to, so the held point is this far back along the sheet from it.
     val reach = hypot(fold.across.x, fold.across.y) / 2f
-    // A half turn eats PI * r of paper, and a sheet only just lifted has not got that much to give.
-    // So the roll starts as tight as the paper allows and opens out as the page comes up, which is
-    // also how it looks: a page just picked up turns on a sharp edge, one half over on a fat one.
+    // A half turn eats PI * r of paper, and a sheet only just lifted has not got that much to
+    // give. So the roll starts as tight as the paper allows and opens out as the page comes up,
+    // which is also how it looks: a page just picked up turns on a sharp edge, one half over on
+    // a fat one.
     val radius = minOf(ROLL_RADIUS.toPx(), reach / PI.toFloat())
     val crease = fold.creaseDegrees
+    // Far enough to pass any corner of the sheet, whichever way the fold lies across it.
+    val span = size.width + size.height
 
-    // The shadow the raised sheet throws, cast from the roll's outer lip rather than from the fold
-    // line — the lip is the part standing over the new page, so that is where the light stops.
-    drawFoldShadow(fold, page, standOff = radius)
+    // Every clip below is taken in the fold's own frame — the world turned until the fold lies
+    // flat — where "how far over the fold is this" is a difference in y and nothing more. What it
+    // replaces was the screen's four corners cut against the fold line into a polygon, walked into
+    // a path and handed over as a shaped clip, for every band, on every frame. A straight-sided
+    // clip is a rectangle the whole way down; a shaped one has to be drawn into a mask first.
+
+    // The part of the sheet still lying down is the far side of the fold from the held point.
+    withTransform({ rotate(crease, middle) }) {
+        clipRect(
+            left = middle.x - span,
+            top = middle.y - span,
+            right = middle.x + span,
+            bottom = middle.y,
+        ) {
+            withTransform({ rotate(-crease, middle) }) { drawLayer(sheet) }
+        }
+    }
+
+    // The shadow the raised sheet throws, cast from the roll's outer lip rather than from the
+    // fold line — the lip is the part standing over the new page, so that is where the light
+    // stops.
+    drawFoldShadow(fold, page, standOff = radius, span = span)
 
     /**
      * One band of the back of the sheet, from [fromArc] to [toArc] along the paper, put down
@@ -313,63 +349,60 @@ private fun DrawScope.drawFoldedSheet(sheet: GraphicsLayer, fold: Fold, page: Or
      *
      * Both are strips between lines parallel to the fold, so what carries one onto the other is a
      * squash across the fold and a shove along it — a reflection first, since this is the back.
-     * The clip is given in the sheet's own coordinates and travels through the transform with it,
-     * which is what keeps the band holding exactly the paper it should.
+     * The turn onto the fold's frame is left until last so that the clip in between, which is the
+     * one that says which paper this band holds, is a plain rectangle.
+     *
+     * [toArc] may be infinite: that is the flat part of the sheet, which runs to its edge.
      */
-    fun band(fromArc: Float, toArc: Float?, fromOut: Float, toOut: Float, fromTone: Color, toTone: Color) {
-        var slice = raised.keepSideOf(
-            through = fold.middle - direction * fromArc,
-            normal = fold.across,
-            keepPositive = false,
-        )
-        if (toArc != null) {
-            slice = slice.keepSideOf(
-                through = fold.middle - direction * toArc,
-                normal = fold.across,
-                keepPositive = true,
-            )
-        }
-        if (slice.size < 3) return
-
-        val squash = if (toArc == null) 1f else (toOut - fromOut) / (toArc - fromArc)
+    fun band(fromArc: Float, toArc: Float, fromOut: Float, toOut: Float, fromTone: Color, toTone: Color) {
+        val ends = toArc.isFinite()
+        val squash = if (ends) (toOut - fromOut) / (toArc - fromArc) else 1f
         withTransform({
-            // Read backwards: the last issued is the first the paper meets. Turn the world until
-            // the fold lies flat, flip over it, squash what comes out towards the fold, slide it
-            // to where this band belongs, and turn the world back.
-            rotate(crease, fold.middle)
+            // Read backwards: the last issued is the first the paper meets.
+            rotate(crease, middle)
             translate(0f, squash * fromArc - fromOut)
-            scale(1f, squash, fold.middle)
-            scale(1f, -1f, fold.middle)
-            rotate(-crease, fold.middle)
+            scale(1f, squash, middle)
+            scale(1f, -1f, middle)
         }) {
-            clipPath(slice.toPath()) {
-                drawLayer(sheet)
-                // Paper is not glass: the words on the far face come through it, not off it.
-                drawRect(color = page.ground, alpha = PAPER_OPACITY)
-                // The light on the roll, as a ramp between the band's two edges rather than one
-                // tone for the whole band. Flat tones make a cylinder look like a folded map: ten
-                // steps you can count. Given in the sheet's own coordinates, so the transform
-                // carries the ramp onto the roll along with the paper it lights.
-                if (fromTone.alpha > 0f || toTone.alpha > 0f) {
-                    drawRect(
-                        brush = Brush.linearGradient(
-                            colors = listOf(fromTone, toTone),
-                            start = fold.middle - direction * fromArc,
-                            end = fold.middle - direction * (toArc ?: fromArc),
+            clipRect(
+                left = middle.x - span,
+                top = middle.y + fromArc,
+                right = middle.x + span,
+                bottom = middle.y + if (ends) toArc else span,
+            ) {
+                withTransform({ rotate(-crease, middle) }) {
+                    drawLayer(sheet)
+                    // Paper is not glass: the words on the far face come through it, not off it.
+                    drawRect(color = page.ground, alpha = PAPER_OPACITY)
+                    // The light on the roll, as a ramp between the band's two edges rather than
+                    // one tone for the whole band. Flat tones make a cylinder look like a folded
+                    // map: bands you can count.
+                    if (ends && (fromTone.alpha > 0f || toTone.alpha > 0f)) {
+                        drawRect(
+                            brush = Brush.linearGradient(
+                                colors = listOf(fromTone, toTone),
+                                start = middle - direction * fromArc,
+                                end = middle - direction * toArc,
+                            )
                         )
-                    )
+                    }
                 }
             }
         }
     }
 
     if (radius > MIN_ROLL_PX) {
+        // Only as many bands as the roll is wide enough to show. A page just picked up turns on a
+        // roll a few pixels across, and cutting that into ten leaves nine of them thinner than the
+        // line that would draw them: all of the cost and none of the curve. Most of a quick swipe
+        // is spent at exactly that end.
+        val bands = (radius / MIN_BAND_PX).toInt().coerceIn(1, ROLL_BANDS)
         // Banded by how much screen each covers, not how much paper: near the lip the paper is
         // almost edge on, and bands cut evenly along the paper would put most of them in the first
         // pixel and squash each one to nothing.
-        for (i in 0 until ROLL_BANDS) {
-            val from = i / ROLL_BANDS.toFloat()
-            val to = (i + 1) / ROLL_BANDS.toFloat()
+        for (i in 0 until bands) {
+            val from = i / bands.toFloat()
+            val to = (i + 1) / bands.toFloat()
             band(
                 fromArc = radius * rollAngle(from),
                 toArc = radius * rollAngle(to),
@@ -385,7 +418,7 @@ private fun DrawScope.drawFoldedSheet(sheet: GraphicsLayer, fold: Fold, page: Or
     // paper the roll has taken up.
     band(
         fromArc = PI.toFloat() * radius,
-        toArc = null,
+        toArc = Float.POSITIVE_INFINITY,
         fromOut = 0f,
         toOut = 0f,
         fromTone = Color.Transparent,
@@ -430,60 +463,34 @@ private fun rollTone(part: Float, page: OrganicPageColors): Color =
  * [standOff] is the roll's radius. The paper does not stand on the fold line but a roll's width
  * past it, and a shadow cast from the fold line would fall under the sheet throwing it.
  */
-private fun DrawScope.drawFoldShadow(fold: Fold, page: OrganicPageColors, standOff: Float) {
+private fun DrawScope.drawFoldShadow(
+    fold: Fold,
+    page: OrganicPageColors,
+    standOff: Float,
+    span: Float,
+) {
+    val middle = fold.middle
+    val crease = fold.creaseDegrees
     val direction = fold.across.normalised()
-    val lip = fold.middle - direction * standOff
-    clipPath(
-        listOf(
-            Offset.Zero,
-            Offset(size.width, 0f),
-            Offset(size.width, size.height),
-            Offset(0f, size.height),
-        ).keepSideOf(lip, fold.across, keepPositive = false).toPath()
-    ) {
-        drawRect(
-            brush = Brush.linearGradient(
-                colors = listOf(page.ink.copy(alpha = FOLD_SHADOW), Color.Transparent),
-                start = lip,
-                end = lip - direction * FOLD_SHADOW_PX,
-            )
-        )
-    }
-}
-
-/**
- * The part of a polygon on one side of a line, by the usual corner-walk: keep the corners that are
- * inside, and where an edge crosses the line, keep the crossing point too.
- */
-private fun List<Offset>.keepSideOf(
-    through: Offset,
-    normal: Offset,
-    keepPositive: Boolean,
-): List<Offset> {
-    fun side(point: Offset): Float {
-        val d = (point.x - through.x) * normal.x + (point.y - through.y) * normal.y
-        return if (keepPositive) d else -d
-    }
-
-    val kept = mutableListOf<Offset>()
-    for (i in indices) {
-        val from = this[i]
-        val to = this[(i + 1) % size]
-        val fromSide = side(from)
-        val toSide = side(to)
-        if (fromSide >= 0f) kept += from
-        if ((fromSide >= 0f) != (toSide >= 0f)) {
-            val t = fromSide / (fromSide - toSide)
-            kept += Offset(from.x + (to.x - from.x) * t, from.y + (to.y - from.y) * t)
+    val lip = middle - direction * standOff
+    withTransform({ rotate(crease, middle) }) {
+        clipRect(
+            left = middle.x - span,
+            top = middle.y + standOff,
+            right = middle.x + span,
+            bottom = middle.y + span,
+        ) {
+            withTransform({ rotate(-crease, middle) }) {
+                drawRect(
+                    brush = Brush.linearGradient(
+                        colors = listOf(page.ink.copy(alpha = FOLD_SHADOW), Color.Transparent),
+                        start = lip,
+                        end = lip - direction * FOLD_SHADOW_PX,
+                    )
+                )
+            }
         }
     }
-    return kept
-}
-
-private fun List<Offset>.toPath(): Path = Path().apply {
-    moveTo(this@toPath[0].x, this@toPath[0].y)
-    for (i in 1 until this@toPath.size) lineTo(this@toPath[i].x, this@toPath[i].y)
-    close()
 }
 
 private fun Offset.normalised(): Offset {
@@ -519,11 +526,21 @@ private suspend fun finishTurn(
 
     // Animated in finger terms, since that is what the corner is derived from. Laid flat means
     // the finger has carried a whole page; folded away means it has carried none.
+    //
+    // Every one of these lands back on the hinge's own line rather than on whatever height the
+    // hand happened to let go at, and that matters more than it looks. A turn back finishes with
+    // the corner at the hinge's x, so the only thing left in the line from the hinge to the corner
+    // is the height the hand drifted by — a straight up-and-down line, which makes the fold
+    // perpendicular to it lie flat ACROSS the page. The sheet never reaches its hinge, and the
+    // last thing you see of a page going back is a crease swinging round to horizontal through the
+    // middle of it with the words upside down above. Landing on the hinge's height closes the fold
+    // to nothing instead, and on the way there the page straightens as it falls, which is what
+    // paper does.
     val target = when {
-        direction == Direction.FORWARD && goesOver -> Offset(-width, from.y)
+        direction == Direction.FORWARD && goesOver -> Offset(-width, turn.grab.y)
         direction == Direction.FORWARD -> turn.origin
-        goesOver -> Offset(turn.grab.x + width, from.y)
-        else -> Offset(turn.grab.x, from.y)
+        goesOver -> Offset(turn.grab.x + width, turn.grab.y)
+        else -> turn.grab
     }
     animate(Offset.VectorConverter, from, target, animationSpec = tween(SETTLE_MILLIS)) { value, _ ->
         onFinger(value)
@@ -573,9 +590,13 @@ private const val MIN_ROLL_PX = 1.5f
  * Each is a straight piece of a curve, so this is how round the roll comes out. It only has to
  * carry the paper: the light across it is a ramp drawn through the strips, not one tone each, so
  * the count does not have to be high enough to hide steps in the shading — only high enough that
- * the mirrored words bend rather than kink.
+ * the mirrored words bend rather than kink. Each one is also a pass over the whole sheet, which
+ * is what makes this the number to keep honest.
  */
-private const val ROLL_BANDS = 10
+private const val ROLL_BANDS = 6
+
+/** Thinner than this and a band is narrower than the line drawing it, so it is not worth one. */
+private const val MIN_BAND_PX = 2.5f
 
 /** The shading around the roll: how dark the lip goes, and how fast it opens out. */
 private const val ROLL_SHADE = 0.34f

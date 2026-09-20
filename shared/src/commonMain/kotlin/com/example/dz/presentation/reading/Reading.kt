@@ -153,18 +153,36 @@ fun ReadingScreen(
             .fillMaxSize()
             .background(page.ground)
     ) {
-        // Under the chrome and over everything else: the sheet covers the screen edge to edge.
-        if (turnsByHand && uiState.hasText && pagination.covers(uiState.offset)) {
-            CurlingPages(
-                index = pageIndex,
-                pageCount = pagination.pageCount,
-                onIndexChange = goToPage,
-                pageText = pagination::pageText,
-                style = readerTextStyle(uiState.preferences, page),
-                page = page,
-                textPadding = pageInset,
-                onTap = { onEvent(ReadingEvent.PageTapped) },
-            )
+        // Under the chrome and over everything else: the pages cover the screen edge to edge,
+        // whichever way they move. A page that stopped at the chrome would be a page the width of
+        // the band between two toolbars, and you would see it stop — the whole of the screen is
+        // the sheet, so the whole of the screen is what moves.
+        if (uiState.hasText && pagination.covers(uiState.offset)) {
+            val style = readerTextStyle(uiState.preferences, page)
+            val onTap = { onEvent(ReadingEvent.PageTapped) }
+            when (uiState.preferences.pageTurn) {
+                PageTurn.CURL -> CurlingPages(
+                    index = pageIndex,
+                    pageCount = pagination.pageCount,
+                    onIndexChange = goToPage,
+                    pageText = pagination::pageText,
+                    style = style,
+                    page = page,
+                    textPadding = pageInset,
+                    numberAlpha = 1f - chromeAlpha,
+                    onTap = onTap,
+                )
+
+                PageTurn.SLIDE, PageTurn.SCROLL -> MovingPages(
+                    sideways = uiState.preferences.pageTurn == PageTurn.SLIDE,
+                    pagerState = pagerState,
+                    pagination = pagination,
+                    style = style,
+                    textPadding = pageInset,
+                    numberAlpha = 1f - chromeAlpha,
+                    onTap = onTap,
+                )
+            }
         }
 
         Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
@@ -231,22 +249,6 @@ fun ReadingScreen(
                     onEvent = onEvent,
                 )
             }
-        }
-
-        // With the chrome gone the page is left on its own, and a book is never quite on its own:
-        // it has a number at the foot of every page. It takes the chrome's place as that fades.
-        if (uiState.hasText && pagination !== ReaderPagination.Empty) {
-            Text(
-                text = (pageIndex + 1).toString(),
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .navigationBarsPadding()
-                    .padding(bottom = PAGE_NUMBER_DROP)
-                    .alpha(1f - chromeAlpha),
-                fontFamily = organicBodyFontFamily(),
-                fontSize = 12.sp,
-                color = page.ink.copy(alpha = 0.45f)
-            )
         }
 
         if (uiState.showDisplaySheet) {
@@ -334,36 +336,50 @@ private fun ReaderPages(
                 .collect { index -> onEvent(ReadingEvent.PageSettled(pagination.startOf(index))) }
         }
 
+        // Only the skeleton is drawn here. The pages themselves are drawn from the root of the
+        // reader, over the whole screen, so that a page moves across all of the glass rather than
+        // across the band left between the header and the tools. What this pass is for is the
+        // measuring: this box is the page area, and its size is what the book is cut to fit.
         if (!pagination.covers(uiState.offset)) {
             PageSkeleton(cutSoFar = pagination.pageCount.takeIf { it > 1 })
-            return@BoxWithConstraints
         }
+    }
+}
 
-        // A tap anywhere shows or hides the chrome. Turning a page is a swipe, so the tap does
-        // not have to be shared out between parts of the screen.
-        val pagerModifier = Modifier
-            .fillMaxSize()
-            .pointerInput(Unit) {
-                detectTapGestures { onEvent(ReadingEvent.PageTapped) }
-            }
+/**
+ * Pages that slide across or scroll up, drawn over the whole screen.
+ *
+ * The same two pagers as before, moved out of the reader's column so that a page travels the full
+ * height and width of the glass. Held here beside the sheet that turns by hand, which has always
+ * been drawn this way, so all three ways of turning a page now move the same amount of screen.
+ *
+ * Each page carries its own number, printed on it rather than over it, so that the number leaves
+ * with the page it belongs to instead of hanging still in the middle while pages pass behind it.
+ */
+@Composable
+private fun MovingPages(
+    sideways: Boolean,
+    pagerState: PagerState,
+    pagination: ReaderPagination,
+    style: TextStyle,
+    textPadding: PageInset,
+    numberAlpha: Float,
+    onTap: () -> Unit,
+) {
+    // A tap anywhere shows or hides the chrome. Turning a page is a swipe, so the tap does not
+    // have to be shared out between parts of the screen.
+    val modifier = Modifier
+        .fillMaxSize()
+        .clipToBounds()
+        .pointerInput(Unit) { detectTapGestures { onTap() } }
 
-        when (uiState.preferences.pageTurn) {
-            // Paper does not slide, so this one is not a pager: it draws the sheet it is turning
-            // and tells the pager where the reader landed once the turn is done.
-            // Paper turns are drawn over the whole screen instead, so the sheet rolls from the
-            // top of the glass to the bottom rather than stopping at a band of chrome. Nothing is
-            // drawn here for it; the pagination above is what this pass is for.
-            PageTurn.CURL -> Unit
-
-            PageTurn.SCROLL ->
-                VerticalPager(state = pagerState, modifier = pagerModifier, key = { it }) { index ->
-                    PageOfText(pagination.pageText(index), style)
-                }
-
-            PageTurn.SLIDE ->
-                HorizontalPager(state = pagerState, modifier = pagerModifier, key = { it }) { index ->
-                    PageOfText(pagination.pageText(index), style)
-                }
+    if (sideways) {
+        HorizontalPager(state = pagerState, modifier = modifier, key = { it }) { index ->
+            PageOfText(pagination.pageText(index), style, textPadding, index + 1, numberAlpha)
+        }
+    } else {
+        VerticalPager(state = pagerState, modifier = modifier, key = { it }) { index ->
+            PageOfText(pagination.pageText(index), style, textPadding, index + 1, numberAlpha)
         }
     }
 }
@@ -371,9 +387,9 @@ private fun ReaderPages(
 /**
  * How the book is set, for whoever is drawing it.
  *
- * Shared because a page is drawn in two places now: inside the reader's own column for the modes
- * that slide or scroll, and over the whole screen for the one that folds. Set twice, the two would
- * drift, and a sheet measured with one and drawn with the other cuts its pages in the wrong place.
+ * Shared because a page is measured in one place and drawn in another: the reader's column is what
+ * says how big a page is, and the pages themselves are drawn over the whole screen. Set twice, the
+ * two would drift, and a page measured with one and drawn with the other breaks in the wrong place.
  */
 @Composable
 internal fun readerTextStyle(preferences: ReaderPreferences, page: OrganicPageColors): TextStyle {
@@ -413,17 +429,46 @@ internal fun PageOfText(
     style: TextStyle,
     /** Non-zero when the sheet covers more of the screen than the page area does. */
     inset: PageInset = PageInset(),
+    /**
+     * This page's own number, printed on it.
+     *
+     * A number printed on the sheet goes wherever the sheet goes: it rolls over with the paper and
+     * comes out mirrored on the back, and the number of the page underneath is uncovered along
+     * with the rest of it. One drawn over the top instead sits still through the whole turn, which
+     * is the one thing a page number never does in a book.
+     *
+     * It is placed against the foot of the sheet rather than the foot of the text, so this only
+     * lands where a page number belongs when the sheet is the whole screen. Null leaves it off.
+     */
+    number: Int? = null,
+    /** How far the number has taken the chrome's place, as the chrome fades out. */
+    numberAlpha: Float = 0f,
     modifier: Modifier = Modifier,
 ) {
-    Text(
-        text = text,
-        modifier = modifier
-            .fillMaxSize()
-            .padding(top = inset.top, bottom = inset.bottom)
-            .padding(horizontal = PAGE_GUTTER)
-            .padding(top = PAGE_TOP, bottom = PAGE_BOTTOM),
-        style = style,
-    )
+    Box(modifier = modifier.fillMaxSize()) {
+        Text(
+            text = text,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = inset.top, bottom = inset.bottom)
+                .padding(horizontal = PAGE_GUTTER)
+                .padding(top = PAGE_TOP, bottom = PAGE_BOTTOM),
+            style = style,
+        )
+        if (number != null && numberAlpha > 0f) {
+            Text(
+                text = number.toString(),
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding()
+                    .padding(bottom = PAGE_NUMBER_DROP)
+                    .alpha(numberAlpha),
+                fontFamily = organicBodyFontFamily(),
+                fontSize = 12.sp,
+                color = style.color.copy(alpha = 0.45f),
+            )
+        }
+    }
 }
 
 /** Back, the book's name, and the pin for the page you are on. */
