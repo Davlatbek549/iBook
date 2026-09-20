@@ -29,11 +29,15 @@ import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.dp
 import com.example.dz.designsystem.components.organic.OrganicPageColors
 import kotlinx.coroutines.launch
 import kotlin.math.PI
+import kotlin.math.abs
+import kotlin.math.asin
 import kotlin.math.atan2
 import kotlin.math.hypot
+import kotlin.math.pow
 
 /**
  * Pages that turn like paper.
@@ -43,8 +47,10 @@ import kotlin.math.hypot
  * take it by the middle of the edge and the fold is vertical and sweeps across; take it by a corner
  * and the fold lies diagonally and the corner peels. One rule, and the sheet behaves both ways.
  *
- * Everything past the fold is the back of the sheet — the same page reflected, so its words come
- * out mirrored and show through the paper, exactly as they do when a real page is half over.
+ * Everything past the fold is the back of the sheet, so its words come out mirrored and show
+ * through the paper, exactly as they do when a real page is half over. The fold itself is a roll
+ * rather than a crease: paper bends around something, and the width of what it bends around is
+ * most of what tells your eye it is paper.
  *
  * There is no pager behind this one, so it does not borrow a pager's page index: it is told which
  * page is being read and says when that has changed. A pager whose layout is not composed cannot
@@ -250,11 +256,25 @@ private data class Fold(val origin: Offset, val finger: Offset) {
 }
 
 /**
- * Draws the top sheet in its two halves.
+ * Draws the top sheet: the part still lying down, the roll it bends around, and the back of it.
  *
- * The half still lying down is drawn as it is. The half that has lifted is drawn through the
- * reflection, which puts its words down mirrored on the other side of the crease — and because the
- * reflection is applied before the clip, the clipped region travels with it.
+ * Paper does not crease when a page is turned — it rolls. The sheet leaves the page along the fold
+ * line, wraps a half turn around a cylinder lying on that line, and comes back flat on top of
+ * itself face down. That roll is the whole look of a real page going over, and it is what a plain
+ * reflection cannot give you: a reflection is the same thing with a cylinder of no width at all.
+ *
+ * So the back of the sheet is drawn through a map from paper to screen rather than through one
+ * mirror. Measuring along the paper from the fold line, material at distance `s` lands at
+ *
+ *     s <= PI*r : out = -r * sin(s / r)   — on the roll, bulging past the fold over the new page
+ *     s >  PI*r : out = s - PI*r          — flat again, the far side of the sheet
+ *
+ * where `out` is distance from the fold line towards the reader's hand. The two agree in value and
+ * in slope where they meet, so the roll runs smoothly into the flat part with no seam.
+ *
+ * Only the second half of the roll is ever drawn. The first half is face up but lies under the
+ * second — the cylinder is between them — so it is hidden everywhere, and skipping it means the map
+ * above never doubles back on itself and the bands can simply be painted in order.
  */
 private fun DrawScope.drawFoldedSheet(sheet: GraphicsLayer, fold: Fold, page: OrganicPageColors) {
     val bounds = listOf(
@@ -270,54 +290,162 @@ private fun DrawScope.drawFoldedSheet(sheet: GraphicsLayer, fold: Fold, page: Or
         clipPath(lyingDown.toPath()) { drawLayer(sheet) }
     }
 
-    // The shadow the raised sheet throws across the page it is uncovering.
-    drawFoldShadow(fold, page)
-
-    // The raised half, reflected: the back of the paper.
     val raised = bounds.keepSideOf(fold.middle, fold.across, keepPositive = false)
     if (raised.isEmpty()) return
-    val path = raised.toPath()
-    // Reflection across the crease, said with the canvas's own moves: turn the world until the
-    // crease lies flat, flip over it, turn the world back. The calls read backwards because the
-    // last one issued is the first one the geometry meets.
+
+    val direction = fold.across.normalised()
+    // How much paper is over the fold: the fold line sits half way between the held point and where
+    // it has been dragged to, so the held point is this far back along the sheet from it.
+    val reach = hypot(fold.across.x, fold.across.y) / 2f
+    // A half turn eats PI * r of paper, and a sheet only just lifted has not got that much to give.
+    // So the roll starts as tight as the paper allows and opens out as the page comes up, which is
+    // also how it looks: a page just picked up turns on a sharp edge, one half over on a fat one.
+    val radius = minOf(ROLL_RADIUS.toPx(), reach / PI.toFloat())
     val crease = fold.creaseDegrees
-    withTransform({
-        rotate(crease, fold.middle)
-        scale(1f, -1f, fold.middle)
-        rotate(-crease, fold.middle)
-    }) {
-        clipPath(path) {
-            drawLayer(sheet)
-            // Paper is not glass: the words on the far face come through it, not off it.
-            drawRect(color = page.ground, alpha = PAPER_OPACITY)
-            // And it is lit along the crease, where the sheet is still bending.
-            drawRect(
-                brush = Brush.linearGradient(
-                    colors = listOf(page.ink.copy(alpha = CREASE_SHADE), Color.Transparent),
-                    start = fold.middle,
-                    end = fold.middle - fold.across.normalised() * CREASE_SHADE_PX,
-                )
+
+    // The shadow the raised sheet throws, cast from the roll's outer lip rather than from the fold
+    // line — the lip is the part standing over the new page, so that is where the light stops.
+    drawFoldShadow(fold, page, standOff = radius)
+
+    /**
+     * One band of the back of the sheet, from [fromArc] to [toArc] along the paper, put down
+     * between [fromOut] and [toOut] on the screen.
+     *
+     * Both are strips between lines parallel to the fold, so what carries one onto the other is a
+     * squash across the fold and a shove along it — a reflection first, since this is the back.
+     * The clip is given in the sheet's own coordinates and travels through the transform with it,
+     * which is what keeps the band holding exactly the paper it should.
+     */
+    fun band(fromArc: Float, toArc: Float?, fromOut: Float, toOut: Float, fromTone: Color, toTone: Color) {
+        var slice = raised.keepSideOf(
+            through = fold.middle - direction * fromArc,
+            normal = fold.across,
+            keepPositive = false,
+        )
+        if (toArc != null) {
+            slice = slice.keepSideOf(
+                through = fold.middle - direction * toArc,
+                normal = fold.across,
+                keepPositive = true,
+            )
+        }
+        if (slice.size < 3) return
+
+        val squash = if (toArc == null) 1f else (toOut - fromOut) / (toArc - fromArc)
+        withTransform({
+            // Read backwards: the last issued is the first the paper meets. Turn the world until
+            // the fold lies flat, flip over it, squash what comes out towards the fold, slide it
+            // to where this band belongs, and turn the world back.
+            rotate(crease, fold.middle)
+            translate(0f, squash * fromArc - fromOut)
+            scale(1f, squash, fold.middle)
+            scale(1f, -1f, fold.middle)
+            rotate(-crease, fold.middle)
+        }) {
+            clipPath(slice.toPath()) {
+                drawLayer(sheet)
+                // Paper is not glass: the words on the far face come through it, not off it.
+                drawRect(color = page.ground, alpha = PAPER_OPACITY)
+                // The light on the roll, as a ramp between the band's two edges rather than one
+                // tone for the whole band. Flat tones make a cylinder look like a folded map: ten
+                // steps you can count. Given in the sheet's own coordinates, so the transform
+                // carries the ramp onto the roll along with the paper it lights.
+                if (fromTone.alpha > 0f || toTone.alpha > 0f) {
+                    drawRect(
+                        brush = Brush.linearGradient(
+                            colors = listOf(fromTone, toTone),
+                            start = fold.middle - direction * fromArc,
+                            end = fold.middle - direction * (toArc ?: fromArc),
+                        )
+                    )
+                }
+            }
+        }
+    }
+
+    if (radius > MIN_ROLL_PX) {
+        // Banded by how much screen each covers, not how much paper: near the lip the paper is
+        // almost edge on, and bands cut evenly along the paper would put most of them in the first
+        // pixel and squash each one to nothing.
+        for (i in 0 until ROLL_BANDS) {
+            val from = i / ROLL_BANDS.toFloat()
+            val to = (i + 1) / ROLL_BANDS.toFloat()
+            band(
+                fromArc = radius * rollAngle(from),
+                toArc = radius * rollAngle(to),
+                fromOut = -radius * (1f - from),
+                toOut = -radius * (1f - to),
+                fromTone = rollTone(from, page),
+                toTone = rollTone(to, page),
             )
         }
     }
+
+    // And everything past the roll, which is flat: the same reflection as ever, moved back by the
+    // paper the roll has taken up.
+    band(
+        fromArc = PI.toFloat() * radius,
+        toArc = null,
+        fromOut = 0f,
+        toOut = 0f,
+        fromTone = Color.Transparent,
+        toTone = Color.Transparent,
+    )
 }
 
-/** A soft edge of shade on the revealed page, hugging the crease and falling away from it. */
-private fun DrawScope.drawFoldShadow(fold: Fold, page: OrganicPageColors) {
+/**
+ * How far around the roll a band lies, in radians, for [part] of the way across the visible half.
+ *
+ * The visible half runs from edge on at the lip to flat at the fold line. Asking for it by screen
+ * position rather than by angle is what keeps the bands even, and inverting `out = -r sin(angle)`
+ * is all that takes.
+ */
+private fun rollAngle(part: Float): Float = PI.toFloat() - asin((1f - part).coerceIn(0f, 1f))
+
+/**
+ * The light on the roll, [part] of the way from its outer lip to the fold line.
+ *
+ * Two things in one ramp. At the lip the page is nearly shut against the one below it and almost
+ * no light gets in, so it goes dark and opens out from there. Past that the roll turns to face
+ * upwards and catches a sheen, strongest a little before it flattens. By the fold line it is
+ * ordinary paper again and the ramp has to be gone, or the flat part beyond would start on a step.
+ *
+ * Shaded by how far round the roll a point is rather than by the angle it makes with the light.
+ * That angle opens almost at once — it is a sine — which crams the whole ramp into the first pixel
+ * or two and leaves the rest of the roll as flat as the crease it was meant to replace.
+ */
+private fun rollTone(part: Float, page: OrganicPageColors): Color =
+    if (part < ROLL_TONE_CROSS) {
+        page.ink.copy(alpha = ROLL_SHADE * (1f - part / ROLL_TONE_CROSS).pow(ROLL_FALLOFF))
+    } else {
+        val round = (part - ROLL_TONE_CROSS) / (1f - ROLL_TONE_CROSS)
+        Color.White.copy(
+            alpha = ROLL_GLOSS * (1f - abs(round - GLOSS_AT) / GLOSS_WIDTH).coerceAtLeast(0f)
+        )
+    }
+
+/**
+ * A soft edge of shade on the revealed page, hugging the paper standing over it.
+ *
+ * [standOff] is the roll's radius. The paper does not stand on the fold line but a roll's width
+ * past it, and a shadow cast from the fold line would fall under the sheet throwing it.
+ */
+private fun DrawScope.drawFoldShadow(fold: Fold, page: OrganicPageColors, standOff: Float) {
     val direction = fold.across.normalised()
+    val lip = fold.middle - direction * standOff
     clipPath(
         listOf(
             Offset.Zero,
             Offset(size.width, 0f),
             Offset(size.width, size.height),
             Offset(0f, size.height),
-        ).keepSideOf(fold.middle, fold.across, keepPositive = false).toPath()
+        ).keepSideOf(lip, fold.across, keepPositive = false).toPath()
     ) {
         drawRect(
             brush = Brush.linearGradient(
                 colors = listOf(page.ink.copy(alpha = FOLD_SHADOW), Color.Transparent),
-                start = fold.middle,
-                end = fold.middle - direction * FOLD_SHADOW_PX,
+                start = lip,
+                end = lip - direction * FOLD_SHADOW_PX,
             )
         )
     }
@@ -419,8 +547,44 @@ private const val SETTLE_MILLIS = 320
 /** How much of the front comes through the back of the sheet. */
 private const val PAPER_OPACITY = 0.62f
 
-/** The shading along the crease, on the paper and on the page it uncovers. */
-private const val CREASE_SHADE = 0.16f
-private const val CREASE_SHADE_PX = 90f
-private const val FOLD_SHADOW = 0.3f
-private const val FOLD_SHADOW_PX = 60f
+/**
+ * The shade the raised sheet throws on the page it uncovers.
+ *
+ * Kept under the roll's own shading. The roll is the thing to look at; a shadow heavier than the
+ * paper casting it reads as the edge of a hole rather than the edge of a page.
+ */
+private const val FOLD_SHADOW = 0.26f
+private const val FOLD_SHADOW_PX = 52f
+
+/**
+ * How fat the roll gets.
+ *
+ * It is the stiffness of the paper, really: a newspaper turns on a tight roll and a magazine cover
+ * on a wide one. This is about a book's.
+ */
+private val ROLL_RADIUS = 20.dp
+
+/** Under this the roll is thinner than the line that would draw it, and the fold is just a fold. */
+private const val MIN_ROLL_PX = 1.5f
+
+/**
+ * How many strips the roll is painted in.
+ *
+ * Each is a straight piece of a curve, so this is how round the roll comes out. It only has to
+ * carry the paper: the light across it is a ramp drawn through the strips, not one tone each, so
+ * the count does not have to be high enough to hide steps in the shading — only high enough that
+ * the mirrored words bend rather than kink.
+ */
+private const val ROLL_BANDS = 10
+
+/** The shading around the roll: how dark the lip goes, and how fast it opens out. */
+private const val ROLL_SHADE = 0.34f
+private const val ROLL_FALLOFF = 1.6f
+
+/** Where the shade has run out and the sheen has not started, as a part of the way round. */
+private const val ROLL_TONE_CROSS = 0.55f
+
+/** The sheen off the curve: how bright, how far past the crossing it sits, and how wide it is. */
+private const val ROLL_GLOSS = 0.16f
+private const val GLOSS_AT = 0.6f
+private const val GLOSS_WIDTH = 0.38f
