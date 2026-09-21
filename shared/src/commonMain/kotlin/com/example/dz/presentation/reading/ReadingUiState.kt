@@ -17,8 +17,13 @@ data class ReadingUiState(
     /** The offset pinned in this book, or `null` when nothing is pinned. */
     val bookmarkOffset: Int? = null,
     val preferences: ReaderPreferences = ReaderPreferences(),
-    /** The reader's chrome hides so the page is all there is; a tap anywhere brings it back. */
-    val chromeVisible: Boolean = true,
+    /**
+     * The reader opens on the book, not on its controls.
+     *
+     * Somebody who has just tapped a book wants to read it; the back button and the tools are for
+     * a moment that has not arrived yet, and a tap on the page brings them when it does.
+     */
+    val chromeVisible: Boolean = false,
     val showDisplaySheet: Boolean = false,
     val isLoading: Boolean = true,
     val errorMessage: String? = null,

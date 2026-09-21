@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
+import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -32,6 +33,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -49,7 +51,10 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -72,6 +77,8 @@ import com.example.dz.designsystem.theme.OrganicShape
 import com.example.dz.designsystem.theme.organicBodyFontFamily
 import com.example.dz.designsystem.theme.organicSerifFontFamily
 import com.example.dz.domain.model.PageTheme
+import com.example.dz.domain.model.ReaderPreferences
+import com.example.dz.domain.model.PageTurn
 import dz.shared.generated.resources.Res
 import dz.shared.generated.resources.book_download
 import dz.shared.generated.resources.book_downloaded
@@ -114,6 +121,7 @@ fun ReadingScreen(
     modifier: Modifier = Modifier,
 ) {
     val page = uiState.preferences.pageTheme.colors()
+    val scope = rememberCoroutineScope()
     val chromeAlpha by animateFloatAsState(
         targetValue = if (uiState.chromeVisible) 1f else 0f,
         animationSpec = tween(CHROME_FADE_MILLIS),
@@ -127,13 +135,56 @@ fun ReadingScreen(
     // Cut fresh for each book: a pagination belongs to one text at one size on one screen.
     var pagination by remember(uiState.text) { mutableStateOf(ReaderPagination.Empty) }
     val pagerState = rememberPagerState(pageCount = { pagination.pageCount })
-    val pinnedHere = pagination.holds(uiState.bookmarkOffset, pagerState.currentPage)
+    // Paper turns have no pager behind them — a pager whose layout is never composed cannot be
+    // scrolled — so the page being read is held here, where every way of turning can reach it.
+    val turnsByHand = uiState.preferences.pageTurn == PageTurn.CURL
+    var handPage by remember(uiState.text) { mutableIntStateOf(0) }
+    val pageIndex = if (turnsByHand) handPage else pagerState.currentPage
+    val goToPage: (Int) -> Unit = { target ->
+        if (turnsByHand) handPage = target else scope.launch { pagerState.scrollToPage(target) }
+    }
+    val pinnedHere = pagination.holds(uiState.bookmarkOffset, pageIndex)
+    val density = LocalDensity.current
+    val screenHeightPx = LocalWindowInfo.current.containerSize.height.toFloat()
+    var pageInset by remember { mutableStateOf(PageInset()) }
 
     Box(
         modifier = modifier
             .fillMaxSize()
             .background(page.ground)
     ) {
+        // Under the chrome and over everything else: the pages cover the screen edge to edge,
+        // whichever way they move. A page that stopped at the chrome would be a page the width of
+        // the band between two toolbars, and you would see it stop — the whole of the screen is
+        // the sheet, so the whole of the screen is what moves.
+        if (uiState.hasText && pagination.covers(uiState.offset)) {
+            val style = readerTextStyle(uiState.preferences, page)
+            val onTap = { onEvent(ReadingEvent.PageTapped) }
+            when (uiState.preferences.pageTurn) {
+                PageTurn.CURL -> CurlingPages(
+                    index = pageIndex,
+                    pageCount = pagination.pageCount,
+                    onIndexChange = goToPage,
+                    pageText = pagination::pageText,
+                    style = style,
+                    page = page,
+                    textPadding = pageInset,
+                    numberAlpha = 1f - chromeAlpha,
+                    onTap = onTap,
+                )
+
+                PageTurn.SLIDE, PageTurn.SCROLL -> MovingPages(
+                    sideways = uiState.preferences.pageTurn == PageTurn.SLIDE,
+                    pagerState = pagerState,
+                    pagination = pagination,
+                    style = style,
+                    textPadding = pageInset,
+                    numberAlpha = 1f - chromeAlpha,
+                    onTap = onTap,
+                )
+            }
+        }
+
         Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
             ReaderHeader(
                 uiState = uiState,
@@ -143,7 +194,23 @@ fun ReadingScreen(
                 onEvent = onEvent,
             )
 
-            Box(modifier = Modifier.weight(1f)) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    // A turning sheet is drawn over the whole screen, but its words have to stay
+                    // where they were measured. Rather than adding up the header, the chrome and
+                    // two window insets and hoping the sum keeps matching the layout, the page
+                    // area says where it is and the sheet is told.
+                    .onGloballyPositioned { area ->
+                        val top = area.positionInRoot().y
+                        pageInset = with(density) {
+                            PageInset(
+                                top = top.toDp(),
+                                bottom = (screenHeightPx - top - area.size.height).toDp(),
+                            )
+                        }
+                    }
+            ) {
                 when {
                     uiState.isLoading -> PageSkeleton()
                     uiState.errorMessage != null -> PageError(
@@ -157,6 +224,8 @@ fun ReadingScreen(
                         page = page,
                         pagination = pagination,
                         pagerState = pagerState,
+                        pageIndex = pageIndex,
+                        goToPage = goToPage,
                         onPaginated = { pagination = it },
                         onEvent = onEvent,
                     )
@@ -169,7 +238,8 @@ fun ReadingScreen(
                     uiState = uiState,
                     page = page,
                     pagination = pagination,
-                    pagerState = pagerState,
+                    pageIndex = pageIndex,
+                    goToPage = goToPage,
                     alpha = chromeAlpha,
                 )
                 ReaderActions(
@@ -179,22 +249,6 @@ fun ReadingScreen(
                     onEvent = onEvent,
                 )
             }
-        }
-
-        // With the chrome gone the page is left on its own, and a book is never quite on its own:
-        // it has a number at the foot of every page. It takes the chrome's place as that fades.
-        if (uiState.hasText && pagination !== ReaderPagination.Empty) {
-            Text(
-                text = (pagerState.currentPage + 1).toString(),
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .navigationBarsPadding()
-                    .padding(bottom = 34.dp)
-                    .alpha(1f - chromeAlpha),
-                fontFamily = organicBodyFontFamily(),
-                fontSize = 12.sp,
-                color = page.ink.copy(alpha = 0.45f)
-            )
         }
 
         if (uiState.showDisplaySheet) {
@@ -222,30 +276,16 @@ private fun ReaderPages(
     page: OrganicPageColors,
     pagination: ReaderPagination,
     pagerState: PagerState,
+    pageIndex: Int,
+    goToPage: (Int) -> Unit,
     onPaginated: (ReaderPagination) -> Unit,
     onEvent: (ReadingEvent) -> Unit,
 ) {
     val density = LocalDensity.current
     val measurer = rememberTextMeasurer()
 
-    val face = if (uiState.preferences.useSerif) organicSerifFontFamily() else organicBodyFontFamily()
     val bodySize = uiState.preferences.bodySizeSp.sp
-    val style = TextStyle(
-        fontFamily = face,
-        fontSize = bodySize,
-        lineHeight = bodySize * LINE_HEIGHT_RATIO,
-        color = page.ink,
-        // Both edges flush, the way a book is set. Hyphenation comes with it rather than after
-        // it: justifying a forty-character line without leave to break a word stretches the
-        // spaces instead, and a page of that has rivers running down it.
-        //
-        // The line-break strategy has to be asked for too. Android only hyphenates when it is
-        // choosing breaks for a whole paragraph rather than greedily line by line, so without
-        // this the hyphens above are simply never used.
-        textAlign = TextAlign.Justify,
-        hyphens = readerHyphens(),
-        lineBreak = readerLineBreak(),
-    )
+    val style = readerTextStyle(uiState.preferences, page)
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize().clipToBounds()) {
         val textWidth = with(density) { (maxWidth - PAGE_GUTTER * 2).roundToPx() }
@@ -286,38 +326,146 @@ private fun ReaderPages(
         // cut anew, which is what keeps a size change from also being a jump. Only then is the
         // pager listened to: a freshly cut book sits on page one until it is told otherwise, and
         // reporting that as a place the reader went would write away the place they were at.
-        LaunchedEffect(cut) {
+        val turnsByHand = uiState.preferences.pageTurn == PageTurn.CURL
+        LaunchedEffect(cut, turnsByHand) {
             snapshotFlow { pagination }.first { it.covers(uiState.offset) }
             val target = pagination.pageOf(uiState.offset)
-            if (pagerState.currentPage != target) pagerState.scrollToPage(target)
-            snapshotFlow { pagerState.settledPage }
+            if (pageIndex != target) goToPage(target)
+            snapshotFlow { if (turnsByHand) pageIndex else pagerState.settledPage }
                 .drop(1)
                 .collect { index -> onEvent(ReadingEvent.PageSettled(pagination.startOf(index))) }
         }
 
+        // Only the skeleton is drawn here. The pages themselves are drawn from the root of the
+        // reader, over the whole screen, so that a page moves across all of the glass rather than
+        // across the band left between the header and the tools. What this pass is for is the
+        // measuring: this box is the page area, and its size is what the book is cut to fit.
         if (!pagination.covers(uiState.offset)) {
             PageSkeleton(cutSoFar = pagination.pageCount.takeIf { it > 1 })
-            return@BoxWithConstraints
         }
+    }
+}
 
-        HorizontalPager(
-            state = pagerState,
+/**
+ * Pages that slide across or scroll up, drawn over the whole screen.
+ *
+ * The same two pagers as before, moved out of the reader's column so that a page travels the full
+ * height and width of the glass. Held here beside the sheet that turns by hand, which has always
+ * been drawn this way, so all three ways of turning a page now move the same amount of screen.
+ *
+ * Each page carries its own number, printed on it rather than over it, so that the number leaves
+ * with the page it belongs to instead of hanging still in the middle while pages pass behind it.
+ */
+@Composable
+private fun MovingPages(
+    sideways: Boolean,
+    pagerState: PagerState,
+    pagination: ReaderPagination,
+    style: TextStyle,
+    textPadding: PageInset,
+    numberAlpha: Float,
+    onTap: () -> Unit,
+) {
+    // A tap anywhere shows or hides the chrome. Turning a page is a swipe, so the tap does not
+    // have to be shared out between parts of the screen.
+    val modifier = Modifier
+        .fillMaxSize()
+        .clipToBounds()
+        .pointerInput(Unit) { detectTapGestures { onTap() } }
+
+    if (sideways) {
+        HorizontalPager(state = pagerState, modifier = modifier, key = { it }) { index ->
+            PageOfText(pagination.pageText(index), style, textPadding, index + 1, numberAlpha)
+        }
+    } else {
+        VerticalPager(state = pagerState, modifier = modifier, key = { it }) { index ->
+            PageOfText(pagination.pageText(index), style, textPadding, index + 1, numberAlpha)
+        }
+    }
+}
+
+/**
+ * How the book is set, for whoever is drawing it.
+ *
+ * Shared because a page is measured in one place and drawn in another: the reader's column is what
+ * says how big a page is, and the pages themselves are drawn over the whole screen. Set twice, the
+ * two would drift, and a page measured with one and drawn with the other breaks in the wrong place.
+ */
+@Composable
+internal fun readerTextStyle(preferences: ReaderPreferences, page: OrganicPageColors): TextStyle {
+    val bodySize = preferences.bodySizeSp.sp
+    return TextStyle(
+        fontFamily = if (preferences.useSerif) organicSerifFontFamily() else organicBodyFontFamily(),
+        fontSize = bodySize,
+        lineHeight = bodySize * LINE_HEIGHT_RATIO,
+        color = page.ink,
+        // Both edges flush, the way a book is set. Hyphenation comes with it rather than after
+        // it: justifying a forty-character line without leave to break a word stretches the
+        // spaces instead, and a page of that has rivers running down it.
+        //
+        // The line-break strategy has to be asked for too. Android only hyphenates when it is
+        // choosing breaks for a whole paragraph rather than greedily line by line, so without
+        // this the hyphens above are simply never used.
+        textAlign = TextAlign.Justify,
+        hyphens = readerHyphens(),
+        lineBreak = readerLineBreak(),
+    )
+}
+
+/**
+ * Where the page area sits on the screen, measured rather than added up.
+ *
+ * A sheet drawn over the whole screen still has to put its words where the pagination measured
+ * them, and the distance from the glass to the page is a header, a row of chrome and two window
+ * insets deep. Asking the layout is one number that cannot fall out of step; adding those four up
+ * by hand is four that can.
+ */
+internal data class PageInset(val top: Dp = 0.dp, val bottom: Dp = 0.dp)
+
+/** One page's worth of words, set in the margins the page is measured against. */
+@Composable
+internal fun PageOfText(
+    text: String,
+    style: TextStyle,
+    /** Non-zero when the sheet covers more of the screen than the page area does. */
+    inset: PageInset = PageInset(),
+    /**
+     * This page's own number, printed on it.
+     *
+     * A number printed on the sheet goes wherever the sheet goes: it rolls over with the paper and
+     * comes out mirrored on the back, and the number of the page underneath is uncovered along
+     * with the rest of it. One drawn over the top instead sits still through the whole turn, which
+     * is the one thing a page number never does in a book.
+     *
+     * It is placed against the foot of the sheet rather than the foot of the text, so this only
+     * lands where a page number belongs when the sheet is the whole screen. Null leaves it off.
+     */
+    number: Int? = null,
+    /** How far the number has taken the chrome's place, as the chrome fades out. */
+    numberAlpha: Float = 0f,
+    modifier: Modifier = Modifier,
+) {
+    Box(modifier = modifier.fillMaxSize()) {
+        Text(
+            text = text,
             modifier = Modifier
                 .fillMaxSize()
-                // A tap anywhere shows or hides the chrome. Turning a page is a swipe now, so the
-                // tap does not have to be shared out between three parts of the screen.
-                .pointerInput(Unit) {
-                    detectTapGestures { onEvent(ReadingEvent.PageTapped) }
-                },
-            key = { it },
-        ) { index ->
+                .padding(top = inset.top, bottom = inset.bottom)
+                .padding(horizontal = PAGE_GUTTER)
+                .padding(top = PAGE_TOP, bottom = PAGE_BOTTOM),
+            style = style,
+        )
+        if (number != null && numberAlpha > 0f) {
             Text(
-                text = pagination.pageText(index),
+                text = number.toString(),
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = PAGE_GUTTER)
-                    .padding(top = PAGE_TOP, bottom = PAGE_BOTTOM),
-                style = style,
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding()
+                    .padding(bottom = PAGE_NUMBER_DROP)
+                    .alpha(numberAlpha),
+                fontFamily = organicBodyFontFamily(),
+                fontSize = 12.sp,
+                color = style.color.copy(alpha = 0.45f),
             )
         }
     }
@@ -419,26 +567,26 @@ private fun ProgressRow(
     uiState: ReadingUiState,
     page: OrganicPageColors,
     pagination: ReaderPagination,
-    pagerState: PagerState,
+    pageIndex: Int,
+    goToPage: (Int) -> Unit,
     alpha: Float,
 ) {
-    val scope = rememberCoroutineScope()
     val pageCount = pagination.pageCount
-    val current = pagerState.currentPage
+    val current = pageIndex
     val bookmarkAt = uiState.bookmarkOffset
         ?.takeIf { pageCount > 1 }
         ?.let { pagination.pageOf(it).toFloat() / (pageCount - 1) }
 
     fun scrubTo(fraction: Float) {
         val target = (fraction.coerceIn(0f, 1f) * (pageCount - 1)).toInt().coerceIn(0, pageCount - 1)
-        if (target != pagerState.currentPage) scope.launch { pagerState.scrollToPage(target) }
+        if (target != pageIndex) goToPage(target)
     }
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 28.dp)
-            .padding(top = 18.dp)
+            .padding(top = 10.dp)
             .alpha(alpha),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -529,7 +677,7 @@ private fun ReaderActions(
             .fillMaxWidth()
             .navigationBarsPadding()
             .padding(horizontal = 28.dp)
-            .padding(top = 18.dp, bottom = 30.dp)
+            .padding(top = 12.dp, bottom = 12.dp)
             .alpha(alpha),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -798,10 +946,21 @@ private fun PageSkeleton(cutSoFar: Int? = null) {
 private const val LINE_HEIGHT_RATIO = 1.45f
 private const val CHROME_FADE_MILLIS = 180
 
-/** The margins a page is set in, and therefore what the text is measured against. */
+/**
+ * The margins a page is set in, and therefore what the text is measured against.
+ *
+ * The foot is kept short. Everything below the page — the progress row, the tools, the home
+ * indicator — holds its place whether the chrome is showing or not, because a page that grew when
+ * the chrome went would have to be cut again with somebody mid-sentence on it. That reserved band
+ * is already most of what stands between the last line and the foot of the screen, so the page
+ * itself does not add to it.
+ */
 private val PAGE_GUTTER = 28.dp
 private val PAGE_TOP = 26.dp
-private val PAGE_BOTTOM = 24.dp
+private val PAGE_BOTTOM = 8.dp
+
+/** How far the page number sits above the foot of the screen, over the home indicator. */
+private val PAGE_NUMBER_DROP = 19.dp
 
 private val ACTION_SIZE = 46.dp
 private val SCRUB_TARGET_HEIGHT = 24.dp
@@ -811,6 +970,7 @@ private const val ICON_FRACTION = 0.45f
 
 /** Long enough that dragging the size slider starts one pagination, not forty. */
 private const val REPAGINATE_DELAY_MILLIS = 180L
+
 
 private const val SUCCESS_DWELL_MILLIS = 1_800L
 private const val ERROR_DWELL_MILLIS = 3_500L

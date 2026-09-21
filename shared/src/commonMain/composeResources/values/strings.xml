@@ -157,6 +157,10 @@
     <string name="reader_display">Display</string>
     <string name="reader_text_size">Text size</string>
     <string name="reader_page_colour">Page colour</string>
+    <string name="reader_page_turn">Page turn</string>
+    <string name="reader_turn_slide">Slide</string>
+    <string name="reader_turn_curl">Paper</string>
+    <string name="reader_turn_scroll">Scroll</string>
     <string name="reader_font_sans">Figtree</string>
     <string name="reader_font_serif">Serif</string>
     <string name="reader_page_of">%1$d / %2$d</string>

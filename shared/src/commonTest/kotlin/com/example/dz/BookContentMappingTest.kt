@@ -168,6 +168,6 @@ class BookContentMappingTest {
 
     private companion object {
         /** The two em spaces a new paragraph opens with. */
-        const val INDENT = "\u2003\u2003"
+        const val INDENT = "\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0"
     }
 }

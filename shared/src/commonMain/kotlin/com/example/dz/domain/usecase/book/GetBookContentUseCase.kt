@@ -74,14 +74,44 @@ class GetBookContentUseCase(
 internal fun cleanBookText(raw: String): String {
     val normalized = raw.replace("\r\n", "\n").replace('\r', '\n')
     val start = START_MARKER.find(normalized)?.range?.last?.plus(1) ?: 0
-    val end = END_MARKER.find(normalized, start)?.range?.first ?: normalized.length
-    return normalized.substring(start, end)
-        .replace(EMPHASIS_UNDERSCORE, "")
-        .replace(EXTRA_BLANK_LINES, PARAGRAPH_SPLIT)
-        .trim()
+    // Searched from the tail. The end marker is the last thing in the file, and looking for it
+    // from the front means running a pattern over the whole book to find something at the back.
+    val tail = maxOf(start, normalized.length - MARKER_WINDOW)
+    val end = END_MARKER.find(normalized, tail)?.range?.first ?: normalized.length
+
+    return stripEmphasisUnderscores(normalized.substring(start, end))
         .split(PARAGRAPH_SPLIT)
+        // A run of blank lines is still one paragraph break, and splitting on a pair of newlines
+        // leaves the extras behind as empty pieces.
+        .map { it.trim('\n') }
+        .filter { it.isNotEmpty() }
         .joinToString("\n") { indentParagraph(unwrapParagraph(it)) }
 }
+
+/**
+ * Drops the underscores Gutenberg sets italics with, in one pass over the text.
+ *
+ * This was a regex with a lookbehind and a lookahead, which is a fine way to say it and a
+ * catastrophic way to run it: applied to the seven hundred thousand characters of a novel it took
+ * minutes on iOS, where Kotlin/Native brings its own regex engine — long enough that the reader
+ * never opened at all. The rule is the same as it was: an underscore between two letters or digits
+ * belongs to whatever it is spelling, and every other one goes.
+ */
+private fun stripEmphasisUnderscores(text: String): String {
+    if (!text.contains('_')) return text
+
+    val out = StringBuilder(text.length)
+    for (i in text.indices) {
+        val char = text[i]
+        val insideAWord = char == '_' &&
+            isWordCharacter(text.getOrNull(i - 1)) &&
+            isWordCharacter(text.getOrNull(i + 1))
+        if (char != '_' || insideAWord) out.append(char)
+    }
+    return out.toString()
+}
+
+private fun isWordCharacter(char: Char?): Boolean = char != null && (char.isLetter() || char.isDigit())
 
 /**
  * Marks a new paragraph the way a book does: by indenting its first line, not by leaving a blank
@@ -155,25 +185,23 @@ private const val SHORTEST_SENTENCE = 20
 private const val COLUMN_GAP = "   "
 
 /**
- * Two em spaces — the indent itself, held in the text rather than applied as a style.
+ * The indent itself, held in the text rather than applied as a style.
  *
  * A style would have to be re-applied per paragraph, which means cutting the text into styled
  * blocks, which means the offsets the reader keeps its place with no longer line up with the
- * string they were measured against. Two characters cost nothing and keep one text throughout.
+ * string they were measured against. Characters cost nothing and keep one text throughout.
+ *
+ * Non-breaking spaces. Ordinary ones are trimmed off the start of a line on iOS and the indent
+ * disappears with them; so, it turns out, are em spaces. A non-breaking space is not a place a
+ * line may be broken, so no layout treats it as whitespace to be tidied away — which is why it is
+ * what the web has always indented with. Six of them come to about an em and a half.
  */
-private const val PARAGRAPH_INDENT = "\u2003\u2003"
+private const val PARAGRAPH_INDENT = "\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0"
 
 private const val PARAGRAPH_SPLIT = "\n\n"
 
 private val START_MARKER = Regex("""\*\*\* ?START OF TH[EIS].*?\*\*\*""", RegexOption.IGNORE_CASE)
 private val END_MARKER = Regex("""\*\*\* ?END OF TH[EIS].*?\*\*\*""", RegexOption.IGNORE_CASE)
-private val EXTRA_BLANK_LINES = Regex("\\n{3,}")
+/** How far into each end of the file the Gutenberg markers are worth looking for. */
+private const val MARKER_WINDOW = 100_000
 
-/**
- * Gutenberg writes italics as `_like this_`, and drawn literally those underscores are the most
- * obviously wrong thing on the page.
- *
- * Only underscores at the edge of a word go: one sitting between two letters or digits belongs to
- * whatever it is spelling, and a book that prints `snake_case` means to.
- */
-private val EMPHASIS_UNDERSCORE = Regex("""(?<![\p{L}\p{N}])_|_(?![\p{L}\p{N}])""")

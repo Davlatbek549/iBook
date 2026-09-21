@@ -1,6 +1,7 @@
 package com.example.dz.presentation.reading
 
 import com.example.dz.domain.model.PageTheme
+import com.example.dz.domain.model.PageTurn
 
 sealed interface ReadingEvent {
     data object BackClicked : ReadingEvent
@@ -18,6 +19,9 @@ sealed interface ReadingEvent {
 
     data class PageThemeChanged(val theme: PageTheme) : ReadingEvent
     data class SerifChanged(val useSerif: Boolean) : ReadingEvent
+
+    /** How one page should give way to the next. */
+    data class PageTurnChanged(val pageTurn: PageTurn) : ReadingEvent
     data object CommentsClicked : ReadingEvent
 
     /** Pins the place being read, or unpins it when it is already the pinned one. */

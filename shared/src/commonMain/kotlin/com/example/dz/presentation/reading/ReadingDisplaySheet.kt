@@ -1,5 +1,11 @@
 package com.example.dz.presentation.reading
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.keyframes
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -21,6 +27,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,6 +45,15 @@ import com.example.dz.designsystem.theme.OrganicColors
 import com.example.dz.designsystem.theme.OrganicShape
 import com.example.dz.designsystem.theme.organicBodyFontFamily
 import com.example.dz.designsystem.theme.organicHeadingFontFamily
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.util.lerp
+import com.example.dz.domain.model.PageTurn
 import com.example.dz.domain.model.PageTheme
 import com.example.dz.domain.model.ReaderPreferences
 import dz.shared.generated.resources.Res
@@ -45,6 +61,10 @@ import dz.shared.generated.resources.reader_display
 import dz.shared.generated.resources.reader_font_sans
 import dz.shared.generated.resources.reader_font_serif
 import dz.shared.generated.resources.reader_page_colour
+import dz.shared.generated.resources.reader_page_turn
+import dz.shared.generated.resources.reader_turn_curl
+import dz.shared.generated.resources.reader_turn_scroll
+import dz.shared.generated.resources.reader_turn_slide
 import dz.shared.generated.resources.reader_text_size
 import dz.shared.generated.resources.reader_theme_cream
 import dz.shared.generated.resources.reader_theme_night
@@ -195,6 +215,20 @@ internal fun DisplaySheet(
                 }
             }
 
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                OrganicSectionLabel(text = stringResource(Res.string.reader_page_turn))
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    PageTurn.entries.forEach { turn ->
+                        PageTurnOption(
+                            turn = turn,
+                            selected = turn == uiState.preferences.pageTurn,
+                            modifier = Modifier.weight(1f),
+                            onClick = { onEvent(ReadingEvent.PageTurnChanged(turn)) },
+                        )
+                    }
+                }
+            }
+
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 FaceOption(
                     label = stringResource(Res.string.reader_font_sans),
@@ -212,6 +246,152 @@ internal fun DisplaySheet(
         }
     }
 }
+
+/**
+ * One way of turning a page, played rather than described.
+ *
+ * The words alone — slide, paper, scroll — do not say much until you have tried each, and neither
+ * does a still picture of a sheet stopped half way across. So each glyph turns its own page on a
+ * loop: one sheet arriving from the side, one peeling up by its corner, one rising from below.
+ * Whichever motion you recognise is the one you want.
+ */
+@Composable
+private fun PageTurnOption(
+    turn: PageTurn,
+    selected: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    val ink = if (selected) Color.White else OrganicColors.neutral800
+
+    // Rest, turn, rest. The pause at each end is what makes the motion legible as a page turn
+    // rather than a shape that never stops moving.
+    val motion by rememberInfiniteTransition(label = "page turn").animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = keyframes {
+                durationMillis = TURN_LOOP_MILLIS
+                0f at 0 using FastOutSlowInEasing
+                0f at TURN_REST_MILLIS using FastOutSlowInEasing
+                1f at TURN_REST_MILLIS + TURN_TRAVEL_MILLIS
+                1f at TURN_LOOP_MILLIS
+            },
+            repeatMode = RepeatMode.Restart,
+        ),
+        label = "page turn",
+    )
+
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(OrganicShape.radiusMd))
+            .background(if (selected) OrganicColors.accent else OrganicColors.neutral200)
+            .clickable(role = Role.RadioButton, onClick = onClick)
+            .padding(vertical = 12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Canvas(modifier = Modifier.size(width = 30.dp, height = 22.dp)) {
+            val stroke = 1.6.dp.toPx()
+            val corner = CornerRadius(2.dp.toPx(), 2.dp.toPx())
+
+            // Sheets come in from off the glyph, so the part still outside it has to be cut.
+            clipRect {
+                when (turn) {
+                    // A sheet arriving from the right over the one already there.
+                    PageTurn.SLIDE -> {
+                        val sheet = Size(size.width * 0.62f, size.height)
+                        drawRoundRect(
+                            color = ink.copy(alpha = 0.35f),
+                            topLeft = Offset.Zero,
+                            size = sheet,
+                            cornerRadius = corner,
+                            style = Stroke(width = stroke),
+                        )
+                        drawRoundRect(
+                            color = ink,
+                            topLeft = Offset(
+                                lerp(size.width, size.width - sheet.width, motion),
+                                0f,
+                            ),
+                            size = sheet,
+                            cornerRadius = corner,
+                            style = Stroke(width = stroke),
+                        )
+                    }
+
+                    // A sheet lifting off the one beneath, corner first.
+                    PageTurn.CURL -> {
+                        drawRoundRect(
+                            color = ink.copy(alpha = 0.35f),
+                            topLeft = Offset.Zero,
+                            size = size,
+                            cornerRadius = corner,
+                            style = Stroke(width = stroke),
+                        )
+                        val fold = size.width * 0.52f * motion
+                        if (fold > stroke) {
+                            drawPath(
+                                path = Path().apply {
+                                    moveTo(size.width, size.height - fold)
+                                    lineTo(size.width - fold, size.height)
+                                    quadraticBezierTo(
+                                        size.width - fold * 0.25f, size.height - fold * 0.25f,
+                                        size.width, size.height - fold,
+                                    )
+                                    close()
+                                },
+                                color = ink,
+                            )
+                        }
+                    }
+
+                    // A sheet rising from below the one being read.
+                    PageTurn.SCROLL -> {
+                        drawRoundRect(
+                            color = ink.copy(alpha = 0.35f),
+                            topLeft = Offset.Zero,
+                            size = size,
+                            cornerRadius = corner,
+                            style = Stroke(width = stroke),
+                        )
+                        drawRoundRect(
+                            color = ink,
+                            topLeft = Offset(
+                                0f,
+                                lerp(size.height, size.height * 0.16f, motion),
+                            ),
+                            size = Size(size.width, size.height * 0.46f),
+                            cornerRadius = corner,
+                            style = Stroke(width = stroke),
+                        )
+                    }
+                }
+            }
+        }
+        Text(
+            text = stringResource(
+                when (turn) {
+                    PageTurn.SLIDE -> Res.string.reader_turn_slide
+                    PageTurn.CURL -> Res.string.reader_turn_curl
+                    PageTurn.SCROLL -> Res.string.reader_turn_scroll
+                }
+            ),
+            fontFamily = organicBodyFontFamily(),
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+            fontSize = 13.sp,
+            color = ink
+        )
+    }
+}
+
+/** How long a glyph sits still before it turns, and again after it has. */
+private const val TURN_REST_MILLIS = 520
+
+/** How long the turn itself takes — near enough the real one to stand for it. */
+private const val TURN_TRAVEL_MILLIS = 900
+
+private const val TURN_LOOP_MILLIS = TURN_REST_MILLIS * 2 + TURN_TRAVEL_MILLIS
 
 @Composable
 private fun PageThemeSwatch(
