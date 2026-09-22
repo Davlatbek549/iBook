@@ -11,6 +11,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -142,11 +143,15 @@ fun OrganicHeroCard(
 }
 
 /**
- * A genre tile: 104dp tall, the name sitting on the bottom edge, with a circle and a tilted book
- * spine as decoration in the top-right.
+ * A genre tile: 104dp tall, the name sitting on the bottom edge, with decoration in the top-right.
  *
  * [background] alternates down the grid — the design runs accent and sage tints against each other
  * rather than repeating one tint.
+ *
+ * [art] is the decoration. Home draws every tile with the circle and tilted spine; Browse gives
+ * each of its six tiles its own shape (see [OrganicBrowseTileStyles]), so the grid reads as six
+ * shelves rather than one tile stamped six times. [decorationColor] fills the larger shape and
+ * [spineColor] the smaller, whichever shapes the art is made of.
  */
 @Composable
 fun OrganicGenreTile(
@@ -158,6 +163,7 @@ fun OrganicGenreTile(
     textColor: Color = OrganicColors.accent900,
     subtitle: String? = null,
     subtitleColor: Color = OrganicColors.accent800,
+    art: OrganicGenreArt = OrganicGenreArt.CircleAndSpine,
     onClick: (() -> Unit)? = null,
 ) {
     Box(
@@ -173,24 +179,7 @@ fun OrganicGenreTile(
                 }
             )
     ) {
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .offset(x = 16.dp, y = (-18).dp)
-                .size(74.dp)
-                .clip(CircleShape)
-                .background(decorationColor)
-        )
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .offset(x = (-16).dp, y = 14.dp)
-                .rotate(9f)
-                .width(26.dp)
-                .height(40.dp)
-                .clip(RoundedCornerShape(5.dp))
-                .background(spineColor)
-        )
+        GenreTileArt(art = art, decorationColor = decorationColor, spineColor = spineColor)
         Column(
             modifier = Modifier
                 .align(Alignment.BottomStart)
@@ -218,6 +207,143 @@ fun OrganicGenreTile(
             }
         }
     }
+}
+
+/** The six decorations the Browse frames draw, in the order they appear down its grid. */
+enum class OrganicGenreArt {
+    /** A circle bleeding off the top-right, a spine tilted 9° in front of it. */
+    CircleAndSpine,
+
+    /** A circle sunk into the bottom-right, a spine tilted the other way at the top. */
+    LowCircleAndSpine,
+
+    /** Two upright spines of different heights, standing on a shared baseline. */
+    Spines,
+
+    /** An open ring caught on the top-right corner. */
+    Ring,
+
+    /** A rounded square turned 14°. */
+    TiltedSquare,
+
+    /** A single circle sunk into the bottom-right. */
+    LowCircle,
+}
+
+/**
+ * Draws [art] across the tile. Every shape is positioned against the tile's own edges and allowed
+ * past them — `right:-16px; top:-18px` in the frames — so the tile's clip, not the layout, trims it.
+ */
+@Composable
+private fun BoxScope.GenreTileArt(
+    art: OrganicGenreArt,
+    decorationColor: Color,
+    spineColor: Color,
+) {
+    when (art) {
+        OrganicGenreArt.CircleAndSpine -> {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .offset(x = 16.dp, y = (-18).dp)
+                    .size(74.dp)
+                    .clip(CircleShape)
+                    .background(decorationColor)
+            )
+            GenreSpine(
+                color = spineColor,
+                degrees = 9f,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .offset(x = (-16).dp, y = 14.dp)
+            )
+        }
+
+        OrganicGenreArt.LowCircleAndSpine -> {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .offset(x = 20.dp, y = 22.dp)
+                    .size(82.dp)
+                    .clip(CircleShape)
+                    .background(decorationColor)
+            )
+            GenreSpine(
+                color = spineColor,
+                degrees = -8f,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .offset(x = (-18).dp, y = 14.dp)
+            )
+        }
+
+        OrganicGenreArt.Spines -> Row(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .offset(x = (-14).dp, y = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.Bottom
+        ) {
+            Box(
+                modifier = Modifier
+                    .width(15.dp)
+                    .height(42.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(decorationColor)
+            )
+            Box(
+                modifier = Modifier
+                    .width(15.dp)
+                    .height(34.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(spineColor)
+            )
+        }
+
+        OrganicGenreArt.Ring -> Box(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .offset(x = 14.dp, y = (-14).dp)
+                .size(64.dp)
+                .border(8.dp, decorationColor, CircleShape)
+        )
+
+        OrganicGenreArt.TiltedSquare -> Box(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .offset(x = (-16).dp, y = 18.dp)
+                .rotate(14f)
+                .size(38.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(decorationColor)
+        )
+
+        OrganicGenreArt.LowCircle -> Box(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .offset(x = 18.dp, y = 18.dp)
+                .size(70.dp)
+                .clip(CircleShape)
+                .background(decorationColor)
+        )
+    }
+}
+
+/** A 26 × 40 book spine, radius 5, turned by [degrees]. */
+@Composable
+private fun GenreSpine(
+    color: Color,
+    degrees: Float,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .rotate(degrees)
+            .width(26.dp)
+            .height(40.dp)
+            .clip(RoundedCornerShape(5.dp))
+            .background(color)
+    )
 }
 
 /**
@@ -329,6 +455,44 @@ data class GenreTint(
     val spine: Color,
     val text: Color,
     val subtitle: Color,
+)
+
+/** A Browse tile's full look: its colours and the shape drawn on it. */
+data class GenreTileStyle(
+    val tint: GenreTint,
+    val art: OrganicGenreArt,
+)
+
+/**
+ * The six tiles of the Browse grid, in the frame's order: terracotta, sage, neutral, then the same
+ * three a step lighter. Values from `#scr-categories` — where a frame writes the title in the body
+ * colour, [OrganicColors.text] stands in for it.
+ */
+val OrganicBrowseTileStyles: List<GenreTileStyle> = listOf(
+    GenreTileStyle(
+        GenreTint(OrganicColors.accent200, OrganicColors.accent300, OrganicColors.accent700, OrganicColors.accent900, OrganicColors.accent800),
+        OrganicGenreArt.CircleAndSpine,
+    ),
+    GenreTileStyle(
+        GenreTint(OrganicColors.accent2_200, OrganicColors.accent2_300, OrganicColors.accent2_700, OrganicColors.accent2_900, OrganicColors.accent2_900),
+        OrganicGenreArt.LowCircleAndSpine,
+    ),
+    GenreTileStyle(
+        GenreTint(OrganicColors.neutral200, OrganicColors.neutral500, OrganicColors.neutral400, OrganicColors.text, OrganicColors.neutral700),
+        OrganicGenreArt.Spines,
+    ),
+    GenreTileStyle(
+        GenreTint(OrganicColors.accent100, OrganicColors.accent300, OrganicColors.accent300, OrganicColors.accent900, OrganicColors.accent800),
+        OrganicGenreArt.Ring,
+    ),
+    GenreTileStyle(
+        GenreTint(OrganicColors.accent2_100, OrganicColors.accent2_400, OrganicColors.accent2_400, OrganicColors.accent2_900, OrganicColors.accent2_900),
+        OrganicGenreArt.TiltedSquare,
+    ),
+    GenreTileStyle(
+        GenreTint(OrganicColors.neutral300, OrganicColors.neutral400, OrganicColors.neutral400, OrganicColors.text, OrganicColors.neutral800),
+        OrganicGenreArt.LowCircle,
+    ),
 )
 
 /**

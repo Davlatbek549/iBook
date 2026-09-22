@@ -23,6 +23,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dz.designsystem.components.icons.OrganicIcons
@@ -92,6 +94,9 @@ fun OrganicToggle(
 /**
  * One filter pill — Library's shelf states, the store's moods, the notification filters. Selected
  * is an accent fill with white text; the rest are neutral-200 with neutral-800.
+ *
+ * Browse draws its mood pills a little tighter (16dp) and sets the chosen one in semibold, so both
+ * are parameters rather than a second pill that would drift from this one.
  */
 @Composable
 fun OrganicFilterPill(
@@ -99,6 +104,8 @@ fun OrganicFilterPill(
     selected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    horizontalPadding: Dp = 18.dp,
+    selectedFontWeight: FontWeight = FontWeight.Normal,
 ) {
     val background by animateColorAsState(
         targetValue = if (selected) OrganicColors.accent else OrganicColors.neutral200,
@@ -114,11 +121,12 @@ fun OrganicFilterPill(
             .clip(RoundedCornerShape(OrganicShape.pill))
             .background(background)
             .clickable(role = Role.Tab, onClick = onClick)
-            .padding(horizontal = 18.dp, vertical = 9.dp)
+            .padding(horizontal = horizontalPadding, vertical = 9.dp)
     ) {
         Text(
             text = label,
             fontFamily = organicBodyFontFamily(),
+            fontWeight = if (selected) selectedFontWeight else FontWeight.Normal,
             fontSize = 13.sp,
             color = textColor
         )
