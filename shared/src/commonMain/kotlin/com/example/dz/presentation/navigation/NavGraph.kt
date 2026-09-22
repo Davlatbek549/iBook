@@ -115,6 +115,7 @@ import com.example.dz.presentation.reading.ReadingEffect
 import com.example.dz.presentation.reading.ReadingScreen
 import com.example.dz.presentation.reading.ReadingViewModel
 import com.example.dz.presentation.search.SearchEffect
+import com.example.dz.presentation.search.SearchEvent
 import com.example.dz.presentation.search.SearchScreen
 import com.example.dz.presentation.search.SearchViewModel
 import com.example.dz.presentation.settings.SettingsEffect
@@ -564,19 +565,21 @@ fun DZNavGraph() {
                     searchViewModel.effects.collect { effect ->
                         when (effect) {
                             is SearchEffect.NavigateToBook -> navController.navigate(Routes.prePurchase(effect.bookId))
-                            is SearchEffect.NavigateToAuthor -> navController.navigate(Routes.authorDetail(effect.authorId))
-                            is SearchEffect.NavigateToCategory -> navController.navigate(Routes.categoryDetail(effect.categoryId))
                             SearchEffect.NavigateBack -> navController.popBackStack()
                         }
                     }
                 }
 
+                // A book opened from the results may have gone onto the shelf, so which results say
+                // "In your library" is read again on the way back.
+                LifecycleResumeEffect(searchViewModel) {
+                    searchViewModel.onEvent(SearchEvent.Resumed)
+                    onPauseOrDispose { }
+                }
+
                 SearchScreen(
                     uiState = uiState,
-                    onEvent = searchViewModel::onEvent,
-                    onCategoryClick = {},
-                    onBookClick = {},
-                    onAuthorClick = {}
+                    onEvent = searchViewModel::onEvent
                 )
             }
 
