@@ -51,6 +51,8 @@ object Routes {
     const val PAYMENT_FAILED = "payment_failed"
 
     // Discovery
+    /** The handoff's Categories screen: moods and every genre as a tile. Store's "See all" leads here. */
+    const val BROWSE = "browse"
     const val CATEGORY_DETAIL = "category_detail/{categoryName}"
     const val AUTHOR_DETAIL = "author_detail/{authorId}"
 

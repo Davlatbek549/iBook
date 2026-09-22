@@ -131,6 +131,10 @@ import com.example.dz.presentation.store.StoreEffect
 import com.example.dz.presentation.store.StoreEvent
 import com.example.dz.presentation.store.StoreScreen
 import com.example.dz.presentation.store.StoreViewModel
+import com.example.dz.presentation.store.browse.BrowseEffect
+import com.example.dz.presentation.store.browse.BrowseEvent
+import com.example.dz.presentation.store.browse.BrowseScreen
+import com.example.dz.presentation.store.browse.BrowseViewModel
 import com.example.dz.presentation.auth.new_password.NewPasswordEffect
 import com.example.dz.presentation.auth.new_password.NewPasswordScreen
 import com.example.dz.designsystem.components.organic.OrganicTabBar
@@ -163,6 +167,10 @@ fun DZNavGraph() {
         // here, but it drew one because Search *was* a tab — leaving it would show five
         // destinations with none of them current.
         Routes.SEARCH,
+        // Browse is pushed from Store and has its own way back. The frame draws the bar with Store
+        // lit, but a tap on Store here restores the Store stack — which is this screen — so the bar
+        // would offer a destination that goes nowhere.
+        Routes.BROWSE,
         Routes.PRE_PURCHASE,
         Routes.BOOK_REVIEW,
         Routes.AUTHOR_DETAIL,
@@ -554,6 +562,31 @@ fun DZNavGraph() {
                     onBookClick = { book ->
                         storeViewModel.onEvent(StoreEvent.BookClicked(book.id))
                     }
+                )
+            }
+
+            composable(Routes.BROWSE) {
+                val browseViewModel = koinViewModel<BrowseViewModel>()
+                val uiState by browseViewModel.uiState.collectAsStateWithLifecycle()
+
+                LaunchedEffect(browseViewModel) {
+                    browseViewModel.effects.collect { effect ->
+                        when (effect) {
+                            BrowseEffect.NavigateBack -> navController.popBackStack()
+                            BrowseEffect.NavigateToSearch -> navController.navigate(Routes.SEARCH)
+                            is BrowseEffect.NavigateToCategory ->
+                                navController.navigate(Routes.categoryDetail(effect.categoryId))
+                        }
+                    }
+                }
+
+                BrowseScreen(
+                    uiState = uiState,
+                    onBackClick = { browseViewModel.onEvent(BrowseEvent.BackClicked) },
+                    onSearchClick = { browseViewModel.onEvent(BrowseEvent.SearchClicked) },
+                    onMoodClick = { mood -> browseViewModel.onEvent(BrowseEvent.MoodClicked(mood)) },
+                    onSortClick = { browseViewModel.onEvent(BrowseEvent.SortClicked) },
+                    onCategoryClick = { id -> browseViewModel.onEvent(BrowseEvent.CategoryClicked(id)) }
                 )
             }
 

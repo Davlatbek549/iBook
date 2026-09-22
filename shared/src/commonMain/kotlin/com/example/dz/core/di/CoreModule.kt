@@ -138,6 +138,7 @@ import com.example.dz.presentation.social.invite_friends.InviteFriendsViewModel
 import com.example.dz.presentation.social.no_friends.NoFriendsViewModel
 import com.example.dz.presentation.library.LibraryViewModel
 import com.example.dz.presentation.search.SearchViewModel
+import com.example.dz.presentation.store.browse.BrowseViewModel
 import com.example.dz.presentation.store.StoreViewModel
 import com.russhwolf.settings.Settings
 import io.ktor.client.HttpClient
@@ -280,6 +281,7 @@ val coreModule = module {
     factory { LibraryViewModel(get(), get(), get(), get()) }
     factory { SearchViewModel(get(), get(), get(), get()) }
     factory { StoreViewModel(get(), get()) }
+    factory { BrowseViewModel(get(), get()) }
     factory { (authorId: String) -> AuthorDetailViewModel(authorId) }
     factory { (bookId: String) -> PrePurchaseViewModel(bookId, get(), get(), get(), get(), get(), get()) }
     factory { (bookId: String) -> BookReviewViewModel(bookId, get(), get(), get(), get(), get()) }
