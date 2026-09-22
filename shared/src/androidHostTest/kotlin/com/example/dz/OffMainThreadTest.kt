@@ -85,5 +85,6 @@ private object UnusedBookRepository : BookRepository {
     override suspend fun getBookDetails(bookId: String): AppResult<Book> = unused()
     override suspend fun getBookRatings(bookId: String): AppResult<BookRatings?> = unused()
     override suspend fun getCategories(): AppResult<List<Category>> = unused()
+    override suspend fun getCategoryBookCount(categoryId: String): AppResult<Int> = unused()
     override suspend fun getBookText(textUrl: String): AppResult<String> = unused()
 }

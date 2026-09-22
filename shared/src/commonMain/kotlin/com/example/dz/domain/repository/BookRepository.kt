@@ -18,6 +18,12 @@ interface BookRepository {
 
     suspend fun getCategories(): AppResult<List<Category>>
 
+    /**
+     * How many books the catalogue files under [categoryId] — the count a genre tile carries.
+     * A separate call from [getBooksByCategory] because a tile needs the number, not the books.
+     */
+    suspend fun getCategoryBookCount(categoryId: String): AppResult<Int>
+
     /** Fetches the raw plain-text body of a book from its remote [textUrl]. */
     suspend fun getBookText(textUrl: String): AppResult<String>
 }

@@ -19,6 +19,7 @@ import com.example.dz.data.remote.api.createRemoteHttpClient
 import com.example.dz.data.repository.ChatRepositoryImpl
 import com.example.dz.data.repository.DownloadRepositoryImpl
 import com.example.dz.data.repository.LocalDeviceDataRepository
+import com.example.dz.data.repository.LocalSearchHistoryRepository
 import com.example.dz.data.repository.LocalCollectionRepository
 import com.example.dz.data.repository.LocalGoalRepository
 import com.example.dz.data.repository.LocalReaderPreferencesRepository
@@ -37,6 +38,7 @@ import com.example.dz.domain.repository.BookRepository
 import com.example.dz.domain.repository.ChatRepository
 import com.example.dz.domain.repository.CollectionRepository
 import com.example.dz.domain.repository.DeviceDataRepository
+import com.example.dz.domain.repository.SearchHistoryRepository
 import com.example.dz.domain.repository.DownloadRepository
 import com.example.dz.domain.repository.GoalRepository
 import com.example.dz.domain.repository.ReaderPreferencesRepository
@@ -64,6 +66,7 @@ import com.example.dz.domain.usecase.book.GetBookDetailsUseCase
 import com.example.dz.domain.usecase.book.GetBookRatingsUseCase
 import com.example.dz.domain.usecase.book.GetBooksByCategoryUseCase
 import com.example.dz.domain.usecase.book.GetCategoriesUseCase
+import com.example.dz.domain.usecase.book.GetCategoryBookCountUseCase
 import com.example.dz.domain.usecase.book.GetHomeBooksUseCase
 import com.example.dz.domain.usecase.book.SearchBooksUseCase
 import com.example.dz.domain.usecase.book.DeleteDownloadUseCase
@@ -92,6 +95,8 @@ import com.example.dz.domain.usecase.payment.PurchaseBookUseCase
 import com.example.dz.domain.usecase.review.DeleteMyReviewUseCase
 import com.example.dz.domain.usecase.review.GetMyReviewUseCase
 import com.example.dz.domain.usecase.review.SaveMyReviewUseCase
+import com.example.dz.domain.usecase.search.GetRecentSearchesUseCase
+import com.example.dz.domain.usecase.search.SaveRecentSearchUseCase
 import com.example.dz.domain.usecase.social.GetFriendDetailsUseCase
 import com.example.dz.domain.usecase.social.GetFriendsUseCase
 import com.example.dz.domain.usecase.social.InviteFriendUseCase
@@ -197,6 +202,7 @@ val coreModule = module {
     // ── Offline downloads (Phase 3) ──────────────────────────────────────────
     single<DownloadRepository> { DownloadRepositoryImpl(get(), get(), get()) }
     single<DeviceDataRepository> { LocalDeviceDataRepository(get(), get(), get(), get(), get(), get()) }
+    single<SearchHistoryRepository> { LocalSearchHistoryRepository(get()) }
 
     // Domain use cases
     factory { LoginUseCase(get()) }
@@ -222,6 +228,9 @@ val coreModule = module {
     factory { SaveMyReviewUseCase(get()) }
     factory { DeleteMyReviewUseCase(get()) }
     factory { GetCategoriesUseCase(get()) }
+    factory { GetCategoryBookCountUseCase(get()) }
+    factory { GetRecentSearchesUseCase(get()) }
+    factory { SaveRecentSearchUseCase(get()) }
     factory { GetBookContentUseCase(repository = get(), downloadRepository = get()) }
     factory { DownloadBookUseCase(get()) }
     factory { DeleteDownloadUseCase(get()) }

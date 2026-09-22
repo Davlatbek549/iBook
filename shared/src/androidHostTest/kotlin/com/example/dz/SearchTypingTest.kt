@@ -54,6 +54,7 @@ class SearchTypingTest {
         override suspend fun getCategories(): AppResult<List<Category>> = AppResult.Success(emptyList())
 
         private fun <T> unused(): AppResult<T> = AppResult.Error(AppError.NotFound)
+        override suspend fun getCategoryBookCount(categoryId: String): AppResult<Int> = unused()
         override suspend fun getHomeBooks(): AppResult<List<Book>> = unused()
         override suspend fun getBooksByCategory(categoryId: String): AppResult<List<Book>> = unused()
         override suspend fun getBookDetails(bookId: String): AppResult<Book> = unused()
