@@ -54,6 +54,7 @@ import com.example.dz.presentation.common.priceLabel
 import com.example.dz.presentation.common.uniqueLazyKeys
 import dz.shared.generated.resources.Res
 import dz.shared.generated.resources.search_clear
+import dz.shared.generated.resources.search_close
 import dz.shared.generated.resources.search_field_hint
 import dz.shared.generated.resources.search_in_library
 import dz.shared.generated.resources.search_no_results
