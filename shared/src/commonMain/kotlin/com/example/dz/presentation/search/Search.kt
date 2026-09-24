@@ -43,7 +43,6 @@ import com.example.dz.designsystem.components.organic.OrganicFieldLabel
 import com.example.dz.designsystem.components.organic.OrganicListRow
 import com.example.dz.designsystem.components.organic.OrganicRowChevron
 import com.example.dz.designsystem.components.organic.OrganicScreen
-import com.example.dz.designsystem.components.organic.OrganicScreenHeader
 import com.example.dz.designsystem.components.organic.OrganicSearchField
 import com.example.dz.designsystem.components.organic.OrganicSkeleton
 import com.example.dz.designsystem.theme.OrganicColors
@@ -62,7 +61,6 @@ import dz.shared.generated.resources.search_recent
 import dz.shared.generated.resources.search_result_one
 import dz.shared.generated.resources.search_results
 import dz.shared.generated.resources.search_searching
-import dz.shared.generated.resources.search_title
 import kotlinx.coroutines.flow.filterIsInstance
 import org.jetbrains.compose.resources.stringResource
 
@@ -72,10 +70,10 @@ import org.jetbrains.compose.resources.stringResource
  * Layout from `dz-all-screens.html` (`#scr-search`): a 22dp rhythm on a 24dp gutter. Search is no
  * longer a tab, and the tab bar the frame draws is not here (see the note in the nav graph).
  *
- * The top behaves the way a phone search does: the box and its heading ride in the list and scroll
- * away with the results rather than holding the top of the screen, and the × beside the box closes
- * Search and returns to Browse. That × is not the one inside the box — inside clears the query and
- * stays, outside leaves.
+ * The top behaves the way a phone search does: the box and the × beside it share one row, which
+ * rides in the list and scrolls away with the results rather than holding the top of the screen.
+ * The × is the way out — it closes Search and returns to Browse. The ⊗ inside the box is a
+ * different thing: it clears the query and keeps the reader here with the keyboard up.
  *
  * The field opens focused, once. Arriving here is asking to type; coming back from a result is not,
  * so the keyboard does not climb over the results a second time.
@@ -130,46 +128,43 @@ fun SearchScreen(
             ),
             verticalArrangement = Arrangement.spacedBy(ROW_GAP)
         ) {
-            item(key = "header", contentType = "header") {
-                OrganicScreenHeader(
-                    title = stringResource(Res.string.search_title),
-                    trailing = {
-                        // The way out. Its twin inside the box only empties it: one × leaves, the
-                        // other stays and clears, and they sit far enough apart to tell apart.
-                        OrganicCircleIconButton(
-                            icon = OrganicIcons.Close,
-                            onClick = { onEvent(SearchEvent.BackClicked) },
-                            contentDescription = stringResource(Res.string.search_close),
-                            size = 38.dp,
-                            iconSize = 16.dp,
-                        )
-                    },
-                )
-            }
-
             item(key = "field", contentType = "field") {
-                OrganicSearchField(
-                    value = uiState.query,
-                    onValueChange = {
-                        onEvent(SearchEvent.QueryChanged(it))
-                        onEvent(SearchEvent.SearchClicked)
-                    },
-                    placeholder = stringResource(Res.string.search_field_hint),
-                    // Tops the 12dp row gap up to the 22dp the frame leaves around the box.
-                    modifier = Modifier.padding(
-                        top = SECTION_GAP - ROW_GAP,
-                        bottom = SECTION_GAP - ROW_GAP,
-                    ),
-                    focusRequester = focusRequester,
-                    onSearch = {
-                        onEvent(SearchEvent.SearchSubmitted)
-                        keyboard?.hide()
-                    },
-                    // Clearing leaves the box ready for the next query rather than dismissing the
-                    // keyboard, which is what a reader starting over wants.
-                    onClear = { onEvent(SearchEvent.QueryChanged("")) },
-                    clearContentDescription = stringResource(Res.string.search_clear),
-                )
+                Row(
+                    // Tops the 12dp row gap up to the 22dp the frame leaves under the box.
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = SECTION_GAP - ROW_GAP),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OrganicSearchField(
+                        value = uiState.query,
+                        onValueChange = {
+                            onEvent(SearchEvent.QueryChanged(it))
+                            onEvent(SearchEvent.SearchClicked)
+                        },
+                        placeholder = stringResource(Res.string.search_field_hint),
+                        modifier = Modifier.weight(1f),
+                        focusRequester = focusRequester,
+                        onSearch = {
+                            onEvent(SearchEvent.SearchSubmitted)
+                            keyboard?.hide()
+                        },
+                        // Clearing leaves the box ready for the next query rather than dismissing the
+                        // keyboard, which is what a reader starting over wants.
+                        onClear = { onEvent(SearchEvent.QueryChanged("")) },
+                        clearContentDescription = stringResource(Res.string.search_clear),
+                    )
+                    // The way out. The ⊗ inside the box only empties it: one × leaves, the other
+                    // stays and clears, and they sit far enough apart to tell apart.
+                    OrganicCircleIconButton(
+                        icon = OrganicIcons.Close,
+                        onClick = { onEvent(SearchEvent.BackClicked) },
+                        contentDescription = stringResource(Res.string.search_close),
+                        size = 38.dp,
+                        iconSize = 16.dp,
+                    )
+                }
             }
             if (uiState.recentSearches.isNotEmpty()) {
                 item(key = "recent", contentType = "recent") {
