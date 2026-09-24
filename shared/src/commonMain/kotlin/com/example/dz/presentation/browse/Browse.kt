@@ -163,12 +163,16 @@ fun BrowseScreen(
             // LazyVerticalGrid, which cannot measure inside a vertical scroll. Same as Home's.
             items(
                 count = (shown.size + 1) / 2,
-                key = { "genre-row-$it" }
+                // Keyed by the genre that leads the row, not by the row's place in the grid: a mood
+                // or A–Z changes which rows exist, and a row that survives the change should slide
+                // to its new place rather than be redrawn with someone else's genres in it.
+                key = { shown[it * 2].id }
             ) { row ->
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = ORGANIC_GUTTER),
+                        .padding(horizontal = ORGANIC_GUTTER)
+                        .animateItem(),
                     horizontalArrangement = Arrangement.spacedBy(ROW_GAP)
                 ) {
                     for (column in 0..1) {

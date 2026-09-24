@@ -7,10 +7,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -20,6 +24,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
@@ -39,6 +45,7 @@ import com.example.dz.designsystem.components.organic.OrganicRowChevron
 import com.example.dz.designsystem.components.organic.OrganicScreen
 import com.example.dz.designsystem.components.organic.OrganicScreenHeader
 import com.example.dz.designsystem.components.organic.OrganicSearchField
+import com.example.dz.designsystem.components.organic.OrganicSkeleton
 import com.example.dz.designsystem.theme.OrganicColors
 import com.example.dz.designsystem.theme.OrganicShape
 import com.example.dz.designsystem.theme.organicBodyFontFamily
@@ -47,6 +54,7 @@ import com.example.dz.presentation.common.priceLabel
 import com.example.dz.presentation.common.uniqueLazyKeys
 import dz.shared.generated.resources.Res
 import dz.shared.generated.resources.nav_back
+import dz.shared.generated.resources.search_clear
 import dz.shared.generated.resources.search_field_hint
 import dz.shared.generated.resources.search_in_library
 import dz.shared.generated.resources.search_no_results
@@ -55,6 +63,7 @@ import dz.shared.generated.resources.search_result_one
 import dz.shared.generated.resources.search_results
 import dz.shared.generated.resources.search_searching
 import dz.shared.generated.resources.search_title
+import kotlinx.coroutines.flow.filter
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -86,6 +95,15 @@ fun SearchScreen(
 
     val books = uiState.books
     val bookKeys = books.uniqueLazyKeys { it.id }
+    val listState = rememberLazyListState()
+
+    // Scrolling the results is reading them, and a keyboard over half of them is in the way. It
+    // only drops on a real drag, so the list settling after a search does not close it.
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.isScrollInProgress }
+            .filter { it }
+            .collect { keyboard?.hide() }
+    }
     val resultsFor = uiState.resultsFor
     val errorMessage = uiState.errorMessage
 
@@ -124,12 +142,17 @@ fun SearchScreen(
                         onEvent(SearchEvent.SearchSubmitted)
                         keyboard?.hide()
                     },
+                    // Clearing leaves the box ready for the next query rather than dismissing the
+                    // keyboard, which is what a reader starting over wants.
+                    onClear = { onEvent(SearchEvent.QueryChanged("")) },
+                    clearContentDescription = stringResource(Res.string.search_clear),
                 )
             }
 
             // Lazy, so a long page of results composes only the rows on screen — and only those rows
             // start loading their covers, instead of every result's cover being fetched at once.
             LazyColumn(
+                state = listState,
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth(),
@@ -173,8 +196,15 @@ fun SearchScreen(
                             SearchNote(text = errorMessage)
                         }
 
-                        uiState.isLoading -> item(key = "status", contentType = "label") {
-                            OrganicFieldLabel(text = stringResource(Res.string.search_searching))
+                        // A row of grey shapes says "results are coming, and this is what they will
+                        // look like"; the word alone leaves the screen blank under it.
+                        uiState.isLoading -> {
+                            item(key = "status", contentType = "label") {
+                                OrganicFieldLabel(text = stringResource(Res.string.search_searching))
+                            }
+                            items(SEARCHING_SKELETON_ROWS, key = { "skeleton-$it" }, contentType = { "skeleton" }) {
+                                ResultRowSkeleton()
+                            }
                         }
 
                         resultsFor != null && books.isEmpty() -> item(key = "empty", contentType = "note") {
@@ -194,7 +224,7 @@ fun SearchScreen(
 
                     // The last answer stays under "Searching…" while the next is on its way, so the
                     // list does not blank and jump on every pause in typing.
-                    if (errorMessage == null && resultsFor != null) {
+                    if (errorMessage == null && resultsFor != null && !uiState.isLoading) {
                         items(books.size, key = { "book:" + bookKeys[it] }, contentType = { "book" }) { index ->
                             val book = books[index]
                             ResultRow(
@@ -231,6 +261,38 @@ private fun ResultRow(
         onClick = onClick,
         trailing = { OrganicRowChevron() },
     )
+}
+
+/** The shape of a result before it arrives: cover, title, author. */
+@Composable
+private fun ResultRowSkeleton() {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        OrganicSkeleton(
+            modifier = Modifier
+                .width(52.dp)
+                .height(76.dp),
+            cornerRadius = 10.dp,
+        )
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            OrganicSkeleton(
+                modifier = Modifier
+                    .fillMaxWidth(0.7f)
+                    .height(17.dp)
+            )
+            OrganicSkeleton(
+                modifier = Modifier
+                    .fillMaxWidth(0.4f)
+                    .height(12.dp)
+            )
+        }
+    }
 }
 
 /** A recent query as a neutral pill; tapping it runs it again. */
@@ -273,6 +335,9 @@ private fun SearchNote(text: String) {
         )
     }
 }
+
+/** Enough grey rows to fill the space the first answers will take, and no more. */
+private const val SEARCHING_SKELETON_ROWS = 4
 
 private val SECTION_GAP = 22.dp
 private val ROW_GAP = 12.dp

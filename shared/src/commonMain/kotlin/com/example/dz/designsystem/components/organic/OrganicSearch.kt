@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
@@ -52,6 +53,9 @@ import com.example.dz.designsystem.theme.organicBodyFontFamily
  * Like [OrganicField] it rests on a neutral-300 hairline that reads as part of the fill, and takes
  * the terracotta edge the frame draws once it has focus. The keyboard's action key says Search and
  * calls [onSearch], which is how a reader says "this is the query I meant" rather than a prefix.
+ *
+ * Once there is something to clear, a × appears on the right. The frame draws no such thing, but it
+ * draws no way back to an empty box either, and on a phone that is thirty backspaces.
  */
 @Composable
 fun OrganicSearchField(
@@ -61,6 +65,8 @@ fun OrganicSearchField(
     modifier: Modifier = Modifier,
     focusRequester: FocusRequester? = null,
     onSearch: () -> Unit = {},
+    onClear: (() -> Unit)? = null,
+    clearContentDescription: String? = null,
 ) {
     var focused by remember { mutableStateOf(false) }
     val shape = RoundedCornerShape(OrganicShape.pill)
@@ -110,6 +116,25 @@ fun OrganicSearchField(
                         )
                     }
                     innerTextField()
+                }
+                // Only once there is text: an always-visible × on an empty field is a button that
+                // does nothing, and it crowds the placeholder.
+                if (onClear != null && value.isNotEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(CircleShape)
+                            .background(OrganicColors.neutral200)
+                            .clickable(role = Role.Button, onClick = onClear),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = OrganicIcons.Close,
+                            contentDescription = clearContentDescription,
+                            tint = OrganicColors.neutral700,
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
                 }
             }
         }
