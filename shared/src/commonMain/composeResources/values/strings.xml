@@ -235,6 +235,7 @@
     <string name="search_results">%1$d results</string>
     <string name="search_searching">Searching&#8230;</string>
     <string name="search_clear">Clear the search box</string>
+    <string name="search_close">Close search</string>
     <string name="search_in_library">In your library</string>
     <string name="search_no_results">Nothing matches &#8220;%1$s&#8221;. Try a title, or an author&#8217;s surname.</string>
     <string name="detail_about">About</string>

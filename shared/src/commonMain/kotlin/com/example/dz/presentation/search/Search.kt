@@ -2,6 +2,7 @@ package com.example.dz.presentation.search
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.DragInteraction
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -24,7 +25,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -53,7 +53,6 @@ import com.example.dz.domain.model.Book
 import com.example.dz.presentation.common.priceLabel
 import com.example.dz.presentation.common.uniqueLazyKeys
 import dz.shared.generated.resources.Res
-import dz.shared.generated.resources.nav_back
 import dz.shared.generated.resources.search_clear
 import dz.shared.generated.resources.search_field_hint
 import dz.shared.generated.resources.search_in_library
@@ -63,15 +62,19 @@ import dz.shared.generated.resources.search_result_one
 import dz.shared.generated.resources.search_results
 import dz.shared.generated.resources.search_searching
 import dz.shared.generated.resources.search_title
-import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.filterIsInstance
 import org.jetbrains.compose.resources.stringResource
 
 /**
  * Search — a live query over the catalogue, the reader's recent ones, and what it found.
  *
  * Layout from `dz-all-screens.html` (`#scr-search`): a 22dp rhythm on a 24dp gutter. Search is no
- * longer a tab, so it wears the back circle Browse and Collections do, and the tab bar the frame
- * draws is not here (see the note in the nav graph).
+ * longer a tab, and the tab bar the frame draws is not here (see the note in the nav graph).
+ *
+ * The top behaves the way a phone search does: the box and its heading ride in the list and scroll
+ * away with the results rather than holding the top of the screen, and the × beside the box closes
+ * Search and returns to Browse. That × is not the one inside the box — inside clears the query and
+ * stays, outside leaves.
  *
  * The field opens focused, once. Arriving here is asking to type; coming back from a result is not,
  * so the keyboard does not climb over the results a second time.
@@ -97,39 +100,53 @@ fun SearchScreen(
     val bookKeys = books.uniqueLazyKeys { it.id }
     val listState = rememberLazyListState()
 
-    // Scrolling the results is reading them, and a keyboard over half of them is in the way. It
-    // only drops on a real drag, so the list settling after a search does not close it.
+    // Scrolling the results is reading them, and a keyboard over half of them is in the way. Only a
+    // finger on the list closes it: a scroll in progress would also be true while the list settles
+    // after an answer arrives, and a keyboard that shuts itself mid-word is worse than one in the
+    // way.
     LaunchedEffect(listState) {
-        snapshotFlow { listState.isScrollInProgress }
-            .filter { it }
+        listState.interactionSource.interactions
+            .filterIsInstance<DragInteraction.Start>()
             .collect { keyboard?.hide() }
     }
     val resultsFor = uiState.resultsFor
     val errorMessage = uiState.errorMessage
 
     OrganicScreen {
-        Column(modifier = Modifier.fillMaxSize()) {
-            // Pinned above the list rather than scrolling with it: a lazy list disposes what scrolls
-            // out of view, and a focused field disposed that way loses focus without reliably
-            // saying so.
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = ORGANIC_GUTTER, end = ORGANIC_GUTTER, top = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(SECTION_GAP)
-            ) {
+        // Lazy, so a long page of results composes only the rows on screen — and only those rows
+        // start loading their covers, instead of every result's cover being fetched at once. The box
+        // is the first item rather than a header above the list, so it leaves with everything else
+        // as a reader scrolls down; the query lives in the view model, so scrolling it out of view
+        // loses nothing.
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(
+                start = ORGANIC_GUTTER,
+                end = ORGANIC_GUTTER,
+                top = 12.dp,
+                bottom = ORGANIC_TAB_BAR_CLEARANCE,
+            ),
+            verticalArrangement = Arrangement.spacedBy(ROW_GAP)
+        ) {
+            item(key = "header", contentType = "header") {
                 OrganicScreenHeader(
                     title = stringResource(Res.string.search_title),
-                    leading = {
+                    trailing = {
+                        // The way out. Its twin inside the box only empties it: one × leaves, the
+                        // other stays and clears, and they sit far enough apart to tell apart.
                         OrganicCircleIconButton(
-                            icon = OrganicIcons.ChevronLeft,
+                            icon = OrganicIcons.Close,
                             onClick = { onEvent(SearchEvent.BackClicked) },
-                            contentDescription = stringResource(Res.string.nav_back),
+                            contentDescription = stringResource(Res.string.search_close),
                             size = 38.dp,
-                            iconSize = 18.dp,
+                            iconSize = 16.dp,
                         )
                     },
                 )
+            }
+
+            item(key = "field", contentType = "field") {
                 OrganicSearchField(
                     value = uiState.query,
                     onValueChange = {
@@ -137,6 +154,11 @@ fun SearchScreen(
                         onEvent(SearchEvent.SearchClicked)
                     },
                     placeholder = stringResource(Res.string.search_field_hint),
+                    // Tops the 12dp row gap up to the 22dp the frame leaves around the box.
+                    modifier = Modifier.padding(
+                        top = SECTION_GAP - ROW_GAP,
+                        bottom = SECTION_GAP - ROW_GAP,
+                    ),
                     focusRequester = focusRequester,
                     onSearch = {
                         onEvent(SearchEvent.SearchSubmitted)
@@ -148,91 +170,74 @@ fun SearchScreen(
                     clearContentDescription = stringResource(Res.string.search_clear),
                 )
             }
-
-            // Lazy, so a long page of results composes only the rows on screen — and only those rows
-            // start loading their covers, instead of every result's cover being fetched at once.
-            LazyColumn(
-                state = listState,
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-                contentPadding = PaddingValues(
-                    start = ORGANIC_GUTTER,
-                    end = ORGANIC_GUTTER,
-                    top = SECTION_GAP,
-                    bottom = ORGANIC_TAB_BAR_CLEARANCE,
-                ),
-                verticalArrangement = Arrangement.spacedBy(ROW_GAP)
-            ) {
-                if (uiState.recentSearches.isNotEmpty()) {
-                    item(key = "recent", contentType = "recent") {
-                        Column(
-                            // Tops the 12dp row gap up to the 22dp the frame leaves under Recent.
-                            modifier = Modifier.padding(bottom = SECTION_GAP - ROW_GAP),
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
+            if (uiState.recentSearches.isNotEmpty()) {
+                item(key = "recent", contentType = "recent") {
+                    Column(
+                        // Tops the 12dp row gap up to the 22dp the frame leaves under Recent.
+                        modifier = Modifier.padding(bottom = SECTION_GAP - ROW_GAP),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        OrganicFieldLabel(text = stringResource(Res.string.search_recent))
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            OrganicFieldLabel(text = stringResource(Res.string.search_recent))
-                            FlowRow(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                uiState.recentSearches.forEach { recent ->
-                                    RecentChip(
-                                        text = recent,
-                                        onClick = {
-                                            onEvent(SearchEvent.RecentSearchClicked(recent))
-                                            keyboard?.hide()
-                                        },
-                                    )
-                                }
+                            uiState.recentSearches.forEach { recent ->
+                                RecentChip(
+                                    text = recent,
+                                    onClick = {
+                                        onEvent(SearchEvent.RecentSearchClicked(recent))
+                                        keyboard?.hide()
+                                    },
+                                )
                             }
                         }
                     }
                 }
+            }
 
-                if (uiState.hasQuery) {
-                    when {
-                        errorMessage != null -> item(key = "error", contentType = "note") {
-                            SearchNote(text = errorMessage)
+            if (uiState.hasQuery) {
+                when {
+                    errorMessage != null -> item(key = "error", contentType = "note") {
+                        SearchNote(text = errorMessage)
+                    }
+
+                    // A row of grey shapes says "results are coming, and this is what they will
+                    // look like"; the word alone leaves the screen blank under it.
+                    uiState.isLoading -> {
+                        item(key = "status", contentType = "label") {
+                            OrganicFieldLabel(text = stringResource(Res.string.search_searching))
                         }
-
-                        // A row of grey shapes says "results are coming, and this is what they will
-                        // look like"; the word alone leaves the screen blank under it.
-                        uiState.isLoading -> {
-                            item(key = "status", contentType = "label") {
-                                OrganicFieldLabel(text = stringResource(Res.string.search_searching))
-                            }
-                            items(SEARCHING_SKELETON_ROWS, key = { "skeleton-$it" }, contentType = { "skeleton" }) {
-                                ResultRowSkeleton()
-                            }
-                        }
-
-                        resultsFor != null && books.isEmpty() -> item(key = "empty", contentType = "note") {
-                            SearchNote(text = stringResource(Res.string.search_no_results, resultsFor))
-                        }
-
-                        resultsFor != null -> item(key = "status", contentType = "label") {
-                            OrganicFieldLabel(
-                                text = if (books.size == 1) {
-                                    stringResource(Res.string.search_result_one)
-                                } else {
-                                    stringResource(Res.string.search_results, books.size)
-                                }
-                            )
+                        items(SEARCHING_SKELETON_ROWS, key = { "skeleton-$it" }, contentType = { "skeleton" }) {
+                            ResultRowSkeleton()
                         }
                     }
 
-                    // The last answer stays under "Searching…" while the next is on its way, so the
-                    // list does not blank and jump on every pause in typing.
-                    if (errorMessage == null && resultsFor != null && !uiState.isLoading) {
-                        items(books.size, key = { "book:" + bookKeys[it] }, contentType = { "book" }) { index ->
-                            val book = books[index]
-                            ResultRow(
-                                book = book,
-                                inLibrary = uiState.isInLibrary(book),
-                                onClick = { onEvent(SearchEvent.BookClicked(book.id)) },
-                            )
-                        }
+                    resultsFor != null && books.isEmpty() -> item(key = "empty", contentType = "note") {
+                        SearchNote(text = stringResource(Res.string.search_no_results, resultsFor))
+                    }
+
+                    resultsFor != null -> item(key = "status", contentType = "label") {
+                        OrganicFieldLabel(
+                            text = if (books.size == 1) {
+                                stringResource(Res.string.search_result_one)
+                            } else {
+                                stringResource(Res.string.search_results, books.size)
+                            }
+                        )
+                    }
+                }
+
+                // The last answer stays under "Searching…" while the next is on its way, so the
+                // list does not blank and jump on every pause in typing.
+                if (errorMessage == null && resultsFor != null && !uiState.isLoading) {
+                    items(books.size, key = { "book:" + bookKeys[it] }, contentType = { "book" }) { index ->
+                        val book = books[index]
+                        ResultRow(
+                            book = book,
+                            inLibrary = uiState.isInLibrary(book),
+                            onClick = { onEvent(SearchEvent.BookClicked(book.id)) },
+                        )
                     }
                 }
             }
