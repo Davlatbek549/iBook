@@ -1,4 +1,4 @@
-package com.example.dz.presentation.store.browse
+package com.example.dz.presentation.browse
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -45,8 +45,8 @@ class BrowseViewModel(
                     }
                 )
             }
-            // The handoff sends a genre tile back to Store, which shows no genre. Category detail
-            // is the screen that lists one, so the tile opens that.
+            // The handoff sends a genre tile to Store, which shows no genre and no longer exists.
+            // Category detail is the screen that lists one, so the tile opens that.
             is BrowseEvent.CategoryClicked -> emitEffect(BrowseEffect.NavigateToCategory(event.categoryId))
         }
     }

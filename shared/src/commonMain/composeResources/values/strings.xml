@@ -217,8 +217,7 @@
     <string name="library_tab_reading">Reading</string>
     <string name="library_tab_to_read">To read</string>
     <string name="library_tab_finished">Finished</string>
-    <string name="store_title">Store</string>
-    <string name="store_free">Free</string>
+    <string name="book_free">Free</string>
     <string name="browse_title">Browse</string>
     <string name="browse_search_hint">Search titles and authors</string>
     <string name="browse_mood">In the mood for</string>
@@ -416,9 +415,6 @@
     <string name="set_delete_body">Your account and everything saved to it will be deleted. Your library, collections and downloaded books will be removed from this device too. This can’t be undone.</string>
     <string name="set_delete_cancel">Keep my account</string>
     <string name="set_version">DZ for Android · 1.24.0</string>
-    <string name="store_book_of_the_week">Book of the week</string>
-    <string name="store_new_releases">New releases</string>
-    <string name="store_top_sellers">Top sellers</string>
     <string name="onboarding1_bottom_text">Discover New Books</string>
     <string name="onboarding1_bottom_text_2">Find stories, authors, and collections that match the way you love to read.</string>
     <string name="onboarding2_bottom_text">Read Anywhere</string>

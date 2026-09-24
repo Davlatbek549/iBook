@@ -1,4 +1,4 @@
-package com.example.dz.presentation.store.browse
+package com.example.dz.presentation.browse
 
 import com.example.dz.domain.model.Category
 

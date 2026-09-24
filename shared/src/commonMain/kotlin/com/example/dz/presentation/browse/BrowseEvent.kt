@@ -1,4 +1,4 @@
-package com.example.dz.presentation.store.browse
+package com.example.dz.presentation.browse
 
 sealed interface BrowseEvent {
     data object BackClicked : BrowseEvent

@@ -138,8 +138,7 @@ import com.example.dz.presentation.social.invite_friends.InviteFriendsViewModel
 import com.example.dz.presentation.social.no_friends.NoFriendsViewModel
 import com.example.dz.presentation.library.LibraryViewModel
 import com.example.dz.presentation.search.SearchViewModel
-import com.example.dz.presentation.store.browse.BrowseViewModel
-import com.example.dz.presentation.store.StoreViewModel
+import com.example.dz.presentation.browse.BrowseViewModel
 import com.russhwolf.settings.Settings
 import io.ktor.client.HttpClient
 import org.koin.core.context.startKoin
@@ -280,7 +279,6 @@ val coreModule = module {
     factory { HomeViewModel(get(), get(), get(), get(), get(), get(), get(), get()) }
     factory { LibraryViewModel(get(), get(), get(), get()) }
     factory { SearchViewModel(get(), get(), get(), get()) }
-    factory { StoreViewModel(get(), get()) }
     factory { BrowseViewModel(get(), get()) }
     factory { (authorId: String) -> AuthorDetailViewModel(authorId) }
     factory { (bookId: String) -> PrePurchaseViewModel(bookId, get(), get(), get(), get(), get(), get()) }

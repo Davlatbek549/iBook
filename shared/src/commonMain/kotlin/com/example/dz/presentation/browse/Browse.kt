@@ -1,4 +1,4 @@
-package com.example.dz.presentation.store.browse
+package com.example.dz.presentation.browse
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -64,9 +64,12 @@ import org.jetbrains.compose.resources.stringResource
  * Layout from `dz-all-screens.html` (`#scr-categories`): an 18dp rhythm between sections on a 24dp
  * gutter, with the genre grid 12dp apart both ways.
  *
- * Pushed from Store, so it carries a back circle and no tab bar. The frame draws the bar with Store
- * lit; on a device the back stack is what says where this sits, and a bar here would take a tap on
- * Store to mean "restore the Store stack" — which lands right back on Browse.
+ * Every search circle — Home's, Library's — opens this screen, and its search bar opens Search. The
+ * frames make browsing and searching two doors off a store that no longer exists; here they are one
+ * door and two steps: see what there is, or name what you want.
+ *
+ * Pushed from a tab, so it carries a back circle and no tab bar: it is not a tab itself, and a bar
+ * here would show four destinations with none of them current.
  *
  * No mood is chosen on arrival. The frame shows Cosy lit over a heading that says "All categories",
  * which cannot both be true: with a mood on, the grid is that mood's genres, and the heading says so.
