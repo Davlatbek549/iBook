@@ -277,8 +277,8 @@ val coreModule = module {
     factory { (categoryId: String) -> CategoryDetailViewModel(categoryId, get(), get()) }
 
     factory { CollectionsViewModel(get()) }
-    factory { (collectionId: String) -> CollectionDetailsViewModel(collectionId, get()) }
-    factory { (collectionId: String) -> CollectionsEditViewModel(collectionId, get(), get(), get(), get()) }
+    factory { (collectionId: String) -> CollectionDetailsViewModel(collectionId, get(), get(), get()) }
+    factory { (collectionId: String) -> CollectionsEditViewModel(collectionId, get(), get(), get(), get(), get()) }
 
     factory { GoalViewModel(get()) }
 

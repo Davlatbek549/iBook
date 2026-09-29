@@ -1,47 +1,64 @@
 # DZ
 
-DZ is a Kotlin Multiplatform book app built with Compose Multiplatform. The project shares the app UI and resources from the `shared` module so the same screens can run on Android and iOS.
+DZ is a Kotlin Multiplatform ebook app built with Compose Multiplatform. Screens, business logic,
+networking and the local database all live in the `shared` module, so Android and iOS run the same
+code; each platform contributes only a shell and a handful of `expect`/`actual` implementations.
 
-The current app entry point starts from the shared Home screen:
+The entry point sets up the image loader, then hands off to the theme and the navigation graph:
 
 ```kotlin
 @Composable
 fun App() {
+    setSingletonImageLoaderFactory { /* Coil + Ktor fetcher */ }
+
     DZTheme {
-        Home()
+        DZNavGraph()
     }
 }
 ```
 
 ## Project Status
 
-This project is in the middle of an Android-to-Kotlin-Multiplatform migration. Most screen UI has been moved into `shared/src/commonMain`, where it can compile for both Android and iOS.
+The Android-to-Kotlin-Multiplatform migration is done. What is shared is no longer just the UI:
+the domain layer, repositories, Ktor client, SQLDelight database and DI graph are all in
+`commonMain`, and `androidMain`/`iosMain` hold only what genuinely needs a platform API — database
+drivers, file storage, Google sign-in, status-bar appearance, reader typesetting.
 
-Current focus areas:
+What is built:
 
-- Shared Compose screens for Android and iOS.
-- Shared drawable and string resources through Compose Multiplatform resources.
-- Android app shell that hosts the shared UI.
-- iOS SwiftUI shell that hosts the shared Compose `UIViewController`.
+- Five tabs behind a floating glass bar: Home, Library, Store, Friends, Profile.
+- A paginated reader with text size, page colour, font and page-turn style (slide, paper, scroll),
+  bookmarks, shared notes and offline downloads.
+- Full auth against our own server: sign-in, sign-up, email verification, password reset, Google
+  sign-in on both platforms, account deletion.
+- Store and a payment flow, collections, reading goals, notifications, membership tiers, and a
+  social area with friends, chat and invites.
 
-The codebase currently contains mostly UI and screen-level composition. Tests are still placeholder examples and should be expanded as real business logic, navigation state, and user workflows are added.
+The design system is mid-migration from the older **Ink** look to **Organic** (see [Theme](#theme)).
+
+Tests cover reader pagination, book-content mapping, list keys and the server's error contract.
+Coverage is real but thin — it grows where behaviour has proven easy to get wrong, not uniformly.
 
 ## Tech Stack
 
-- Kotlin Multiplatform
-- Compose Multiplatform
-- Material 3
-- Android Gradle Plugin
-- AndroidX Activity Compose
-- JetBrains Compose Resources
+- Kotlin Multiplatform + Compose Multiplatform, Material 3
+- **Koin** for dependency injection
+- **Ktor** for HTTP, with `kotlinx.serialization`
+- **SQLDelight** for the local database
+- **Navigation Compose** for routing
+- **Coil** for image loading
+- **Haze** for the glass material used by the Organic design system
+- **Multiplatform Settings** for key-value storage
+- JetBrains Compose Resources for shared drawables, fonts and strings
+- Baseline profiles for Android startup
 - SwiftUI wrapper for iOS hosting
 
-Version highlights are managed in `gradle/libs.versions.toml`:
+Versions are managed in `gradle/libs.versions.toml`:
 
-- Kotlin: `2.3.21`
-- Compose Multiplatform: `1.11.0`
+- Kotlin: `2.4.20`
+- Compose Multiplatform: `1.12.0`
 - Android Gradle Plugin: `9.2.1`
-- Android compile SDK: `36`
+- Android compile SDK: `37.2`
 - Android min SDK: `24`
 - Android target SDK: `36`
 
@@ -58,20 +75,27 @@ Version highlights are managed in `gradle/libs.versions.toml`:
 │   └── iosApp/
 │       ├── ContentView.swift
 │       └── iOSApp.swift
+├── baselineprofile/
 ├── shared/
 │   └── src/
 │       ├── commonMain/
 │       │   ├── composeResources/
 │       │   │   ├── drawable/
+│       │   │   ├── font/
 │       │   │   └── values/strings.xml
+│       │   ├── sqldelight/
 │       │   └── kotlin/com/example/dz/
 │       │       ├── App.kt
-│       │       ├── navigation/
-│       │       ├── screens/
-│       │       └── theme/
+│       │       ├── core/          di, auth, network, platform, legal, error
+│       │       ├── data/          repository, remote (api + dto), local (db + file), mapper
+│       │       ├── domain/        model, repository interfaces, usecase
+│       │       ├── designsystem/  theme + components (organic, ink, inputs, ...)
+│       │       └── presentation/  one package per screen area, plus navigation
 │       ├── androidMain/
 │       ├── iosMain/
-│       └── commonTest/
+│       ├── commonTest/
+│       ├── androidHostTest/
+│       └── iosTest/
 ├── gradle/libs.versions.toml
 ├── settings.gradle.kts
 └── build.gradle.kts
@@ -119,15 +143,18 @@ struct ComposeView: UIViewControllerRepresentable {
 
 ### `shared`
 
-The shared Kotlin Multiplatform module. This is where the cross-platform Compose UI lives.
+The shared Kotlin Multiplatform module, and where nearly all of the app lives.
 
 Important areas:
 
 - `shared/src/commonMain/kotlin/com/example/dz/App.kt`
-- `shared/src/commonMain/kotlin/com/example/dz/features`
-- `shared/src/commonMain/kotlin/com/example/dz/navigation`
-- `shared/src/commonMain/kotlin/com/example/dz/theme`
+- `shared/src/commonMain/kotlin/com/example/dz/presentation` — screens, one package per area
+- `shared/src/commonMain/kotlin/com/example/dz/presentation/navigation` — routes and `DZNavGraph`
+- `shared/src/commonMain/kotlin/com/example/dz/domain` — models and use cases
+- `shared/src/commonMain/kotlin/com/example/dz/data` — repositories, Ktor APIs, SQLDelight
+- `shared/src/commonMain/kotlin/com/example/dz/designsystem` — theme and components
 - `shared/src/commonMain/composeResources`
+- `shared/src/commonMain/sqldelight`
 - `shared/src/iosMain/kotlin/com/example/dz/MainViewController.kt`
 
 The shared module builds:
@@ -135,30 +162,32 @@ The shared module builds:
 - An Android library consumed by `androidApp`.
 - A static iOS framework named `Shared`.
 
+### `baselineprofile`
+
+Generates the Android baseline profile that `:androidApp` ships, so the hot paths are compiled
+ahead of first run instead of being interpreted. `BaselineProfileGenerator` drives the app through
+its startup path with UI Automator.
+
 ## Shared Screens
 
-Feature screen packages live in:
+Screen packages live in:
 
 ```text
-shared/src/commonMain/kotlin/com/example/dz/features
+shared/src/commonMain/kotlin/com/example/dz/presentation
 ```
 
-Current feature groups include:
+Current areas: `splash`, `onboarding`, `auth` (login, sign_up, verification, forgot_password,
+new_password), `home`, `library`, `store`, `search`, `book` (pre_purchase, review, author_detail,
+category_detail), `reading`, `collections` (list, details, edit), `goal`, `social` (friends,
+friend_detail, chat, invite_friends, no_friends), `payment`, `membership`,
+`premium_membership`, `profile`, `notifications`, `settings`, plus `common`, `mvi` and
+`navigation`.
 
-- `auth`
-- `onboarding`
-- `home`
-- `library`
-- `store`
-- `search`
-- `book`
-- `payment`
-- `profile`
-- `collections`
-- `social`
-- `notification`
+Screens follow MVI: a `ViewModel` exposes a single state to the screen and takes events back from
+it, and one-shot navigation is emitted as effects that `DZNavGraph` collects.
 
-When adding or fixing a screen, prefer keeping it in `commonMain` unless it truly needs platform-specific APIs.
+When adding or fixing a screen, prefer keeping it in `commonMain` unless it truly needs
+platform-specific APIs.
 
 ## Resources
 
@@ -189,7 +218,7 @@ Important rule: resources inside `androidApp/src/main/res` are Android-only. If 
 Shared theme code lives in:
 
 ```text
-shared/src/commonMain/kotlin/com/example/dz/theme
+shared/src/commonMain/kotlin/com/example/dz/designsystem/theme
 ```
 
 Main theme entry point:
@@ -198,24 +227,42 @@ Main theme entry point:
 DZTheme {  }
 ```
 
-Brand and category colors are defined in `Color.kt`, typography helpers are in `Type.kt` and related theme files.
+There are two design systems in the tree, and this is deliberate rather than leftover:
+
+- **Organic** (`Organic.kt`, `designsystem/components/organic`) is the current look — a warm cream
+  and terracotta palette with real refracting glass panels, built on Haze. New and redesigned
+  screens use it.
+- **Ink** (`Ink.kt`, `designsystem/components/ink`) is the older system. Screens still on it are
+  being migrated across, so prefer Organic for anything new.
+
+Shared colours live in `Color.kt`, typography in `Type.kt`, and the per-system tokens in
+`Organic.kt` and `Ink.kt`.
 
 ## Navigation
 
-Basic bottom navigation helpers live in:
+Routing lives in:
 
 ```text
-shared/src/commonMain/kotlin/com/example/dz/navigation
+shared/src/commonMain/kotlin/com/example/dz/presentation/navigation
 ```
 
-Current bottom navigation routes:
+- `Routes.kt` — every route string in the app.
+- `NavGraph.kt` — `DZNavGraph`, which owns the `NavHost`, wires each screen to its ViewModel and
+  collects navigation effects.
+- `BottomNavHost.kt` — the five bottom-bar destinations.
+
+Bottom navigation routes:
 
 - `home`
 - `library`
 - `store`
-- `search`
+- `friend_list`
+- `profile_tab`
 
-The active app entry point currently launches the Home screen directly from `App.kt`. If full navigation is wired in later, keep the routing layer in shared code so Android and iOS stay aligned.
+Search is reachable from Home and Library rather than being a tab of its own. The bar hides itself
+on the auth flow, the reader and pushed detail screens; `bottomBarHiddenRoutes` in `NavGraph.kt` is
+the list. Switching tabs pops back to Home rather than stacking, so each tab keeps its own scroll
+position and back stack through save/restore.
 
 ## Backend & Auth
 
@@ -398,6 +445,9 @@ Run iOS simulator tests:
 - Keep Android-only code in `androidMain` or `androidApp`.
 - Keep iOS-only code in `iosMain` or `iosApp`.
 - Prefer the existing theme colors, typography, and screen patterns before introducing new design helpers.
+- Reach for the Organic components before writing a new one, and before falling back to Ink.
+- New screens follow the MVI pattern already in `presentation`: state in, events out, navigation as
+  effects.
 
 ## Current Verification
 

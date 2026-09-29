@@ -42,9 +42,11 @@ val ORGANIC_GUTTER: Dp = 24.dp
 
 /**
  * Bottom padding a scroll region needs so its last row clears the floating tab bar. The handoff
- * asks for ≥ 92dp, which leaves ~40dp of visible clearance under the content.
+ * asks for ≥ 92dp against its 64dp bar, which leaves ~40dp of visible clearance under the
+ * content; derived from [ORGANIC_TAB_BAR_HEIGHT] so that growing the bar keeps that clearance
+ * instead of eating into it.
  */
-val ORGANIC_TAB_BAR_CLEARANCE: Dp = 92.dp
+val ORGANIC_TAB_BAR_CLEARANCE: Dp = ORGANIC_TAB_BAR_HEIGHT + 28.dp
 
 /**
  * Screen ground: the warm cream fill plus status-bar inset. Content lays itself out — this
