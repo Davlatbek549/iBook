@@ -7,4 +7,6 @@ sealed interface CollectionDetailsEvent {
     data object ShareClicked : CollectionDetailsEvent
     data class BookClicked(val bookId: String) : CollectionDetailsEvent
     data class BookOptionsClicked(val bookId: String) : CollectionDetailsEvent
+    data object PickerDismissed : CollectionDetailsEvent
+    data class PickerBookToggled(val bookId: String) : CollectionDetailsEvent
 }

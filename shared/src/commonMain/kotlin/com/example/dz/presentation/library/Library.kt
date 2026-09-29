@@ -55,6 +55,7 @@ import dz.shared.generated.resources.library_your_shelf
 import dz.shared.generated.resources.home_search
 import dz.shared.generated.resources.home_see_all
 import dz.shared.generated.resources.library_new_collection
+import dz.shared.generated.resources.library_new_collection_hint
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -141,18 +142,29 @@ fun LibraryScreen(
                 }
             }
 
-            if (uiState.collections.isNotEmpty()) {
-                item(key = "collections-header") {
-                    OrganicSectionHeader(
-                        title = stringResource(Res.string.library_collections),
-                        modifier = Modifier.padding(
-                            start = ORGANIC_GUTTER,
-                            end = ORGANIC_GUTTER,
-                            top = SECTION_EXTRA,
-                        ),
-                        actionLabel = stringResource(Res.string.home_see_all),
-                        onActionClick = onCollectionsClick,
-                        trailing = {
+            // The section stands whether or not there are shelves yet. It used to hide itself
+            // when the list was empty, which hid the only way to make a first one from this
+            // screen — "New shelf" is an affordance of this section, so with nothing to show
+            // there was also nothing to press, and a reader had to find Collections through
+            // Profile or a book detail to get a first shelf. A reader with no shelves is exactly
+            // the one being invited to make one.
+            val hasCollections = uiState.collections.isNotEmpty()
+
+            item(key = "collections-header") {
+                OrganicSectionHeader(
+                    title = stringResource(Res.string.library_collections),
+                    modifier = Modifier.padding(
+                        start = ORGANIC_GUTTER,
+                        end = ORGANIC_GUTTER,
+                        top = SECTION_EXTRA,
+                    ),
+                    // With no shelves there is nothing to see all of, and the tile below is a
+                    // plainer invitation than a 32dp "+" beside a heading — so the header keeps
+                    // only its title until there is something to manage.
+                    actionLabel = stringResource(Res.string.home_see_all).takeIf { hasCollections },
+                    onActionClick = onCollectionsClick,
+                    trailing = if (hasCollections) {
+                        {
                             OrganicCircleIconButton(
                                 icon = OrganicIcons.Plus,
                                 onClick = onNewCollectionClick,
@@ -162,16 +174,20 @@ fun LibraryScreen(
                                 background = OrganicColors.accent,
                                 tint = Color.White,
                             )
-                        },
-                    )
-                }
-                item(key = "collections") {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = ORGANIC_GUTTER),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
+                        }
+                    } else {
+                        null
+                    },
+                )
+            }
+            item(key = "collections") {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = ORGANIC_GUTTER),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    if (hasCollections) {
                         // The design shows two side by side; more than that would need a carousel
                         // it does not draw, so the rest live on the Collections screen.
                         uiState.collections.take(COLLECTIONS_SHOWN).forEachIndexed { index, collection ->
@@ -182,11 +198,17 @@ fun LibraryScreen(
                                 onClick = { onCollectionClick(collection.id) },
                             )
                         }
-                        // One collection would otherwise stretch to the full width, which reads as
-                        // a banner rather than as one of a pair.
-                        if (uiState.collections.size < COLLECTIONS_SHOWN) {
-                            Box(modifier = Modifier.weight(1f))
-                        }
+                    } else {
+                        NewCollectionTile(
+                            modifier = Modifier.weight(1f),
+                            tint = collectionTints.first(),
+                            onClick = onNewCollectionClick,
+                        )
+                    }
+                    // One tile would otherwise stretch to the full width, which reads as a banner
+                    // rather than as one of a pair.
+                    if (uiState.collections.size < COLLECTIONS_SHOWN) {
+                        Box(modifier = Modifier.weight(1f))
                     }
                 }
             }
@@ -313,6 +335,63 @@ private fun CollectionTile(
                 fontFamily = organicBodyFontFamily(),
                 fontSize = 12.sp,
                 color = tint.subtitle
+            )
+        }
+    }
+}
+
+/**
+ * The invitation to build a first shelf, shaped like the tile it is about to become.
+ *
+ * It takes the first tile's colours rather than the accent, so the empty slot reads as the start of
+ * the pair the design draws there and not as a button that wandered into the row.
+ */
+@Composable
+private fun NewCollectionTile(
+    tint: CollectionTint,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    OrganicCard(
+        modifier = modifier,
+        background = tint.background,
+        contentPadding = PaddingValues(16.dp),
+        onClick = onClick,
+    ) {
+        Column {
+            Box(
+                modifier = Modifier
+                    .padding(bottom = 12.dp)
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(tint.disc),
+                contentAlignment = Alignment.Center
+            ) {
+                // The disc a real shelf leaves empty is where the plus goes, so the two tiles
+                // differ by what is inside the circle rather than by their shape.
+                Icon(
+                    imageVector = OrganicIcons.Plus,
+                    contentDescription = null,
+                    tint = tint.text,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            Text(
+                text = stringResource(Res.string.library_new_collection),
+                fontFamily = organicHeadingFontFamily(),
+                fontWeight = FontWeight.Normal,
+                fontSize = 16.sp,
+                color = tint.text,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = stringResource(Res.string.library_new_collection_hint),
+                fontFamily = organicBodyFontFamily(),
+                fontSize = 12.sp,
+                color = tint.subtitle,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
         }
     }
