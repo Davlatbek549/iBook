@@ -33,7 +33,6 @@ object Routes {
     // Bottom Nav Tabs
     const val HOME = "home"
     const val LIBRARY = "library"
-    const val STORE = "store"
     const val SEARCH = "search"
     const val PROFILE_TAB = "profile_tab"
 
@@ -51,6 +50,8 @@ object Routes {
     const val PAYMENT_FAILED = "payment_failed"
 
     // Discovery
+    /** The handoff's Categories screen: moods and every genre as a tile. Every search icon opens it. */
+    const val BROWSE = "browse"
     const val CATEGORY_DETAIL = "category_detail/{categoryName}"
     const val AUTHOR_DETAIL = "author_detail/{authorId}"
 

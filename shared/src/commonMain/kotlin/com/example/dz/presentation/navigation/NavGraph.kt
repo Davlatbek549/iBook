@@ -115,6 +115,7 @@ import com.example.dz.presentation.reading.ReadingEffect
 import com.example.dz.presentation.reading.ReadingScreen
 import com.example.dz.presentation.reading.ReadingViewModel
 import com.example.dz.presentation.search.SearchEffect
+import com.example.dz.presentation.search.SearchEvent
 import com.example.dz.presentation.search.SearchScreen
 import com.example.dz.presentation.search.SearchViewModel
 import com.example.dz.presentation.settings.SettingsEffect
@@ -126,10 +127,10 @@ import com.example.dz.presentation.auth.sign_up.SignUpViewModel
 import com.example.dz.presentation.splash.SplashEffect
 import com.example.dz.presentation.splash.SplashScreen
 import com.example.dz.presentation.splash.SplashViewModel
-import com.example.dz.presentation.store.StoreEffect
-import com.example.dz.presentation.store.StoreEvent
-import com.example.dz.presentation.store.StoreScreen
-import com.example.dz.presentation.store.StoreViewModel
+import com.example.dz.presentation.browse.BrowseEffect
+import com.example.dz.presentation.browse.BrowseEvent
+import com.example.dz.presentation.browse.BrowseScreen
+import com.example.dz.presentation.browse.BrowseViewModel
 import com.example.dz.presentation.auth.new_password.NewPasswordEffect
 import com.example.dz.presentation.auth.new_password.NewPasswordScreen
 import com.example.dz.designsystem.components.organic.OrganicTabBar
@@ -162,6 +163,9 @@ fun DZNavGraph() {
         // here, but it drew one because Search *was* a tab — leaving it would show five
         // destinations with none of them current.
         Routes.SEARCH,
+        // Browse and Search are pushed from a tab and carry their own way back. Neither is a tab
+        // itself, so the bar here would show five destinations with none of them current.
+        Routes.BROWSE,
         Routes.PRE_PURCHASE,
         Routes.BOOK_REVIEW,
         Routes.AUTHOR_DETAIL,
@@ -485,8 +489,8 @@ fun DZNavGraph() {
                 HomeScreen(
                     uiState = uiState,
                     onKeepReadingClick = { homeViewModel.onEvent(HomeEvent.KeepReadingClicked) },
-                    onSearchClick = { navController.navigate(Routes.SEARCH) },
-                    onSeeAllClick = { navigateBottomTab(Routes.STORE) },
+                    onSearchClick = { navController.navigate(Routes.BROWSE) },
+                    onSeeAllClick = { navController.navigate(Routes.BROWSE) },
                     onBookClick = { bookId -> homeViewModel.onEvent(HomeEvent.BookClicked(bookId)) },
                     onPresenceClick = { homeViewModel.onEvent(HomeEvent.PresenceClicked) },
                     onGoalClick = { homeViewModel.onEvent(HomeEvent.GoalClicked) },
@@ -506,7 +510,9 @@ fun DZNavGraph() {
                             is LibraryEffect.NavigateToCollection ->
                                 navController.navigate(Routes.collectionDetail(effect.collectionId))
                             LibraryEffect.NavigateToCollections -> navController.navigate(Routes.COLLECTIONS)
-                            LibraryEffect.NavigateToSearch -> navController.navigate(Routes.SEARCH)
+                            // Library's search circle, like Home's, opens Browse; Search is the step
+                            // after it, for a reader who can name what they are after.
+                            LibraryEffect.NavigateToSearch -> navController.navigate(Routes.BROWSE)
                             LibraryEffect.NavigateToGoal -> navController.navigate(Routes.GOAL)
                         }
                     }
@@ -530,29 +536,28 @@ fun DZNavGraph() {
                 )
             }
 
-            composable(Routes.STORE) {
-                val storeViewModel = koinViewModel<StoreViewModel>()
-                val uiState by storeViewModel.uiState.collectAsStateWithLifecycle()
+            composable(Routes.BROWSE) {
+                val browseViewModel = koinViewModel<BrowseViewModel>()
+                val uiState by browseViewModel.uiState.collectAsStateWithLifecycle()
 
-                LaunchedEffect(storeViewModel) {
-                    storeViewModel.effects.collect { effect ->
+                LaunchedEffect(browseViewModel) {
+                    browseViewModel.effects.collect { effect ->
                         when (effect) {
-                            is StoreEffect.NavigateToBook -> navController.navigate(Routes.prePurchase(effect.bookId))
-                            is StoreEffect.NavigateToCategory -> navController.navigate(Routes.categoryDetail(effect.categoryId))
-                            StoreEffect.NavigateToMembership -> navController.navigate(Routes.MEMBERSHIP)
+                            BrowseEffect.NavigateBack -> navController.popBackStack()
+                            BrowseEffect.NavigateToSearch -> navController.navigate(Routes.SEARCH)
+                            is BrowseEffect.NavigateToCategory ->
+                                navController.navigate(Routes.categoryDetail(effect.categoryId))
                         }
                     }
                 }
 
-                StoreScreen(
+                BrowseScreen(
                     uiState = uiState,
-                    onViewMoreClick = { storeViewModel.onEvent(StoreEvent.ViewMoreClicked) },
-                    onCategoryClick = { categoryName ->
-                        storeViewModel.onEvent(StoreEvent.CategoryClicked(categoryName))
-                    },
-                    onBookClick = { book ->
-                        storeViewModel.onEvent(StoreEvent.BookClicked(book.id))
-                    }
+                    onBackClick = { browseViewModel.onEvent(BrowseEvent.BackClicked) },
+                    onSearchClick = { browseViewModel.onEvent(BrowseEvent.SearchClicked) },
+                    onMoodClick = { mood -> browseViewModel.onEvent(BrowseEvent.MoodClicked(mood)) },
+                    onSortClick = { browseViewModel.onEvent(BrowseEvent.SortClicked) },
+                    onCategoryClick = { id -> browseViewModel.onEvent(BrowseEvent.CategoryClicked(id)) }
                 )
             }
 
@@ -564,19 +569,21 @@ fun DZNavGraph() {
                     searchViewModel.effects.collect { effect ->
                         when (effect) {
                             is SearchEffect.NavigateToBook -> navController.navigate(Routes.prePurchase(effect.bookId))
-                            is SearchEffect.NavigateToAuthor -> navController.navigate(Routes.authorDetail(effect.authorId))
-                            is SearchEffect.NavigateToCategory -> navController.navigate(Routes.categoryDetail(effect.categoryId))
                             SearchEffect.NavigateBack -> navController.popBackStack()
                         }
                     }
                 }
 
+                // A book opened from the results may have gone onto the shelf, so which results say
+                // "In your library" is read again on the way back.
+                LifecycleResumeEffect(searchViewModel) {
+                    searchViewModel.onEvent(SearchEvent.Resumed)
+                    onPauseOrDispose { }
+                }
+
                 SearchScreen(
                     uiState = uiState,
-                    onEvent = searchViewModel::onEvent,
-                    onCategoryClick = {},
-                    onBookClick = {},
-                    onAuthorClick = {}
+                    onEvent = searchViewModel::onEvent
                 )
             }
 

@@ -99,5 +99,6 @@ private class FakeBookRepository(private val book: Book?, private val text: Stri
         book?.let { AppResult.Success(it) } ?: AppResult.Error(AppError.NotFound)
     override suspend fun getBookRatings(bookId: String): AppResult<BookRatings?> = AppResult.Success(null)
     override suspend fun getCategories(): AppResult<List<Category>> = AppResult.Success(emptyList())
+    override suspend fun getCategoryBookCount(categoryId: String): AppResult<Int> = AppResult.Success(0)
     override suspend fun getBookText(textUrl: String): AppResult<String> = AppResult.Success(text)
 }

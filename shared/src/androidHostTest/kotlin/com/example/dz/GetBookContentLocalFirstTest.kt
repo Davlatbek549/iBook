@@ -72,6 +72,7 @@ private class RecordingBookRepository(
     override suspend fun getBookDetails(bookId: String): AppResult<Book> = AppResult.Success(book)
     override suspend fun getBookRatings(bookId: String): AppResult<BookRatings?> = AppResult.Success(null)
     override suspend fun getCategories(): AppResult<List<Category>> = AppResult.Success(emptyList())
+    override suspend fun getCategoryBookCount(categoryId: String): AppResult<Int> = AppResult.Success(0)
     override suspend fun getBookText(textUrl: String): AppResult<String> {
         textFetched = true
         return AppResult.Success(text)

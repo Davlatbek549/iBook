@@ -2,308 +2,348 @@ package com.example.dz.presentation.search
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.DragInteraction
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import com.example.dz.presentation.common.uniqueLazyKeys
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.Box
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.toMutableStateList
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.dz.designsystem.components.icons.InkIcons
-import com.example.dz.designsystem.components.ink.InkField
-import com.example.dz.designsystem.components.ink.InkBookRow
-import com.example.dz.designsystem.components.ink.InkLabel
-import com.example.dz.designsystem.components.ink.InkSectionTitle
-import com.example.dz.designsystem.components.ink.InkTopBar
-import com.example.dz.designsystem.components.ink.inkCard
-import com.example.dz.designsystem.theme.InkColors
-import com.example.dz.designsystem.theme.inkBodyFontFamily
-import com.example.dz.designsystem.theme.inkColors
-import com.example.dz.designsystem.theme.inkDisplayFontFamily
+import com.example.dz.designsystem.components.icons.OrganicIcons
+import com.example.dz.designsystem.components.organic.ORGANIC_GUTTER
+import com.example.dz.designsystem.components.organic.ORGANIC_TAB_BAR_CLEARANCE
+import com.example.dz.designsystem.components.organic.OrganicCard
+import com.example.dz.designsystem.components.organic.OrganicCircleIconButton
+import com.example.dz.designsystem.components.organic.OrganicFieldLabel
+import com.example.dz.designsystem.components.organic.OrganicListRow
+import com.example.dz.designsystem.components.organic.OrganicRowChevron
+import com.example.dz.designsystem.components.organic.OrganicScreen
+import com.example.dz.designsystem.components.organic.OrganicSearchField
+import com.example.dz.designsystem.components.organic.OrganicSkeleton
+import com.example.dz.designsystem.theme.OrganicColors
+import com.example.dz.designsystem.theme.OrganicShape
+import com.example.dz.designsystem.theme.organicBodyFontFamily
 import com.example.dz.domain.model.Book
-import com.example.dz.domain.model.Category
+import com.example.dz.presentation.common.priceLabel
+import com.example.dz.presentation.common.uniqueLazyKeys
 import dz.shared.generated.resources.Res
-import dz.shared.generated.resources.book_cover
-import dz.shared.generated.resources.book_cover_2
-import dz.shared.generated.resources.book_cover_3
-import dz.shared.generated.resources.book_cover_4
-import dz.shared.generated.resources.olive_again_book
-import dz.shared.generated.resources.search_browse_by_mood
-import dz.shared.generated.resources.search_placeholder
+import dz.shared.generated.resources.search_clear
+import dz.shared.generated.resources.search_close
+import dz.shared.generated.resources.search_field_hint
+import dz.shared.generated.resources.search_in_library
+import dz.shared.generated.resources.search_no_results
 import dz.shared.generated.resources.search_recent
-import dz.shared.generated.resources.search_title
-import org.jetbrains.compose.resources.DrawableResource
+import dz.shared.generated.resources.search_result_one
+import dz.shared.generated.resources.search_results
+import dz.shared.generated.resources.search_searching
+import kotlinx.coroutines.flow.filterIsInstance
 import org.jetbrains.compose.resources.stringResource
 
-private val moodCategories = listOf(
-    "Literary fiction", "History", "Romance", "Essays",
-    "Poetry", "Biography", "Fantasy", "Health"
-)
-
-private val searchCoverFallbacks = listOf(
-    Res.drawable.book_cover,
-    Res.drawable.book_cover_2,
-    Res.drawable.book_cover_3,
-    Res.drawable.book_cover_4,
-    Res.drawable.olive_again_book
-)
-
+/**
+ * Search — a live query over the catalogue, the reader's recent ones, and what it found.
+ *
+ * Layout from `dz-all-screens.html` (`#scr-search`): a 22dp rhythm on a 24dp gutter. Search is no
+ * longer a tab, and the tab bar the frame draws is not here (see the note in the nav graph).
+ *
+ * The top behaves the way a phone search does: the box and the × beside it share one row, which
+ * rides in the list and scrolls away with the results rather than holding the top of the screen.
+ * The × is the way out — it closes Search and returns to Browse. The ⊗ inside the box is a
+ * different thing: it clears the query and keeps the reader here with the keyboard up.
+ *
+ * The field opens focused, once. Arriving here is asking to type; coming back from a result is not,
+ * so the keyboard does not climb over the results a second time.
+ */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SearchScreen(
     uiState: SearchUiState = SearchUiState(),
     onEvent: (SearchEvent) -> Unit = {},
-    onCategoryClick: (String) -> Unit = {},
-    onBookClick: (bookId: String) -> Unit = {},
-    onAuthorClick: (authorId: String) -> Unit = {}
 ) {
-    val colors = inkColors()
-    val bodyFont = inkBodyFontFamily()
+    val keyboard = LocalSoftwareKeyboardController.current
+    val focusRequester = remember { FocusRequester() }
+    var focusedOnArrival by rememberSaveable { mutableStateOf(false) }
 
-    val recentSearches = remember {
-        listOf("olive again", "paulo coelho", "gothic novels").toMutableStateList()
-    }
-    val displayCategories = uiState.categories.ifEmpty {
-        moodCategories.map { Category(id = it.toCategoryId(), name = it) }
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(colors.paper)
-            .statusBarsPadding()
-    ) {
-        // Search is a pushed screen with no tab of its own, so it carries its own way back rather
-        // than relying on the system gesture alone.
-        InkTopBar(
-            title = stringResource(Res.string.search_title),
-            onBackClick = { onEvent(SearchEvent.BackClicked) },
-            colors = colors
-        )
-
-        // Pinned above the list rather than scrolling with it: a lazy list disposes what scrolls
-        // out of view, and a focused field disposed that way loses focus without reliably saying so.
-        Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp)) {
-            InkField(
-                value = uiState.query,
-                onValueChange = {
-                    onEvent(SearchEvent.QueryChanged(it))
-                    onEvent(SearchEvent.SearchClicked)
-                },
-                placeholder = stringResource(Res.string.search_placeholder),
-                modifier = Modifier.padding(top = 16.dp),
-                leadingIcon = InkIcons.Search,
-                colors = colors
-            )
+    LaunchedEffect(Unit) {
+        if (!focusedOnArrival) {
+            focusRequester.requestFocus()
+            focusedOnArrival = true
         }
+    }
 
+    val books = uiState.books
+    val bookKeys = books.uniqueLazyKeys { it.id }
+    val listState = rememberLazyListState()
+
+    // Scrolling the results is reading them, and a keyboard over half of them is in the way. Only a
+    // finger on the list closes it: a scroll in progress would also be true while the list settles
+    // after an answer arrives, and a keyboard that shuts itself mid-word is worse than one in the
+    // way.
+    LaunchedEffect(listState) {
+        listState.interactionSource.interactions
+            .filterIsInstance<DragInteraction.Start>()
+            .collect { keyboard?.hide() }
+    }
+    val resultsFor = uiState.resultsFor
+    val errorMessage = uiState.errorMessage
+
+    OrganicScreen {
         // Lazy, so a long page of results composes only the rows on screen — and only those rows
-        // start loading their covers, instead of every result's cover being fetched at once.
+        // start loading their covers, instead of every result's cover being fetched at once. The box
+        // is the first item rather than a header above the list, so it leaves with everything else
+        // as a reader scrolls down; the query lives in the view model, so scrolling it out of view
+        // loses nothing.
         LazyColumn(
-            modifier = Modifier.weight(1f).fillMaxWidth(),
-            contentPadding = PaddingValues(bottom = 96.dp)
+            state = listState,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(
+                start = ORGANIC_GUTTER,
+                end = ORGANIC_GUTTER,
+                top = 12.dp,
+                bottom = ORGANIC_TAB_BAR_CLEARANCE,
+            ),
+            verticalArrangement = Arrangement.spacedBy(ROW_GAP)
         ) {
-            if (recentSearches.isNotEmpty()) {
+            item(key = "field", contentType = "field") {
+                Row(
+                    // Tops the 12dp row gap up to the 22dp the frame leaves under the box.
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = SECTION_GAP - ROW_GAP),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OrganicSearchField(
+                        value = uiState.query,
+                        onValueChange = {
+                            onEvent(SearchEvent.QueryChanged(it))
+                            onEvent(SearchEvent.SearchClicked)
+                        },
+                        placeholder = stringResource(Res.string.search_field_hint),
+                        modifier = Modifier.weight(1f),
+                        focusRequester = focusRequester,
+                        onSearch = {
+                            onEvent(SearchEvent.SearchSubmitted)
+                            keyboard?.hide()
+                        },
+                        // Clearing leaves the box ready for the next query rather than dismissing the
+                        // keyboard, which is what a reader starting over wants.
+                        onClear = { onEvent(SearchEvent.QueryChanged("")) },
+                        clearContentDescription = stringResource(Res.string.search_clear),
+                    )
+                    // The way out. The ⊗ inside the box only empties it: one × leaves, the other
+                    // stays and clears, and they sit far enough apart to tell apart.
+                    OrganicCircleIconButton(
+                        icon = OrganicIcons.Close,
+                        onClick = { onEvent(SearchEvent.BackClicked) },
+                        contentDescription = stringResource(Res.string.search_close),
+                        size = 38.dp,
+                        iconSize = 16.dp,
+                    )
+                }
+            }
+            if (uiState.recentSearches.isNotEmpty()) {
                 item(key = "recent", contentType = "recent") {
-                    Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 24.dp)) {
-                        InkLabel(text = stringResource(Res.string.search_recent), colors = colors)
-                        Column(modifier = Modifier.padding(top = 6.dp)) {
-                            recentSearches.forEachIndexed { i, recent ->
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable {
-                                            onEvent(SearchEvent.QueryChanged(recent))
-                                            onEvent(SearchEvent.SearchClicked)
-                                        }
-                                        .padding(vertical = 11.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = InkIcons.Search,
-                                        contentDescription = null,
-                                        tint = colors.muted,
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                    Text(
-                                        text = recent,
-                                        modifier = Modifier.weight(1f),
-                                        fontFamily = bodyFont,
-                                        fontSize = 13.5.sp,
-                                        color = colors.inkSoft
-                                    )
-                                    Icon(
-                                        imageVector = InkIcons.Close,
-                                        contentDescription = null,
-                                        tint = colors.muted,
-                                        modifier = Modifier
-                                            .size(11.dp)
-                                            .clickable { recentSearches.remove(recent) }
-                                    )
-                                }
-                                if (i < recentSearches.size - 1) {
-                                    HorizontalDivider(thickness = 1.dp, color = colors.line)
-                                }
+                    Column(
+                        // Tops the 12dp row gap up to the 22dp the frame leaves under Recent.
+                        modifier = Modifier.padding(bottom = SECTION_GAP - ROW_GAP),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        OrganicFieldLabel(text = stringResource(Res.string.search_recent))
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            uiState.recentSearches.forEach { recent ->
+                                RecentChip(
+                                    text = recent,
+                                    onClick = {
+                                        onEvent(SearchEvent.RecentSearchClicked(recent))
+                                        keyboard?.hide()
+                                    },
+                                )
                             }
                         }
                     }
                 }
             }
 
-            if (uiState.books.isNotEmpty()) {
-                val bookKeys = uiState.books.uniqueLazyKeys { it.id }
-                item(key = "results-title", contentType = "section-title") {
-                    Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 22.dp)) {
-                        InkSectionTitle(text = "Results", colors = colors)
-                        Spacer(modifier = Modifier.height(4.dp))
+            if (uiState.hasQuery) {
+                when {
+                    errorMessage != null -> item(key = "error", contentType = "note") {
+                        SearchNote(text = errorMessage)
+                    }
+
+                    // A row of grey shapes says "results are coming, and this is what they will
+                    // look like"; the word alone leaves the screen blank under it.
+                    uiState.isLoading -> {
+                        item(key = "status", contentType = "label") {
+                            OrganicFieldLabel(text = stringResource(Res.string.search_searching))
+                        }
+                        items(SEARCHING_SKELETON_ROWS, key = { "skeleton-$it" }, contentType = { "skeleton" }) {
+                            ResultRowSkeleton()
+                        }
+                    }
+
+                    resultsFor != null && books.isEmpty() -> item(key = "empty", contentType = "note") {
+                        SearchNote(text = stringResource(Res.string.search_no_results, resultsFor))
+                    }
+
+                    resultsFor != null -> item(key = "status", contentType = "label") {
+                        OrganicFieldLabel(
+                            text = if (books.size == 1) {
+                                stringResource(Res.string.search_result_one)
+                            } else {
+                                stringResource(Res.string.search_results, books.size)
+                            }
+                        )
                     }
                 }
-                itemsIndexed(
-                    items = uiState.books,
-                    key = { index, _ -> "book:" + bookKeys[index] },
-                    contentType = { _, _ -> "book" }
-                ) { index, book ->
-                    Box(modifier = Modifier.padding(horizontal = 22.dp)) {
-                        SearchBookRow(
+
+                // The last answer stays under "Searching…" while the next is on its way, so the
+                // list does not blank and jump on every pause in typing.
+                if (errorMessage == null && resultsFor != null && !uiState.isLoading) {
+                    items(books.size, key = { "book:" + bookKeys[it] }, contentType = { "book" }) { index ->
+                        val book = books[index]
+                        ResultRow(
                             book = book,
-                            cover = searchCoverFallbacks[index % searchCoverFallbacks.size],
-                            showDivider = index > 0,
-                            onClick = {
-                                onEvent(SearchEvent.BookClicked(book.id))
-                                onBookClick(book.id)
-                            },
-                            colors = colors
+                            inLibrary = uiState.isInLibrary(book),
+                            onClick = { onEvent(SearchEvent.BookClicked(book.id)) },
                         )
                     }
                 }
             }
-
-            item(key = "moods", contentType = "moods") {
-                Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 22.dp)) {
-                    InkSectionTitle(
-                        text = stringResource(Res.string.search_browse_by_mood),
-                        colors = colors
-                    )
-                    Column(
-                        modifier = Modifier.padding(top = 14.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        displayCategories.chunked(2).forEachIndexed { rowIndex, rowCats ->
-                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                rowCats.forEachIndexed { colIndex, category ->
-                                    val index = rowIndex * 2 + colIndex
-                                    MoodCard(
-                                        number = index + 1,
-                                        name = category.name,
-                                        highlighted = index % 3 == 0,
-                                        onClick = {
-                                            onEvent(SearchEvent.CategoryClicked(category.id))
-                                            onCategoryClick(category.id)
-                                        },
-                                        modifier = Modifier.weight(1f),
-                                        colors = colors
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
         }
     }
 }
 
+/**
+ * A result: the 52 × 76 cover of a library row, bare rather than carded, ending in a chevron. Under
+ * the author it says the one thing worth knowing before opening it — already yours, or what it
+ * costs.
+ */
 @Composable
-private fun SearchBookRow(
+private fun ResultRow(
     book: Book,
-    cover: DrawableResource,
-    showDivider: Boolean,
+    inLibrary: Boolean,
     onClick: () -> Unit,
-    colors: InkColors,
 ) {
-    InkBookRow(
-        cover = cover,
-        coverUrl = book.coverUrl,
+    OrganicListRow(
         title = book.title,
-        author = book.authors.firstOrNull()?.name.orEmpty().ifBlank { "Unknown author" },
-        modifier = Modifier.clickable(onClick = onClick),
-        showDivider = showDivider,
-        meta = {
-            Text(
-                text = book.categories.firstOrNull()?.name.orEmpty(),
-                fontFamily = inkBodyFontFamily(),
-                fontSize = 11.sp,
-                color = colors.muted
-            )
-        },
-        colors = colors
+        author = book.authors.firstOrNull()?.name,
+        meta = if (inLibrary) stringResource(Res.string.search_in_library) else book.priceLabel(),
+        coverUrl = book.coverUrl,
+        coverWidth = 52.dp,
+        coverHeight = 76.dp,
+        onClick = onClick,
+        trailing = { OrganicRowChevron() },
     )
 }
 
-private fun String.toCategoryId(): String =
-    trim()
-        .lowercase()
-        .replace(Regex("[^a-z0-9]+"), "-")
-        .trim('-')
-        .ifBlank { "category" }
-
+/** The shape of a result before it arrives: cover, title, author. */
 @Composable
-private fun MoodCard(
-    number: Int,
-    name: String,
-    highlighted: Boolean,
+private fun ResultRowSkeleton() {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        OrganicSkeleton(
+            modifier = Modifier
+                .width(52.dp)
+                .height(76.dp),
+            cornerRadius = 10.dp,
+        )
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            OrganicSkeleton(
+                modifier = Modifier
+                    .fillMaxWidth(0.7f)
+                    .height(17.dp)
+            )
+            OrganicSkeleton(
+                modifier = Modifier
+                    .fillMaxWidth(0.4f)
+                    .height(12.dp)
+            )
+        }
+    }
+}
+
+/** A recent query as a neutral pill; tapping it runs it again. */
+@Composable
+private fun RecentChip(
+    text: String,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    colors: InkColors,
 ) {
-    Column(
-        modifier = modifier
-            .inkCard(colors)
-            .let { if (highlighted) it.background(colors.alt) else it }
-            .clickable(onClick = onClick)
-            .padding(horizontal = 15.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(22.dp)
+    Text(
+        text = text,
+        modifier = Modifier
+            .clip(RoundedCornerShape(OrganicShape.pill))
+            .background(OrganicColors.neutral200)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 9.dp),
+        fontFamily = organicBodyFontFamily(),
+        fontSize = 13.sp,
+        color = OrganicColors.text,
+        maxLines = 1
+    )
+}
+
+/**
+ * What an empty or failed search says. The handoff draws neither, so this follows Library's empty
+ * note — a filled card and a plain sentence that says what to try.
+ */
+@Composable
+private fun SearchNote(text: String) {
+    OrganicCard(
+        modifier = Modifier.fillMaxWidth(),
+        background = OrganicColors.neutral100,
+        contentPadding = PaddingValues(18.dp),
     ) {
         Text(
-            text = number.toString().padStart(2, '0'),
-            fontFamily = inkDisplayFontFamily(),
-            fontStyle = FontStyle.Italic,
-            fontSize = 11.sp,
-            color = colors.muted
-        )
-        Text(
-            text = name,
-            fontFamily = inkDisplayFontFamily(),
-            fontWeight = FontWeight.Medium,
-            fontSize = 15.sp,
-            lineHeight = 18.sp,
-            color = colors.ink
+            text = text,
+            fontFamily = organicBodyFontFamily(),
+            fontSize = 13.sp,
+            lineHeight = 19.5.sp,
+            color = OrganicColors.neutral700
         )
     }
 }
 
-@Preview(showBackground = true, widthDp = 375, heightDp = 820)
+/** Enough grey rows to fill the space the first answers will take, and no more. */
+private const val SEARCHING_SKELETON_ROWS = 4
+
+private val SECTION_GAP = 22.dp
+private val ROW_GAP = 12.dp
+
+@Preview
 @Composable
 fun SearchScreenPreview() {
     SearchScreen()
