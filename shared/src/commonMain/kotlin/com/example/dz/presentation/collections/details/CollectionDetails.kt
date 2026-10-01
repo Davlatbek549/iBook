@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
@@ -33,7 +34,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dz.designsystem.components.icons.OrganicIcons
 import com.example.dz.designsystem.components.organic.ORGANIC_GUTTER
-import com.example.dz.designsystem.components.organic.ORGANIC_TAB_BAR_CLEARANCE
 import com.example.dz.designsystem.components.organic.OrganicBookCover
 import com.example.dz.designsystem.components.organic.OrganicCircleIconButton
 import com.example.dz.designsystem.components.organic.OrganicSectionLabel
@@ -42,11 +42,13 @@ import com.example.dz.designsystem.theme.OrganicColors
 import com.example.dz.designsystem.theme.OrganicShape
 import com.example.dz.designsystem.theme.organicBodyFontFamily
 import com.example.dz.designsystem.theme.organicHeadingFontFamily
+import com.example.dz.presentation.collections.common.LibraryPickerSheet
 import com.example.dz.presentation.common.uniqueLazyKeys
 import dz.shared.generated.resources.Res
 import dz.shared.generated.resources.collection_edit
 import dz.shared.generated.resources.collection_empty_books
 import dz.shared.generated.resources.collection_in_this
+import dz.shared.generated.resources.collection_add_books_cta
 import dz.shared.generated.resources.collection_read_next
 import dz.shared.generated.resources.library_book_count
 import dz.shared.generated.resources.nav_back
@@ -71,13 +73,16 @@ fun CollectionDetails(
     val keys = uiState.books.uniqueLazyKeys { it.id }
 
     Box(
+        // fillMaxSize, not fillMaxWidth: a Box that only fills width takes its height from its
+        // content, so an empty shelf left the cream ground short and the window showed through.
         modifier = modifier
-            .fillMaxWidth()
+            .fillMaxSize()
             .background(OrganicColors.bg)
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(bottom = ORGANIC_TAB_BAR_CLEARANCE)
+            // No tab bar on this route, so this is the home indicator plus a closing gutter.
+            contentPadding = PaddingValues(bottom = 32.dp)
         ) {
             item(key = "header") {
                 ShelfHeader(uiState = uiState, shelfInk = shelf.ink, shelfGround = shelf.ground,
@@ -116,6 +121,16 @@ fun CollectionDetails(
                     onClick = { onEvent(CollectionDetailsEvent.BookClicked(uiState.books[index].id)) },
                 )
             }
+        }
+
+        if (uiState.isPickerOpen) {
+            LibraryPickerSheet(
+                books = uiState.libraryBooks,
+                pickedIds = uiState.pickedBookIds,
+                isLoading = uiState.isLibraryLoading,
+                onToggle = { onEvent(CollectionDetailsEvent.PickerBookToggled(it)) },
+                onDismiss = { onEvent(CollectionDetailsEvent.PickerDismissed) },
+            )
         }
     }
 }
@@ -250,43 +265,59 @@ private fun ShelfHeader(
             )
         }
 
-        if (uiState.books.isNotEmpty()) {
+        // The row stands either way; what the primary button offers is what changes. An empty
+        // shelf used to draw no actions at all, which hid the "+" — the way to put a book on it —
+        // from the only shelf that needed one. Reading comes first once there is something to
+        // read; until then the shelf's one useful action is filling it.
+        val hasBooks = uiState.books.isNotEmpty()
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(52.dp)
-                        .shadow(
-                            elevation = 6.dp,
-                            shape = RoundedCornerShape(OrganicShape.pill),
-                            ambientColor = OrganicColors.shadow.copy(alpha = 0.16f),
-                            spotColor = OrganicColors.shadow.copy(alpha = 0.16f)
-                        )
-                        .clip(RoundedCornerShape(OrganicShape.pill))
-                        .background(OrganicColors.accent)
-                        .clickable(role = Role.Button) {
+                modifier = Modifier
+                    .weight(1f)
+                    .height(52.dp)
+                    .shadow(
+                        elevation = 6.dp,
+                        shape = RoundedCornerShape(OrganicShape.pill),
+                        ambientColor = OrganicColors.shadow.copy(alpha = 0.16f),
+                        spotColor = OrganicColors.shadow.copy(alpha = 0.16f)
+                    )
+                    .clip(RoundedCornerShape(OrganicShape.pill))
+                    .background(OrganicColors.accent)
+                    .clickable(role = Role.Button) {
+                        if (hasBooks) {
                             uiState.books.firstOrNull()?.let {
                                 onEvent(CollectionDetailsEvent.BookClicked(it.id))
                             }
-                        },
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = stringResource(Res.string.collection_read_next),
-                        fontFamily = organicBodyFontFamily(),
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 15.sp,
-                        color = Color.White
-                    )
-                }
+                        } else {
+                            onEvent(CollectionDetailsEvent.AddBooksClicked)
+                        }
+                    },
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = stringResource(
+                        if (hasBooks) {
+                            Res.string.collection_read_next
+                        } else {
+                            Res.string.collection_add_books_cta
+                        }
+                    ),
+                    fontFamily = organicBodyFontFamily(),
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 15.sp,
+                    color = Color.White
+                )
+            }
+            if (hasBooks) {
                 OrganicCircleIconButton(
                     icon = OrganicIcons.Plus,
                     onClick = { onEvent(CollectionDetailsEvent.AddBooksClicked) },
-                    contentDescription = stringResource(Res.string.collection_edit),
+                    // Was labelled "Edit" — it adds books, and that is what it should say.
+                    contentDescription = stringResource(Res.string.collection_add_books_cta),
                     size = 52.dp,
                     iconSize = 20.dp,
                     background = OrganicColors.bg,

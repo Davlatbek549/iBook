@@ -7,11 +7,15 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -21,7 +25,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -30,7 +33,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dz.designsystem.components.icons.OrganicIcons
 import com.example.dz.designsystem.components.organic.ORGANIC_GUTTER
-import com.example.dz.designsystem.components.organic.ORGANIC_TAB_BAR_CLEARANCE
 import com.example.dz.designsystem.components.organic.OrganicBookCover
 import com.example.dz.designsystem.components.organic.OrganicCard
 import com.example.dz.designsystem.components.organic.OrganicField
@@ -41,9 +43,11 @@ import com.example.dz.designsystem.theme.OrganicColors
 import com.example.dz.designsystem.theme.OrganicShape
 import com.example.dz.designsystem.theme.organicBodyFontFamily
 import com.example.dz.designsystem.theme.organicHeadingFontFamily
+import com.example.dz.presentation.collections.common.LibraryPickerSheet
 import com.example.dz.presentation.common.uniqueLazyKeys
 import dz.shared.generated.resources.Res
 import dz.shared.generated.resources.collection_add_books
+import dz.shared.generated.resources.collection_books_none_yet
 import dz.shared.generated.resources.collection_books_reorder
 import dz.shared.generated.resources.collection_cancel
 import dz.shared.generated.resources.collection_colour
@@ -79,10 +83,14 @@ fun CollectionsEditScreen(
     val keys = uiState.books.uniqueLazyKeys { it.id }
 
     Box(
+        // fillMaxSize, not fillMaxWidth: a Box that only fills width takes its height from its
+        // content, so on a short shelf the cream ground stopped where the list stopped and the
+        // window showed through under it.
         modifier = modifier
-            .fillMaxWidth()
+            .fillMaxSize()
             .background(OrganicColors.bg)
             .statusBarsPadding()
+            .navigationBarsPadding()
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxWidth(),
@@ -90,7 +98,9 @@ fun CollectionsEditScreen(
                 start = ORGANIC_GUTTER,
                 end = ORGANIC_GUTTER,
                 top = 12.dp,
-                bottom = ORGANIC_TAB_BAR_CLEARANCE,
+                // No tab bar on this route — it is in `bottomBarHiddenRoutes` — so this pays
+                // for the home indicator and a closing gutter, not for a floating bar.
+                bottom = 32.dp,
             ),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
@@ -210,34 +220,46 @@ fun CollectionsEditScreen(
                 }
             }
 
-            if (uiState.books.isNotEmpty()) {
-                item(key = "books-label") {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.Bottom
-                    ) {
-                        OrganicSectionLabel(text = stringResource(Res.string.collection_books_reorder))
-                        Text(
-                            text = stringResource(Res.string.collection_add_books),
-                            modifier = Modifier.clickable(role = Role.Button) {
-                                onEvent(CollectionsEditEvent.BackClicked)
-                            },
-                            fontFamily = organicBodyFontFamily(),
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 13.sp,
-                            color = OrganicColors.accent700
-                        )
-                    }
-                }
-                items(uiState.books.size, key = { keys[it] }) { index ->
-                    val book = uiState.books[index]
-                    EditBookRow(
-                        book = book,
-                        modifier = Modifier.padding(bottom = 10.dp),
-                        onRemove = { onEvent(CollectionsEditEvent.BookRemoved(book.id)) },
+            // The section stands whether or not the shelf has books on it. It used to appear
+            // only once it did, which hid "Add" — the one way to put a first book on a shelf —
+            // behind already having done so. A new shelf is empty by definition, so the reader
+            // who most needs this control was the only one who never saw it.
+            item(key = "books-label") {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Bottom
+                ) {
+                    OrganicSectionLabel(text = stringResource(Res.string.collection_books_reorder))
+                    Text(
+                        text = stringResource(Res.string.collection_add_books),
+                        modifier = Modifier.clickable(role = Role.Button) {
+                            onEvent(CollectionsEditEvent.AddBooksClicked)
+                        },
+                        fontFamily = organicBodyFontFamily(),
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 13.sp,
+                        color = OrganicColors.accent700
                     )
                 }
+            }
+            if (uiState.books.isEmpty()) {
+                item(key = "books-empty") {
+                    Text(
+                        text = stringResource(Res.string.collection_books_none_yet),
+                        fontFamily = organicBodyFontFamily(),
+                        fontSize = 13.sp,
+                        color = OrganicColors.neutral700
+                    )
+                }
+            }
+            items(uiState.books.size, key = { keys[it] }) { index ->
+                val book = uiState.books[index]
+                EditBookRow(
+                    book = book,
+                    modifier = Modifier.padding(bottom = 10.dp),
+                    onRemove = { onEvent(CollectionsEditEvent.BookRemoved(book.id)) },
+                )
             }
 
             if (!uiState.isNewCollection) {
@@ -255,6 +277,16 @@ fun CollectionsEditScreen(
                     )
                 }
             }
+        }
+
+        if (uiState.isPickerOpen) {
+            LibraryPickerSheet(
+                books = uiState.libraryBooks,
+                pickedIds = uiState.pickedBookIds,
+                isLoading = uiState.isLibraryLoading,
+                onToggle = { onEvent(CollectionsEditEvent.PickerBookToggled(it)) },
+                onDismiss = { onEvent(CollectionsEditEvent.PickerDismissed) },
+            )
         }
     }
 }

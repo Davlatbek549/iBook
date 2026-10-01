@@ -14,10 +14,17 @@ data class CollectionsEditUiState(
     /** A new shelf is private until the reader says otherwise. */
     val visibleToFriends: Boolean = false,
     val books: List<CollectionsEditBookUi> = emptyList(),
+    /** Everything on the reader's shelf, as candidates for the picker. Loaded when it first opens. */
+    val libraryBooks: List<CollectionsEditBookUi> = emptyList(),
+    val isPickerOpen: Boolean = false,
+    val isLibraryLoading: Boolean = false,
     val isNewCollection: Boolean = false,
     val isLoading: Boolean = false,
     val errorMessage: String? = null
-)
+) {
+    /** What the picker ticks. Derived so the two lists cannot disagree about what is on the shelf. */
+    val pickedBookIds: Set<String> get() = books.mapTo(mutableSetOf()) { it.id }
+}
 
 data class CollectionsEditBookUi(
     val id: String,
