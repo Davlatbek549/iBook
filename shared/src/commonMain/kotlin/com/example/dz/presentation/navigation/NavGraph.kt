@@ -1,6 +1,7 @@
 package com.example.dz.presentation.navigation
 
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -136,6 +137,7 @@ import com.example.dz.presentation.auth.new_password.NewPasswordScreen
 import com.example.dz.designsystem.components.organic.OrganicTabBar
 import com.example.dz.designsystem.components.organic.organicBackdropSource
 import com.example.dz.designsystem.components.organic.rememberOrganicBackdrop
+import com.example.dz.designsystem.theme.OrganicColors
 import com.example.dz.presentation.auth.new_password.NewPasswordViewModel
 import com.example.dz.presentation.auth.verification.VerificationEffect
 import com.example.dz.presentation.auth.verification.VerificationEvent
@@ -215,7 +217,10 @@ fun DZNavGraph() {
 
     val tabBarBackdrop = rememberOrganicBackdrop()
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    // The app's own ground behind every route. Screens cross-fade, and halfway through a fade the
+    // window shows through — a window themed for the device, which need not be the appearance the
+    // reader chose in Settings.
+    Box(modifier = Modifier.fillMaxSize().background(OrganicColors.bg)) {
         NavHost(
             navController = navController,
             startDestination = Routes.SPLASH,

@@ -4,14 +4,19 @@ DZ is a Kotlin Multiplatform ebook app built with Compose Multiplatform. Screens
 networking and the local database all live in the `shared` module, so Android and iOS run the same
 code; each platform contributes only a shell and a handful of `expect`/`actual` implementations.
 
-The entry point sets up the image loader, then hands off to the theme and the navigation graph:
+The entry point sets up the image loader, works out the appearance, then hands off to the theme
+and the navigation graph:
 
 ```kotlin
 @Composable
 fun App() {
     setSingletonImageLoaderFactory { /* Coil + Ktor fetcher */ }
 
-    DZTheme {
+    val appearance by appearances.appearance.collectAsState()  // System, Light or Dark
+    val darkTheme = /* the device's setting for System, fixed otherwise */
+
+    PlatformAppearance(appearance, darkTheme)  // system bars and window follow the app
+    DZTheme(darkTheme = darkTheme) {
         DZNavGraph()
     }
 }
@@ -35,7 +40,8 @@ What is built:
   sign-in on both platforms, account deletion.
 - Browse and Search, a payment flow for the occasional priced title, collections, reading goals,
   notifications, membership tiers, and a social area with friends, chat and invites.
-- Light and dark appearance, following the system setting (see [Light and dark](#light-and-dark)).
+- Light and dark appearance: following the device, or held light or dark from Settings (see
+  [Light and dark](#light-and-dark)).
 
 The design system is mid-migration from the older **Ink** look to **Organic** (see [Theme](#theme)).
 
@@ -243,10 +249,19 @@ Shared colours live in `Color.kt`, typography in `Type.kt`, and the per-system t
 
 ### Light and dark
 
-The app follows the system's appearance, and `DZTheme(darkTheme = …)` is the one switch: it
-provides the Material colour scheme, the Organic palette (`OrganicLight` / `OrganicDark`) and the
-Ink palette (`InkLight` / `InkDark`) together, so no screen can end up half dark.
+Settings → Appearance offers System, Light and Dark. System, the default, follows the device;
+the other two hold the app to one appearance whatever the device is set to.
 
+- The choice is a device setting, stored by `LocalAppearanceRepository` beside the reader's
+  preferences. It is read before the first frame, so the app never opens in the wrong appearance
+  and switches, and it survives signing out and account deletion — it is about the screen, not
+  the account.
+- `App` resolves it to one `darkTheme` flag, and `DZTheme(darkTheme = …)` is the one switch: it
+  provides the Material colour scheme, the Organic palette (`OrganicLight` / `OrganicDark`) and
+  the Ink palette (`InkLight` / `InkDark`) together, so no screen can end up half dark.
+- `PlatformAppearance` makes what the system draws agree with the app: on Android it re-applies
+  edge-to-edge with the bar styles for the app's appearance; on iOS it sets the window's
+  interface style, which the status bar and UIKit controls follow.
 - Screens read `OrganicColors.x` and `inkColors()`, which resolve to the current appearance's
   palette. They are read in composition: a colour that a draw lambda needs (`drawBehind`, `Canvas`,
   a card's `decoration`) goes into a `val` beside the lambda, since the lambda runs outside it.
@@ -260,7 +275,6 @@ Ink palette (`InkLight` / `InkDark`) together, so no screen can end up half dark
 - Sheets dim the screen with `OrganicColors.scrim`, which stays dark in both appearances, and the
   tab bar's pill is `OrganicColors.pill`, lifted off the ground in the dark palette rather than
   inverted.
-- Settings shows the appearance as "System"; there is no in-app override yet.
 
 ## Navigation
 

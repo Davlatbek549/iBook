@@ -11,6 +11,7 @@ import com.example.dz.data.local.ReviewLocalDataSource
 import com.example.dz.data.local.LocalDataSource
 import com.example.dz.data.local.LocalDataSourceImpl
 import com.example.dz.data.remote.api.KtorAuthApi
+import com.example.dz.data.repository.LocalAppearanceRepository
 import com.example.dz.data.repository.LocalDeviceDataRepository
 import com.example.dz.data.repository.RemoteAuthRepository
 import com.example.dz.database.DzDatabase
@@ -209,7 +210,11 @@ class AccountDeletionTest {
     }
 
     private fun settings(repository: AuthRepository, deviceData: DeviceDataRepository) =
-        SettingsViewModel(LogoutUseCase(repository), DeleteAccountUseCase(repository, deviceData))
+        SettingsViewModel(
+            LogoutUseCase(repository),
+            DeleteAccountUseCase(repository, deviceData),
+            LocalAppearanceRepository(FakeLocalDataSource()),
+        )
 
     @Test
     fun `the device is only erased once the server has deleted the account`() = runTest(dispatcher) {

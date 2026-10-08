@@ -101,7 +101,8 @@ private val DarkColorScheme = darkColorScheme(
 )
 
 /**
- * Follows the system's appearance by default, and switches every palette in the app with it.
+ * Switches every palette in the app between light and dark. The app root passes the appearance
+ * chosen in Settings; left to its default, as in a preview, it follows the system.
  *
  * Material, Organic and Ink all take the one [darkTheme] flag from here rather than each asking
  * the system, so a screen can never end up half dark — and a preview that pins one appearance pins

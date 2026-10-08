@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -24,6 +26,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -41,10 +44,15 @@ import com.example.dz.designsystem.theme.InkColors
 import com.example.dz.designsystem.theme.inkBodyFontFamily
 import com.example.dz.designsystem.theme.inkColors
 import com.example.dz.designsystem.theme.inkDisplayFontFamily
+import com.example.dz.domain.model.Appearance
 import dz.shared.generated.resources.Res
 import dz.shared.generated.resources.set_about
 import dz.shared.generated.resources.set_account
 import dz.shared.generated.resources.set_appearance
+import dz.shared.generated.resources.set_appearance_dark
+import dz.shared.generated.resources.set_appearance_light
+import dz.shared.generated.resources.set_appearance_system
+import dz.shared.generated.resources.set_appearance_system_hint
 import dz.shared.generated.resources.set_daily_goal
 import dz.shared.generated.resources.set_delete_account
 import dz.shared.generated.resources.set_delete_body
@@ -99,7 +107,7 @@ fun SettingsScreen(
 
         // Reading
         SettingsGroup(stringResource(Res.string.set_reading), colors) {
-            ValueRow(InkIcons.Appearance, stringResource(Res.string.set_appearance), uiState.appearance, { onEvent(SettingsEvent.AppearanceClicked) }, colors)
+            ValueRow(InkIcons.Appearance, stringResource(Res.string.set_appearance), uiState.appearance.label(), { onEvent(SettingsEvent.AppearanceClicked) }, colors)
             RowDivider(colors)
             ValueRow(InkIcons.Book, stringResource(Res.string.set_text_size), uiState.textSize, { onEvent(SettingsEvent.TextSizeClicked) }, colors)
             RowDivider(colors)
@@ -139,6 +147,15 @@ fun SettingsScreen(
                 fontFamily = bodyFont, fontSize = 10.5.sp, color = colors.muted
             )
         }
+    }
+
+    if (uiState.isAppearancePickerVisible) {
+        AppearanceDialog(
+            selected = uiState.appearance,
+            onSelect = { onEvent(SettingsEvent.AppearanceChosen(it)) },
+            onDismiss = { onEvent(SettingsEvent.AppearancePickerDismissed) },
+            colors = colors
+        )
     }
 
     if (uiState.isDeleteConfirmationVisible) {
@@ -203,6 +220,84 @@ private fun DeleteAccountDialog(
             )
         }
     }
+}
+
+/**
+ * The three appearances, one tap each. A choice applies at once and closes the dialog — the screen
+ * behind it changing is the confirmation, so there is nothing to save.
+ */
+@Composable
+private fun AppearanceDialog(
+    selected: Appearance,
+    onSelect: (Appearance) -> Unit,
+    onDismiss: () -> Unit,
+    colors: InkColors,
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .inkCard(colors)
+                .padding(vertical = 12.dp)
+                .selectableGroup()
+        ) {
+            Text(
+                text = stringResource(Res.string.set_appearance),
+                modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 10.dp, bottom = 8.dp),
+                fontFamily = inkDisplayFontFamily(), fontWeight = FontWeight.Medium, fontSize = 21.sp, color = colors.ink
+            )
+            Appearance.entries.forEach { option ->
+                AppearanceOption(
+                    title = option.label(),
+                    // Only System needs saying what it does; Light and Dark say it themselves.
+                    hint = if (option == Appearance.SYSTEM) {
+                        stringResource(Res.string.set_appearance_system_hint)
+                    } else {
+                        null
+                    },
+                    selected = option == selected,
+                    onClick = { onSelect(option) },
+                    colors = colors
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AppearanceOption(
+    title: String,
+    hint: String?,
+    selected: Boolean,
+    onClick: () -> Unit,
+    colors: InkColors,
+) {
+    val bodyFont = inkBodyFontFamily()
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
+            .padding(horizontal = 22.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(13.dp)
+    ) {
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(title, fontFamily = bodyFont, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = colors.ink)
+            if (hint != null) {
+                Text(hint, fontFamily = bodyFont, fontSize = 12.sp, color = colors.muted)
+            }
+        }
+        if (selected) {
+            Icon(InkIcons.Done, null, tint = colors.accent, modifier = Modifier.size(16.dp))
+        }
+    }
+}
+
+@Composable
+private fun Appearance.label(): String = when (this) {
+    Appearance.SYSTEM -> stringResource(Res.string.set_appearance_system)
+    Appearance.LIGHT -> stringResource(Res.string.set_appearance_light)
+    Appearance.DARK -> stringResource(Res.string.set_appearance_dark)
 }
 
 @Composable

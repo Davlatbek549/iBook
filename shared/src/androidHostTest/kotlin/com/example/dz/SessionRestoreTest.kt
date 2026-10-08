@@ -2,6 +2,7 @@ package com.example.dz
 
 import com.example.dz.core.error.AppError
 import com.example.dz.core.result.AppResult
+import com.example.dz.data.repository.LocalAppearanceRepository
 import com.example.dz.domain.model.User
 import com.example.dz.domain.repository.AuthRepository
 import com.example.dz.domain.repository.DeviceDataRepository
@@ -128,6 +129,7 @@ class SessionRestoreTest {
         val viewModel = SettingsViewModel(
             LogoutUseCase(repository),
             DeleteAccountUseCase(repository, NothingOnDevice),
+            LocalAppearanceRepository(FakeLocalDataSource()),
         )
 
         viewModel.onEvent(SettingsEvent.SignOutClicked)

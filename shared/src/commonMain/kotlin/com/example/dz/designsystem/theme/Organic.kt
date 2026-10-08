@@ -29,7 +29,8 @@ import org.jetbrains.compose.resources.Font
  * while it does.
  *
  * There are two of these, [OrganicLight] and [OrganicDark], and screens name neither: they read
- * [OrganicColors], which is whichever one [DZTheme] put in place for the system's appearance.
+ * [OrganicColors], which is whichever one [DZTheme] put in place for the appearance the app is
+ * drawn in.
  */
 @Immutable
 data class OrganicPalette(

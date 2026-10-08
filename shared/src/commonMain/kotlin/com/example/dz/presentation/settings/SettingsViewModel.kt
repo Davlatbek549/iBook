@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.dz.core.error.AppError
 import com.example.dz.core.result.AppResult
+import com.example.dz.domain.model.Appearance
+import com.example.dz.domain.repository.AppearanceRepository
 import com.example.dz.domain.usecase.account.DeleteAccountUseCase
 import com.example.dz.domain.usecase.auth.LogoutUseCase
 import com.example.dz.presentation.mvi.toPresentationMessage
@@ -17,8 +19,11 @@ import kotlinx.coroutines.launch
 class SettingsViewModel(
     private val logout: LogoutUseCase,
     private val deleteAccount: DeleteAccountUseCase,
+    private val appearances: AppearanceRepository,
 ) : ViewModel() {
-    private val _uiState = MutableStateFlow(SettingsUiState())
+    private val _uiState = MutableStateFlow(
+        SettingsUiState(appearance = appearances.appearance.value)
+    )
     val uiState = _uiState.asStateFlow()
 
     private val _effects = MutableSharedFlow<SettingsEffect>()
@@ -41,15 +46,26 @@ class SettingsViewModel(
             is SettingsEvent.ReadingRemindersToggled -> _uiState.update { it.copy(readingRemindersEnabled = event.enabled) }
             is SettingsEvent.MessagesToggled -> _uiState.update { it.copy(messagesEnabled = event.enabled) }
             is SettingsEvent.PriceDropsToggled -> _uiState.update { it.copy(priceDropsEnabled = event.enabled) }
+            SettingsEvent.AppearanceClicked -> _uiState.update { it.copy(isAppearancePickerVisible = true) }
+            is SettingsEvent.AppearanceChosen -> chooseAppearance(event.appearance)
+            SettingsEvent.AppearancePickerDismissed -> _uiState.update { it.copy(isAppearancePickerVisible = false) }
             SettingsEvent.EmailClicked,
             SettingsEvent.PasswordClicked,
-            SettingsEvent.AppearanceClicked,
             SettingsEvent.TextSizeClicked,
             SettingsEvent.DailyGoalClicked,
             SettingsEvent.HelpClicked,
             SettingsEvent.TermsClicked,
             SettingsEvent.PrivacyClicked -> Unit
         }
+    }
+
+    /**
+     * Applied the moment it is chosen. The app redraws behind the picker, and that is the
+     * confirmation, so the picker closes with nothing left to ask.
+     */
+    private fun chooseAppearance(appearance: Appearance) {
+        appearances.setAppearance(appearance)
+        _uiState.update { it.copy(appearance = appearance, isAppearancePickerVisible = false) }
     }
 
     /**

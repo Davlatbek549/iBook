@@ -406,6 +406,10 @@
     <string name="set_password">Password</string>
     <string name="set_reading">Reading</string>
     <string name="set_appearance">Appearance</string>
+    <string name="set_appearance_system">System</string>
+    <string name="set_appearance_system_hint">Matches your device</string>
+    <string name="set_appearance_light">Light</string>
+    <string name="set_appearance_dark">Dark</string>
     <string name="set_text_size">Text size</string>
     <string name="set_daily_goal">Daily goal</string>
     <string name="set_notifications">Notifications</string>

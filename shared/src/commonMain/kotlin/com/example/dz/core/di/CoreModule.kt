@@ -22,6 +22,7 @@ import com.example.dz.data.repository.LocalDeviceDataRepository
 import com.example.dz.data.repository.LocalSearchHistoryRepository
 import com.example.dz.data.repository.LocalCollectionRepository
 import com.example.dz.data.repository.LocalGoalRepository
+import com.example.dz.data.repository.LocalAppearanceRepository
 import com.example.dz.data.repository.LocalReaderPreferencesRepository
 import com.example.dz.data.repository.LocalReadingPositionRepository
 import com.example.dz.data.repository.LocalReviewRepository
@@ -41,6 +42,7 @@ import com.example.dz.domain.repository.DeviceDataRepository
 import com.example.dz.domain.repository.SearchHistoryRepository
 import com.example.dz.domain.repository.DownloadRepository
 import com.example.dz.domain.repository.GoalRepository
+import com.example.dz.domain.repository.AppearanceRepository
 import com.example.dz.domain.repository.ReaderPreferencesRepository
 import com.example.dz.domain.repository.ReadingPositionRepository
 import com.example.dz.domain.repository.ReviewRepository
@@ -195,6 +197,9 @@ val coreModule = module {
     single<LibraryRepository> { LocalLibraryRepository(get()) }
     single<GoalRepository> { LocalGoalRepository(get()) }
     single<ReaderPreferencesRepository> { LocalReaderPreferencesRepository(get()) }
+    // One instance for the whole app: the root draws in its appearance and Settings changes it,
+    // and both have to be looking at the same state for a change to show at once.
+    single<AppearanceRepository> { LocalAppearanceRepository(get()) }
     single<ReadingPositionRepository> { LocalReadingPositionRepository(get()) }
     single<ReviewRepository> { LocalReviewRepository(get()) }
     single<CollectionRepository> { LocalCollectionRepository(get()) }
@@ -308,7 +313,7 @@ val coreModule = module {
 
     factory { ProfileViewModel(get()) }
     factory { (bookId: String) -> ReadingViewModel(bookId, get(), get(), get(), get(), get(), get(), get(), get()) }
-    factory { SettingsViewModel(get(), get()) }
+    factory { SettingsViewModel(get(), get(), get()) }
 
     factory { FriendListViewModel(get()) }
     factory { (friendId: String) -> FriendDetailViewModel(friendId, get()) }

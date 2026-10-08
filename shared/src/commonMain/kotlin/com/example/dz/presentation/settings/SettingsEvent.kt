@@ -1,11 +1,15 @@
 package com.example.dz.presentation.settings
 
+import com.example.dz.domain.model.Appearance
+
 sealed interface SettingsEvent {
     data object BackClicked : SettingsEvent
     data object EditProfileClicked : SettingsEvent
     data object EmailClicked : SettingsEvent
     data object PasswordClicked : SettingsEvent
     data object AppearanceClicked : SettingsEvent
+    data class AppearanceChosen(val appearance: Appearance) : SettingsEvent
+    data object AppearancePickerDismissed : SettingsEvent
     data object TextSizeClicked : SettingsEvent
     data object DailyGoalClicked : SettingsEvent
     data object HelpClicked : SettingsEvent
