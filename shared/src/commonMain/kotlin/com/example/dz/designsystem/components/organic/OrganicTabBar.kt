@@ -48,6 +48,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.dz.designsystem.theme.OrganicColors
+import com.example.dz.designsystem.theme.OrganicLight
 import com.example.dz.designsystem.theme.OrganicShape
 import dev.chrisbanes.haze.HazeState
 import kotlinx.coroutines.flow.filter
@@ -267,12 +268,15 @@ fun OrganicTabBar(
 
         // The handoff's neutral-300 is drawn against a solid neutral-900 pill. Glass is lighter
         // and, worse, varies with whatever scrolls behind it, so on glass the inactive icons go
-        // brighter to hold their contrast over a pale shelf of book covers.
+        // brighter to hold their contrast over a pale shelf of book covers. The pill is dark in
+        // both appearances, so its icons take their colour from the light palette in both.
         val inactiveTint = if (backdrop != null) {
             Color.White.copy(alpha = 0.78f)
         } else {
-            OrganicColors.neutral300
+            OrganicLight.neutral300
         }
+        // Read here rather than in the draw below, which runs outside composition.
+        val markColor = OrganicColors.accent
 
         Row(
             modifier = Modifier
@@ -288,7 +292,7 @@ fun OrganicTabBar(
                     if (backdrop != null) {
                         Modifier.organicGlass(backdrop = backdrop, shape = shape)
                     } else {
-                        Modifier.background(OrganicColors.neutral900, shape)
+                        Modifier.background(OrganicColors.pill, shape)
                     }
                 )
                 // After the glass, which is this element's background and documented to go first,
@@ -316,7 +320,7 @@ fun OrganicTabBar(
                     if (lift > 0.01f) {
                         val grow = MarkHaloGrow.toPx() * lift
                         drawRoundRect(
-                            color = OrganicColors.accent,
+                            color = markColor,
                             alpha = 0.22f * lift * alpha,
                             topLeft = Offset(centerX - width / 2f - grow, centerY - height / 2f - grow),
                             size = Size(width + grow * 2f, height + grow * 2f),
@@ -324,7 +328,7 @@ fun OrganicTabBar(
                         )
                     }
                     drawRoundRect(
-                        color = OrganicColors.accent,
+                        color = markColor,
                         alpha = alpha,
                         topLeft = Offset(centerX - width / 2f, centerY - height / 2f),
                         size = Size(width, height),

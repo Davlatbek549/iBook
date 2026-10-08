@@ -107,6 +107,7 @@ fun OrganicCard(
 }
 
 /** `--shadow-sm` — the only elevation a card ever gets in this system. */
+@Composable
 private fun Modifier.organicCardShadow(shape: RoundedCornerShape): Modifier =
     shadow(
         elevation = 2.dp,

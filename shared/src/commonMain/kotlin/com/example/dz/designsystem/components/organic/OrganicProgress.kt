@@ -39,8 +39,12 @@ private const val PROGRESS_ANIMATION_MILLIS = 400
 
 /**
  * The filled donut: a conic wedge of accent over a track, with a smaller circle punched out of the
- * middle for the label. 58dp on Home's Keep going card (white track, 44dp centre), 44dp in Library
+ * middle for the label. 58dp on Home's Keep going card (pale track, 44dp centre), 44dp in Library
  * rows (neutral-200 track, 34dp centre).
+ *
+ * The pale track is neutral-100 rather than the handoff's white: the same wash toward the paper in
+ * daylight, and in the dark palette a ring that sinks toward the ground instead of glowing brighter
+ * than the progress drawn over it.
  *
  * Built as two stacked circles rather than a stroked arc because that is what the design is — a
  * `conic-gradient` disc with a disc on top — and the two differ at the seam where the wedge closes.
@@ -52,7 +56,7 @@ fun OrganicProgressDonut(
     size: Dp = 58.dp,
     innerSize: Dp = 44.dp,
     progressColor: Color = OrganicColors.accent,
-    trackColor: Color = Color.White.copy(alpha = 0.55f),
+    trackColor: Color = OrganicColors.neutral100.copy(alpha = 0.55f),
     innerColor: Color = Color.Transparent,
     label: @Composable (() -> Unit)? = null,
 ) {

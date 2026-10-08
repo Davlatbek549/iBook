@@ -2,7 +2,8 @@ package com.example.dz.presentation.settings
 
 data class SettingsUiState(
     val email: String = "amelia@hartwell.co",
-    val appearance: String = "Light",
+    /** The app follows the system's light or dark setting; there is no override of its own yet. */
+    val appearance: String = "System",
     val textSize: String = "Medium",
     val dailyGoal: String = "30 min",
     val isSigningOut: Boolean = false,

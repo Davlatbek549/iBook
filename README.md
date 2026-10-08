@@ -35,6 +35,7 @@ What is built:
   sign-in on both platforms, account deletion.
 - Browse and Search, a payment flow for the occasional priced title, collections, reading goals,
   notifications, membership tiers, and a social area with friends, chat and invites.
+- Light and dark appearance, following the system setting (see [Light and dark](#light-and-dark)).
 
 The design system is mid-migration from the older **Ink** look to **Organic** (see [Theme](#theme)).
 
@@ -239,6 +240,27 @@ There are two design systems in the tree, and this is deliberate rather than lef
 
 Shared colours live in `Color.kt`, typography in `Type.kt`, and the per-system tokens in
 `Organic.kt` and `Ink.kt`.
+
+### Light and dark
+
+The app follows the system's appearance, and `DZTheme(darkTheme = …)` is the one switch: it
+provides the Material colour scheme, the Organic palette (`OrganicLight` / `OrganicDark`) and the
+Ink palette (`InkLight` / `InkDark`) together, so no screen can end up half dark.
+
+- Screens read `OrganicColors.x` and `inkColors()`, which resolve to the current appearance's
+  palette. They are read in composition: a colour that a draw lambda needs (`drawBehind`, `Canvas`,
+  a card's `decoration`) goes into a `val` beside the lambda, since the lambda runs outside it.
+- The dark Organic palette is derived rather than ported — the handoff draws no dark mode. Every
+  token keeps its hue and its job and only its lightness moves; the two brand accents stay put.
+- A few things keep the light palette in both appearances, through
+  `ProvideOrganicPalette(OrganicLight)` or by naming `OrganicLight` directly: the reader's page and
+  its chrome (the page colour is the reader's choice, and Night is how a page goes dark), surfaces
+  that are already dark in daylight (the editor's-pick card), and objects in illustrations (book
+  spines, devices).
+- Sheets dim the screen with `OrganicColors.scrim`, which stays dark in both appearances, and the
+  tab bar's pill is `OrganicColors.pill`, lifted off the ground in the dark palette rather than
+  inverted.
+- Settings shows the appearance as "System"; there is no in-app override yet.
 
 ## Navigation
 

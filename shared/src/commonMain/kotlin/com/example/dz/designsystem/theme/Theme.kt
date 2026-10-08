@@ -4,6 +4,7 @@ package com.example.dz.designsystem.theme
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
 
 private val LightColorScheme = lightColorScheme(
@@ -99,14 +100,28 @@ private val DarkColorScheme = darkColorScheme(
     surfaceTint = Color.Transparent,
 )
 
+/**
+ * Follows the system's appearance by default, and switches every palette in the app with it.
+ *
+ * Material, Organic and Ink all take the one [darkTheme] flag from here rather than each asking
+ * the system, so a screen can never end up half dark — and a preview that pins one appearance pins
+ * all three.
+ */
 @Composable
 fun DZTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
-    MaterialTheme(
-        colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme,
-        typography = Typography,
-        content = content
-    )
+    val ink = if (darkTheme) InkDark else InkLight
+    val organic = if (darkTheme) OrganicDark else OrganicLight
+
+    CompositionLocalProvider(LocalInkColors provides ink) {
+        ProvideOrganicPalette(organic) {
+            MaterialTheme(
+                colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme,
+                typography = Typography,
+                content = content
+            )
+        }
+    }
 }

@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -577,6 +578,7 @@ private fun KeepGoingCard(
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
+    val bleed = OrganicColors.accent300.copy(alpha = 0.55f)
     OrganicCard(
         modifier = modifier.fillMaxWidth(),
         background = OrganicColors.accent200,
@@ -585,7 +587,7 @@ private fun KeepGoingCard(
             // `right:-52; top:-58; 150×150`, drawn rather than laid out so it cannot stretch the
             // card past the 128dp the design gives it.
             drawCircle(
-                color = OrganicColors.accent300.copy(alpha = 0.55f),
+                color = bleed,
                 radius = 75.dp.toPx(),
                 center = Offset(size.width - 23.dp.toPx(), 17.dp.toPx())
             )
@@ -732,11 +734,14 @@ private const val NEW_THIS_WEEK_LIMIT = 2
 private const val GENRE_LIMIT = 6
 
 /** The design cycles friend avatars through sage, terracotta and neutral rather than one colour. */
-private val friendAvatarTints = listOf(
-    OrganicColors.accent2_600,
-    OrganicColors.accent600,
-    OrganicColors.neutral500,
-)
+private val friendAvatarTints: List<Color>
+    @Composable
+    @ReadOnlyComposable
+    get() = listOf(
+        OrganicColors.accent2_600,
+        OrganicColors.accent600,
+        OrganicColors.neutral500,
+    )
 
 /** Stands in for an initial while the profile is still loading. */
 private const val FALLBACK_INITIAL = "•"

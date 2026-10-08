@@ -93,7 +93,7 @@ fun OrganicLegalSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         containerColor = OrganicColors.bg,
-        scrimColor = OrganicColors.neutral900.copy(alpha = 0.42f),
+        scrimColor = OrganicColors.scrim.copy(alpha = 0.42f),
         dragHandle = {
             Box(
                 modifier = Modifier.fillMaxWidth().padding(top = 14.dp, bottom = 6.dp),

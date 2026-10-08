@@ -53,6 +53,7 @@ import com.example.dz.designsystem.components.organic.rememberEntranceProgress
 import com.example.dz.designsystem.components.organic.rememberSettleProgress
 import com.example.dz.designsystem.components.organic.OrganicPrimaryButton
 import com.example.dz.designsystem.theme.OrganicColors
+import com.example.dz.designsystem.theme.OrganicLight
 import com.example.dz.designsystem.theme.OrganicShape
 import com.example.dz.designsystem.theme.organicBodyFontFamily
 import com.example.dz.designsystem.theme.organicHeadingFontFamily
@@ -283,6 +284,9 @@ private fun SyncIllustration() {
                 .background(OrganicColors.accent200)
         )
 
+        // The two devices are things in the picture rather than interface, so they keep their
+        // daylight colours in either appearance: a paper page and a dark phone, whichever way
+        // the system is set.
         DeviceCard(
             modifier = Modifier
                 .align(Alignment.Center)
@@ -294,10 +298,10 @@ private fun SyncIllustration() {
                 .rotate(-7f * firstCard.coerceIn(0f, 1f)),
             width = 96.dp,
             height = 132.dp,
-            background = OrganicColors.neutral100,
-            lineColor = OrganicColors.neutral300,
-            accentLineColor = OrganicColors.accent400,
-            labelColor = OrganicColors.neutral600
+            background = OrganicLight.neutral100,
+            lineColor = OrganicLight.neutral300,
+            accentLineColor = OrganicLight.accent400,
+            labelColor = OrganicLight.neutral600
         )
 
         DeviceCard(
@@ -311,10 +315,10 @@ private fun SyncIllustration() {
                 .rotate(8f * secondCard.coerceIn(0f, 1f)),
             width = 74.dp,
             height = 150.dp,
-            background = OrganicColors.accent2_900,
-            lineColor = OrganicColors.accent2_700,
-            accentLineColor = OrganicColors.accent400,
-            labelColor = OrganicColors.accent2_300
+            background = OrganicLight.accent2_900,
+            lineColor = OrganicLight.accent2_700,
+            accentLineColor = OrganicLight.accent400,
+            labelColor = OrganicLight.accent2_300
         )
 
         Row(
@@ -394,6 +398,10 @@ private fun GoalIllustration() {
     val progress = remember { Animatable(0f) }
     val halo by rememberEntranceProgress(durationMillis = 380)
     val dial by rememberSettleProgress(delayMillis = 110)
+    // The canvases below draw outside composition, so their colours are read here.
+    val ringTrack = OrganicColors.accent2_300
+    val ringFill = OrganicColors.accent
+    val todayRing = OrganicColors.accent400
 
     LaunchedEffect(Unit) {
         delay(GOAL_RING_DELAY_MILLIS)
@@ -432,7 +440,7 @@ private fun GoalIllustration() {
                     val inset = stroke.width / 2f
                     val arcSize = Size(size.width - inset * 2, size.height - inset * 2)
                     drawArc(
-                        color = OrganicColors.accent2_300,
+                        color = ringTrack,
                         startAngle = -90f,
                         sweepAngle = 360f,
                         useCenter = false,
@@ -441,7 +449,7 @@ private fun GoalIllustration() {
                         style = stroke
                     )
                     drawArc(
-                        color = OrganicColors.accent,
+                        color = ringFill,
                         startAngle = -90f,
                         sweepAngle = 360f * progress.value,
                         useCenter = false,
@@ -513,7 +521,7 @@ private fun GoalIllustration() {
                 ) {
                     val strokeWidth = 3.dp.toPx()
                     drawCircle(
-                        color = OrganicColors.accent400,
+                        color = todayRing,
                         radius = (size.minDimension - strokeWidth) / 2f,
                         style = Stroke(
                             width = strokeWidth,
@@ -585,12 +593,13 @@ private fun SocialIllustration() {
                 .background(Brush.linearGradient(listOf(Color(0xFF8D5F45), Color(0xFF5C3D31))))
                 .padding(12.dp)
         ) {
+            // A book keeps its own colours in both appearances, and so does the title on it.
             Text(
                 text = stringResource(Res.string.onboarding_page3_book_title),
                 fontFamily = organicHeadingFontFamily(),
                 fontSize = 14.sp,
                 lineHeight = 16.sp,
-                color = OrganicColors.bg
+                color = OrganicLight.bg
             )
         }
 

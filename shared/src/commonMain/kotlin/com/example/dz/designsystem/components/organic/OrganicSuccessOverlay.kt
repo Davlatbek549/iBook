@@ -63,6 +63,9 @@ fun OrganicSuccessOverlay(
     val cardAlpha = remember { Animatable(0f) }
     val tickScale = remember { Animatable(0f) }
     val ringProgress = remember { Animatable(0f) }
+    // Colours for the draws below, which run outside composition and so cannot read the palette.
+    val scrim = OrganicColors.scrim
+    val ring = OrganicColors.accent2_400
 
     LaunchedEffect(Unit) {
         cardAlpha.animateTo(1f, animationSpec = tween(durationMillis = 180))
@@ -99,7 +102,7 @@ fun OrganicSuccessOverlay(
             .fillMaxSize()
             // Same scrim as the legal sheet, so a covered screen always dims by the same amount.
             .drawBehind {
-                drawRect(OrganicColors.neutral900, alpha = 0.42f * cardAlpha.value)
+                drawRect(scrim, alpha = 0.42f * cardAlpha.value)
             }
             // The scrim swallows everything, drags included. The form underneath is still
             // mounted, and a stray tap landing in a field the reader can no longer see would
@@ -146,7 +149,7 @@ fun OrganicSuccessOverlay(
                     val start = size.minDimension / 2f - stroke
                     val radius = start + (size.minDimension / 2f) * progress
                     drawCircle(
-                        color = OrganicColors.accent2_400.copy(alpha = (1f - progress) * 0.9f),
+                        color = ring.copy(alpha = (1f - progress) * 0.9f),
                         radius = radius,
                         style = Stroke(width = stroke),
                     )

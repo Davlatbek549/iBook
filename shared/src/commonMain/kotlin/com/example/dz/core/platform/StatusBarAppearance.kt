@@ -5,9 +5,10 @@ import androidx.compose.runtime.Composable
 /**
  * Asks the system to draw its status-bar content light or dark for as long as this is composed.
  *
- * The reader's night ground is the only place in the app where the screen behind the status bar is
- * dark, and the clock and battery are drawn by the system, not by us — left alone they stay dark
- * ink on a dark page and become unreadable.
+ * Everywhere else the app follows the system's appearance, and the system draws its clock and
+ * battery to match. The reader is the exception: its page is the ground the reader chose, so a
+ * night page can sit under a daylight status bar, or a cream one under a dark one — and left alone
+ * the system's ink is then the same tone as the page and becomes unreadable.
  *
  * [darkBackground] describes the *page*, not the icons: pass `true` when the content behind the
  * bar is dark and its icons therefore need to be light.

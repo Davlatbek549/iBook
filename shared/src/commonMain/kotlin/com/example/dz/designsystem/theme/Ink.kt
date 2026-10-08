@@ -1,8 +1,9 @@
 package com.example.dz.designsystem.theme
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
@@ -64,9 +65,15 @@ val InkDark = InkColors(
     danger     = Color(0xFFD96A55),
 )
 
+internal val LocalInkColors = staticCompositionLocalOf { InkLight }
+
+/**
+ * The Ink palette for the current appearance, as [DZTheme] provided it — so an Ink screen always
+ * agrees with the Organic and Material ones around it about whether it is dark.
+ */
 @Composable
-fun inkColors(darkTheme: Boolean = isSystemInDarkTheme()): InkColors =
-    if (darkTheme) InkDark else InkLight
+@ReadOnlyComposable
+fun inkColors(): InkColors = LocalInkColors.current
 
 object InkShape {
     val radius: Dp = 12.dp

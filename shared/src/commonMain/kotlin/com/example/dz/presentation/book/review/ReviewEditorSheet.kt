@@ -55,7 +55,7 @@ internal fun ReviewEditorSheet(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(OrganicColors.neutral900.copy(alpha = 0.38f))
+                .background(OrganicColors.scrim.copy(alpha = 0.38f))
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,

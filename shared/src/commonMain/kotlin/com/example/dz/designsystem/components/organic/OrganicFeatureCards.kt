@@ -25,6 +25,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,7 +41,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dz.designsystem.theme.OrganicColors
+import com.example.dz.designsystem.theme.OrganicLight
 import com.example.dz.designsystem.theme.OrganicShape
+import com.example.dz.designsystem.theme.ProvideOrganicPalette
 import com.example.dz.designsystem.theme.organicBodyFontFamily
 import com.example.dz.designsystem.theme.organicHeadingFontFamily
 
@@ -57,6 +60,10 @@ import com.example.dz.designsystem.theme.organicHeadingFontFamily
  * price as a pill. The darkest surface in the system, and the only one that inverts the type.
  *
  * A 190dp accent-800 circle bleeds off the bottom-right, clipped by the card.
+ *
+ * Already dark in daylight, so it has no dark version: it keeps the light palette in both
+ * appearances. Run through the dark one, the slab would turn pale and the type dark — the one
+ * bright block on a dark screen.
  */
 @Composable
 fun OrganicHeroCard(
@@ -67,7 +74,8 @@ fun OrganicHeroCard(
     price: String? = null,
     coverUrl: String? = null,
     onClick: (() -> Unit)? = null,
-) {
+) = ProvideOrganicPalette(OrganicLight) {
+    val bleed = OrganicColors.accent800
     OrganicCard(
         modifier = modifier.fillMaxWidth(),
         background = OrganicColors.accent900,
@@ -76,7 +84,7 @@ fun OrganicHeroCard(
             // `right:-70; bottom:-80; 190×190` — the circle hangs off the bottom-right corner and
             // the card's own clip trims it.
             drawCircle(
-                color = OrganicColors.accent800,
+                color = bleed,
                 radius = 95.dp.toPx(),
                 center = Offset(size.width - 25.dp.toPx(), size.height - 15.dp.toPx())
             )
@@ -442,11 +450,14 @@ fun OrganicSectionLabel(
  * The tints the genre grid alternates through, paired so each tile's decoration sits a step or two
  * above its ground.
  */
-val OrganicGenreTints: List<GenreTint> = listOf(
-    GenreTint(OrganicColors.accent200, OrganicColors.accent300, OrganicColors.accent700, OrganicColors.accent900, OrganicColors.accent800),
-    GenreTint(OrganicColors.accent2_200, OrganicColors.accent2_300, OrganicColors.accent2_700, OrganicColors.accent2_900, OrganicColors.accent2_800),
-    GenreTint(OrganicColors.neutral200, OrganicColors.neutral300, OrganicColors.neutral700, OrganicColors.neutral900, OrganicColors.neutral800),
-)
+val OrganicGenreTints: List<GenreTint>
+    @Composable
+    @ReadOnlyComposable
+    get() = listOf(
+        GenreTint(OrganicColors.accent200, OrganicColors.accent300, OrganicColors.accent700, OrganicColors.accent900, OrganicColors.accent800),
+        GenreTint(OrganicColors.accent2_200, OrganicColors.accent2_300, OrganicColors.accent2_700, OrganicColors.accent2_900, OrganicColors.accent2_800),
+        GenreTint(OrganicColors.neutral200, OrganicColors.neutral300, OrganicColors.neutral700, OrganicColors.neutral900, OrganicColors.neutral800),
+    )
 
 /** One tile's colour set: ground, circle, spine, title, subtitle. */
 data class GenreTint(
@@ -466,34 +477,37 @@ data class GenreTileStyle(
 /**
  * The six tiles of the Browse grid, in the frame's order: terracotta, sage, neutral, then the same
  * three a step lighter. Values from `#scr-categories` — where a frame writes the title in the body
- * colour, [OrganicColors.text] stands in for it.
+ * colour, `OrganicPalette.text` stands in for it.
  */
-val OrganicBrowseTileStyles: List<GenreTileStyle> = listOf(
-    GenreTileStyle(
-        GenreTint(OrganicColors.accent200, OrganicColors.accent300, OrganicColors.accent700, OrganicColors.accent900, OrganicColors.accent800),
-        OrganicGenreArt.CircleAndSpine,
-    ),
-    GenreTileStyle(
-        GenreTint(OrganicColors.accent2_200, OrganicColors.accent2_300, OrganicColors.accent2_700, OrganicColors.accent2_900, OrganicColors.accent2_900),
-        OrganicGenreArt.LowCircleAndSpine,
-    ),
-    GenreTileStyle(
-        GenreTint(OrganicColors.neutral200, OrganicColors.neutral500, OrganicColors.neutral400, OrganicColors.text, OrganicColors.neutral700),
-        OrganicGenreArt.Spines,
-    ),
-    GenreTileStyle(
-        GenreTint(OrganicColors.accent100, OrganicColors.accent300, OrganicColors.accent300, OrganicColors.accent900, OrganicColors.accent800),
-        OrganicGenreArt.Ring,
-    ),
-    GenreTileStyle(
-        GenreTint(OrganicColors.accent2_100, OrganicColors.accent2_400, OrganicColors.accent2_400, OrganicColors.accent2_900, OrganicColors.accent2_900),
-        OrganicGenreArt.TiltedSquare,
-    ),
-    GenreTileStyle(
-        GenreTint(OrganicColors.neutral300, OrganicColors.neutral400, OrganicColors.neutral400, OrganicColors.text, OrganicColors.neutral800),
-        OrganicGenreArt.LowCircle,
-    ),
-)
+val OrganicBrowseTileStyles: List<GenreTileStyle>
+    @Composable
+    @ReadOnlyComposable
+    get() = listOf(
+        GenreTileStyle(
+            GenreTint(OrganicColors.accent200, OrganicColors.accent300, OrganicColors.accent700, OrganicColors.accent900, OrganicColors.accent800),
+            OrganicGenreArt.CircleAndSpine,
+        ),
+        GenreTileStyle(
+            GenreTint(OrganicColors.accent2_200, OrganicColors.accent2_300, OrganicColors.accent2_700, OrganicColors.accent2_900, OrganicColors.accent2_900),
+            OrganicGenreArt.LowCircleAndSpine,
+        ),
+        GenreTileStyle(
+            GenreTint(OrganicColors.neutral200, OrganicColors.neutral500, OrganicColors.neutral400, OrganicColors.text, OrganicColors.neutral700),
+            OrganicGenreArt.Spines,
+        ),
+        GenreTileStyle(
+            GenreTint(OrganicColors.accent100, OrganicColors.accent300, OrganicColors.accent300, OrganicColors.accent900, OrganicColors.accent800),
+            OrganicGenreArt.Ring,
+        ),
+        GenreTileStyle(
+            GenreTint(OrganicColors.accent2_100, OrganicColors.accent2_400, OrganicColors.accent2_400, OrganicColors.accent2_900, OrganicColors.accent2_900),
+            OrganicGenreArt.TiltedSquare,
+        ),
+        GenreTileStyle(
+            GenreTint(OrganicColors.neutral300, OrganicColors.neutral400, OrganicColors.neutral400, OrganicColors.text, OrganicColors.neutral800),
+            OrganicGenreArt.LowCircle,
+        ),
+    )
 
 /**
  * The daily reading goal: the sage card from the Reading goal screen, with its 132dp stroked ring.
@@ -650,13 +664,16 @@ fun OrganicStackedCovers(
  * shelf's [ground] and writes on it in [ink], so picking a colour tints a screen rather than just
  * a dot.
  */
-val OrganicShelfPalette: List<OrganicShelfColor> = listOf(
-    OrganicShelfColor(OrganicColors.accent2_400, OrganicColors.accent2_200, OrganicColors.accent2_900),
-    OrganicShelfColor(OrganicColors.accent400, OrganicColors.accent200, OrganicColors.accent900),
-    OrganicShelfColor(OrganicColors.neutral400, OrganicColors.neutral200, OrganicColors.neutral900),
-    OrganicShelfColor(OrganicColors.accent2_700, OrganicColors.accent2_200, OrganicColors.accent2_900),
-    OrganicShelfColor(OrganicColors.accent700, OrganicColors.accent200, OrganicColors.accent900),
-)
+val OrganicShelfPalette: List<OrganicShelfColor>
+    @Composable
+    @ReadOnlyComposable
+    get() = listOf(
+        OrganicShelfColor(OrganicColors.accent2_400, OrganicColors.accent2_200, OrganicColors.accent2_900),
+        OrganicShelfColor(OrganicColors.accent400, OrganicColors.accent200, OrganicColors.accent900),
+        OrganicShelfColor(OrganicColors.neutral400, OrganicColors.neutral200, OrganicColors.neutral900),
+        OrganicShelfColor(OrganicColors.accent2_700, OrganicColors.accent2_200, OrganicColors.accent2_900),
+        OrganicShelfColor(OrganicColors.accent700, OrganicColors.accent200, OrganicColors.accent900),
+    )
 
 /** One shelf colour: the swatch, the wash it makes, and what reads on that wash. */
 data class OrganicShelfColor(
@@ -666,8 +683,12 @@ data class OrganicShelfColor(
 )
 
 /** Falls back to the first swatch rather than throwing if a stored index outlives the palette. */
-fun shelfColorAt(index: Int): OrganicShelfColor =
-    OrganicShelfPalette.getOrElse(index) { OrganicShelfPalette.first() }
+@Composable
+@ReadOnlyComposable
+fun shelfColorAt(index: Int): OrganicShelfColor {
+    val palette = OrganicShelfPalette
+    return palette.getOrElse(index) { palette.first() }
+}
 
 /**
  * The swatch row on the edit screen: five discs, the chosen one ringed in neutral-900.

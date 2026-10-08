@@ -14,6 +14,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -406,20 +407,23 @@ private data class CollectionTint(
 )
 
 /** The design alternates sage and terracotta between the two tiles. */
-private val collectionTints = listOf(
-    CollectionTint(
-        background = OrganicColors.accent2_200,
-        disc = OrganicColors.accent2_400,
-        text = OrganicColors.accent2_900,
-        subtitle = OrganicColors.accent2_800,
-    ),
-    CollectionTint(
-        background = OrganicColors.accent200,
-        disc = OrganicColors.accent400,
-        text = OrganicColors.accent900,
-        subtitle = OrganicColors.accent800,
-    ),
-)
+private val collectionTints: List<CollectionTint>
+    @Composable
+    @ReadOnlyComposable
+    get() = listOf(
+        CollectionTint(
+            background = OrganicColors.accent2_200,
+            disc = OrganicColors.accent2_400,
+            text = OrganicColors.accent2_900,
+            subtitle = OrganicColors.accent2_800,
+        ),
+        CollectionTint(
+            background = OrganicColors.accent200,
+            disc = OrganicColors.accent400,
+            text = OrganicColors.accent900,
+            subtitle = OrganicColors.accent800,
+        ),
+    )
 
 private val ROW_GAP = 12.dp
 

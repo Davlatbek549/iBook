@@ -2,6 +2,7 @@ package com.example.dz.designsystem.components.organic
 
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -53,17 +54,23 @@ fun Modifier.organicBackdropSource(backdrop: HazeState): Modifier = hazeSource(b
  */
 object OrganicGlassTint {
     /**
-     * The dark pill the tab bar sits in.
+     * The dark pill the tab bar sits in — dark in both appearances; see `OrganicPalette.pill`.
      *
      * 0.72 is a balance point found by looking: thinner and a bright shelf of book covers lifts
      * the pill until its icons wash out; thicker and the refraction stops being visible at all and
      * the glass may as well be a solid fill. The icons carry the rest of the contrast by going
      * brighter on glass than the handoff's neutral-300, which was drawn for a solid ground.
      */
-    val dark: Color = OrganicColors.neutral900.copy(alpha = 0.72f)
+    val dark: Color
+        @Composable
+        @ReadOnlyComposable
+        get() = OrganicColors.pill.copy(alpha = 0.72f)
 
-    /** A light panel, for sheets over the cream ground. */
-    val light: Color = OrganicColors.neutral100.copy(alpha = 0.40f)
+    /** A light panel, for sheets over the page's ground. */
+    val light: Color
+        @Composable
+        @ReadOnlyComposable
+        get() = OrganicColors.neutral100.copy(alpha = 0.40f)
 }
 
 /**
@@ -90,8 +97,9 @@ fun Modifier.organicGlass(
  * over a warm, low-contrast ground instead of as a dark slab.
  *
  * The two places this departs from Haze's defaults:
- * - `backgroundColor` is the cream page colour, so where the captured content is transparent the
- *   panel still refracts something warm rather than going flat.
+ * - `backgroundColor` is the page's ground — cream, or the warm near-black of the dark palette — so
+ *   where the captured content is transparent the panel still refracts something warm rather than
+ *   going flat.
  * - `chromaticAberrationStrength` is nudged off zero. The prismatic edge split is the most
  *   recognisable part of the material; `Simple` mode is the cheap one and enough at this size.
  */
@@ -100,10 +108,13 @@ fun Modifier.organicGlass(
 fun organicGlassStyle(
     shape: RoundedCornerShape,
     tint: Color = OrganicGlassTint.dark,
-): GlassStyle = GlassStyle.clear.then {
-    shape(shape)
-    tint(tint)
-    backgroundColor(OrganicColors.bg)
-    chromaticAberrationStrength(0.18f)
-    edgeSoftness(2.dp)
+): GlassStyle {
+    val ground = OrganicColors.bg
+    return GlassStyle.clear.then {
+        shape(shape)
+        tint(tint)
+        backgroundColor(ground)
+        chromaticAberrationStrength(0.18f)
+        edgeSoftness(2.dp)
+    }
 }

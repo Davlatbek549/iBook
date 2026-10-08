@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        The window behind the first frame, and behind a screen while it fades out between routes.
+        Daylight keeps the platform's light theme as it always had; values-night swaps in the dark
+        one, so a dark device no longer flashes white before the app has drawn anything.
+    -->
+    <style name="Theme.DZ" parent="android:Theme.Material.Light.NoActionBar" />
+</resources>

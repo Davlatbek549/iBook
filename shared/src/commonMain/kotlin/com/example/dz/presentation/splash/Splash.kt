@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.sp
 import com.example.dz.designsystem.components.organic.rememberEntranceProgress
 import com.example.dz.designsystem.components.organic.rememberSettleProgress
 import com.example.dz.designsystem.theme.OrganicColors
+import com.example.dz.designsystem.theme.OrganicLight
 import com.example.dz.designsystem.theme.organicBodyFontFamily
 import com.example.dz.designsystem.theme.organicHeadingFontFamily
 import dz.shared.generated.resources.Res
@@ -179,12 +180,14 @@ private fun BookshelfIllustration(modifier: Modifier = Modifier) {
         val brush: Brush,
     )
 
+    // Books are objects, not interface: like the cover placeholders, they keep their own colours
+    // in both appearances, so the sage spine takes the light palette's sage too.
     val spines = listOf(
         Spine(44.dp, 130.dp, -4f, Brush.linearGradient(listOf(Color(0xFF9AA87E), Color(0xFF5F6C4B)))),
         Spine(52.dp, 172.dp, 0f, Brush.linearGradient(listOf(Color(0xFF8D5F45), Color(0xFF5C3D31)))),
         Spine(40.dp, 146.dp, 3f, Brush.linearGradient(listOf(Color(0xFFD0B09A), Color(0xFF9C7358)))),
         Spine(48.dp, 118.dp, -2f, Brush.linearGradient(listOf(Color(0xFFC9A37C), Color(0xFF8A6A4F)))),
-        Spine(36.dp, 158.dp, 5f, Brush.linearGradient(listOf(OrganicColors.accent2_700, OrganicColors.accent2_700))),
+        Spine(36.dp, 158.dp, 5f, Brush.linearGradient(listOf(OrganicLight.accent2_700, OrganicLight.accent2_700))),
     )
 
     val shelf by rememberEntranceProgress(delayMillis = 160, durationMillis = 460)

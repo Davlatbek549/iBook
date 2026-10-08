@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dz.designsystem.components.organic.OrganicSectionLabel
 import com.example.dz.designsystem.theme.OrganicColors
+import com.example.dz.designsystem.theme.OrganicLight
 import com.example.dz.designsystem.theme.OrganicShape
 import com.example.dz.designsystem.theme.organicBodyFontFamily
 import com.example.dz.designsystem.theme.organicHeadingFontFamily
@@ -97,7 +98,7 @@ internal fun DisplaySheet(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(OrganicColors.neutral900.copy(alpha = 0.38f))
+                .background(OrganicColors.scrim.copy(alpha = 0.38f))
                 .clickable(
                     interactionSource = scrimInteraction,
                     indication = null,
@@ -439,13 +440,15 @@ private fun FaceOption(
     )
 }
 
-/** The swatch shown for each ground — the page colour itself, not a sample of its text. */
-@Composable
+/**
+ * The swatch shown for each ground — the page colour itself, not a sample of its text. Taken from
+ * the light palette in either appearance, like the page it stands for.
+ */
 private fun pageThemeSwatches(): List<Pair<PageTheme, Color>> = listOf(
-    PageTheme.CREAM to OrganicColors.bg,
-    PageTheme.PAPER to OrganicColors.neutral100,
-    PageTheme.SAGE to OrganicColors.accent2_200,
-    PageTheme.NIGHT to OrganicColors.neutral900,
+    PageTheme.CREAM to OrganicLight.bg,
+    PageTheme.PAPER to OrganicLight.neutral100,
+    PageTheme.SAGE to OrganicLight.accent2_200,
+    PageTheme.NIGHT to OrganicLight.neutral900,
 )
 
 @Composable

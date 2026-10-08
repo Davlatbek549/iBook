@@ -73,7 +73,9 @@ import com.example.dz.designsystem.components.organic.OrganicPrimaryButton
 import com.example.dz.designsystem.components.organic.OrganicSkeleton
 import com.example.dz.designsystem.components.organic.OrganicSuccessOverlay
 import com.example.dz.designsystem.theme.OrganicColors
+import com.example.dz.designsystem.theme.OrganicLight
 import com.example.dz.designsystem.theme.OrganicShape
+import com.example.dz.designsystem.theme.ProvideOrganicPalette
 import com.example.dz.designsystem.theme.organicBodyFontFamily
 import com.example.dz.designsystem.theme.organicSerifFontFamily
 import com.example.dz.domain.model.PageTheme
@@ -128,8 +130,9 @@ fun ReadingScreen(
         label = "reader-chrome",
     )
 
-    // The clock and battery are the system's to draw; on the night ground they have to be told to
-    // come out light, or they stay dark ink on a dark page.
+    // The clock and battery are the system's to draw, in the system's appearance rather than the
+    // page's: on the night ground they have to be told to come out light, and on the light grounds
+    // dark, or a dark-mode device draws them light on cream.
     StatusBarAppearance(darkBackground = uiState.preferences.pageTheme == PageTheme.NIGHT)
 
     // Cut fresh for each book: a pagination belongs to one text at one size on one screen.
@@ -185,69 +188,76 @@ fun ReadingScreen(
             }
         }
 
-        Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
-            ReaderHeader(
-                uiState = uiState,
-                page = page,
-                pinnedHere = pinnedHere,
-                alpha = chromeAlpha,
-                onEvent = onEvent,
-            )
-
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    // A turning sheet is drawn over the whole screen, but its words have to stay
-                    // where they were measured. Rather than adding up the header, the chrome and
-                    // two window insets and hoping the sum keeps matching the layout, the page
-                    // area says where it is and the sheet is told.
-                    .onGloballyPositioned { area ->
-                        val top = area.positionInRoot().y
-                        pageInset = with(density) {
-                            PageInset(
-                                top = top.toDp(),
-                                bottom = (screenHeightPx - top - area.size.height).toDp(),
-                            )
-                        }
-                    }
-            ) {
-                when {
-                    uiState.isLoading -> PageSkeleton()
-                    uiState.errorMessage != null -> PageError(
-                        message = uiState.errorMessage,
-                        page = page,
-                        onRetry = { onEvent(ReadingEvent.RetryClicked) },
-                    )
-
-                    else -> ReaderPages(
-                        uiState = uiState,
-                        page = page,
-                        pagination = pagination,
-                        pagerState = pagerState,
-                        pageIndex = pageIndex,
-                        goToPage = goToPage,
-                        onPaginated = { pagination = it },
-                        onEvent = onEvent,
-                    )
-                }
-            }
-
-            // Nothing to be a fraction of, and nothing to save offline, until the text has landed.
-            if (uiState.hasText) {
-                ProgressRow(
+        // The chrome is set on the ground the reader chose rather than on the app's, so it keeps
+        // the light palette its tints were picked against: cream stays cream in dark mode, and
+        // Night is how a page goes dark. The sheet and the overlays below are the app's own, and
+        // follow its appearance.
+        ProvideOrganicPalette(OrganicLight) {
+            Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
+                ReaderHeader(
                     uiState = uiState,
                     page = page,
-                    pagination = pagination,
-                    pageIndex = pageIndex,
-                    goToPage = goToPage,
-                    alpha = chromeAlpha,
-                )
-                ReaderActions(
-                    uiState = uiState,
-                    page = page,
+                    pinnedHere = pinnedHere,
                     alpha = chromeAlpha,
                     onEvent = onEvent,
                 )
+
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        // A turning sheet is drawn over the whole screen, but its words have to
+                        // stay where they were measured. Rather than adding up the header, the
+                        // chrome and two window insets and hoping the sum keeps matching the
+                        // layout, the page area says where it is and the sheet is told.
+                        .onGloballyPositioned { area ->
+                            val top = area.positionInRoot().y
+                            pageInset = with(density) {
+                                PageInset(
+                                    top = top.toDp(),
+                                    bottom = (screenHeightPx - top - area.size.height).toDp(),
+                                )
+                            }
+                        }
+                ) {
+                    when {
+                        uiState.isLoading -> PageSkeleton()
+                        uiState.errorMessage != null -> PageError(
+                            message = uiState.errorMessage,
+                            page = page,
+                            onRetry = { onEvent(ReadingEvent.RetryClicked) },
+                        )
+
+                        else -> ReaderPages(
+                            uiState = uiState,
+                            page = page,
+                            pagination = pagination,
+                            pagerState = pagerState,
+                            pageIndex = pageIndex,
+                            goToPage = goToPage,
+                            onPaginated = { pagination = it },
+                            onEvent = onEvent,
+                        )
+                    }
+                }
+
+                // Nothing to be a fraction of, and nothing to save offline, until the text has
+                // landed.
+                if (uiState.hasText) {
+                    ProgressRow(
+                        uiState = uiState,
+                        page = page,
+                        pagination = pagination,
+                        pageIndex = pageIndex,
+                        goToPage = goToPage,
+                        alpha = chromeAlpha,
+                    )
+                    ReaderActions(
+                        uiState = uiState,
+                        page = page,
+                        alpha = chromeAlpha,
+                        onEvent = onEvent,
+                    )
+                }
             }
         }
 
@@ -615,6 +625,9 @@ private fun ProgressRow(
                 pageCount > 1 -> (current + 1).toFloat() / pageCount
                 else -> 1f
             }
+            // Read here: the draw below runs outside composition.
+            val fill = OrganicColors.accent
+            val tick = OrganicColors.accent800
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -623,10 +636,10 @@ private fun ProgressRow(
                     .background(page.chrome)
                     .drawBehind {
                         drawRect(
-                            color = OrganicColors.accent,
+                            color = fill,
                             size = Size(size.width * filled, size.height),
                         )
-                        bookmarkAt?.let { at -> drawBookmarkTick(at) }
+                        bookmarkAt?.let { at -> drawBookmarkTick(at, tick) }
                     }
             )
         }
@@ -645,12 +658,18 @@ private fun ProgressRow(
     }
 }
 
-/** The pinned page, marked on the bar — dark enough to be seen on the fill and on the track. */
-private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBookmarkTick(at: Float) {
+/**
+ * The pinned page, marked on the bar — in a [color] dark enough to be seen on the fill and on the
+ * track.
+ */
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBookmarkTick(
+    at: Float,
+    color: Color,
+) {
     val width = 3.dp.toPx()
     val x = (size.width * at - width / 2f).coerceIn(0f, size.width - width)
     drawRoundRect(
-        color = OrganicColors.accent800,
+        color = color,
         topLeft = Offset(x, 0f),
         size = Size(width, size.height),
         cornerRadius = CornerRadius(width / 2f, width / 2f),
@@ -813,7 +832,7 @@ private fun ConfirmDeleteDownload(
         modifier = Modifier
             .fillMaxSize()
             // Same scrim as every other thing that covers a screen in this system.
-            .background(OrganicColors.neutral900.copy(alpha = 0.42f))
+            .background(OrganicColors.scrim.copy(alpha = 0.42f))
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -975,36 +994,41 @@ private const val REPAGINATE_DELAY_MILLIS = 180L
 private const val SUCCESS_DWELL_MILLIS = 1_800L
 private const val ERROR_DWELL_MILLIS = 3_500L
 
-/** The four grounds the display sheet offers. */
-@Composable
+/**
+ * The four grounds the display sheet offers.
+ *
+ * Taken from the light palette whatever the appearance: a page's colour is the reader's choice, so
+ * cream stays cream when the system goes dark, and Night is how a page goes dark.
+ */
 private fun PageTheme.colors(): OrganicPageColors = when (this) {
     PageTheme.CREAM -> OrganicPageColors(
-        ground = OrganicColors.bg,
-        ink = OrganicColors.neutral900,
-        chrome = OrganicColors.neutral200,
-        chromeInk = OrganicColors.neutral800,
+        ground = OrganicLight.bg,
+        ink = OrganicLight.neutral900,
+        chrome = OrganicLight.neutral200,
+        chromeInk = OrganicLight.neutral800,
     )
 
     PageTheme.PAPER -> OrganicPageColors(
-        ground = OrganicColors.neutral100,
-        ink = OrganicColors.neutral900,
-        chrome = OrganicColors.neutral200,
-        chromeInk = OrganicColors.neutral800,
+        ground = OrganicLight.neutral100,
+        ink = OrganicLight.neutral900,
+        chrome = OrganicLight.neutral200,
+        chromeInk = OrganicLight.neutral800,
     )
 
     PageTheme.SAGE -> OrganicPageColors(
-        ground = OrganicColors.accent2_200,
-        ink = OrganicColors.accent2_900,
-        chrome = OrganicColors.accent2_300,
-        chromeInk = OrganicColors.accent2_900,
+        ground = OrganicLight.accent2_200,
+        ink = OrganicLight.accent2_900,
+        chrome = OrganicLight.accent2_300,
+        chromeInk = OrganicLight.accent2_900,
     )
 
-    // The one inversion in the app: at night the page is the dark thing and the words are light.
+    // The one inversion among the grounds: at night the page is the dark thing and the words are
+    // light.
     PageTheme.NIGHT -> OrganicPageColors(
-        ground = OrganicColors.neutral900,
-        ink = OrganicColors.neutral200,
-        chrome = OrganicColors.neutral800,
-        chromeInk = OrganicColors.neutral200,
+        ground = OrganicLight.neutral900,
+        ink = OrganicLight.neutral200,
+        chrome = OrganicLight.neutral800,
+        chromeInk = OrganicLight.neutral200,
     )
 }
 
