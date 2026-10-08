@@ -26,13 +26,15 @@ drivers, file storage, Google sign-in, status-bar appearance, reader typesetting
 
 What is built:
 
-- Five tabs behind a floating glass bar: Home, Library, Store, Friends, Profile.
+- Four tabs behind a floating glass bar: Home, Library, Friends, Profile. There is no Store tab —
+  the catalogue is Project Gutenberg's public domain, so what a store offered, the genres, lives in
+  **Browse**, which every search circle opens.
 - A paginated reader with text size, page colour, font and page-turn style (slide, paper, scroll),
   bookmarks, shared notes and offline downloads.
 - Full auth against our own server: sign-in, sign-up, email verification, password reset, Google
   sign-in on both platforms, account deletion.
-- Store and a payment flow, collections, reading goals, notifications, membership tiers, and a
-  social area with friends, chat and invites.
+- Browse and Search, a payment flow for the occasional priced title, collections, reading goals,
+  notifications, membership tiers, and a social area with friends, chat and invites.
 
 The design system is mid-migration from the older **Ink** look to **Organic** (see [Theme](#theme)).
 
@@ -177,7 +179,7 @@ shared/src/commonMain/kotlin/com/example/dz/presentation
 ```
 
 Current areas: `splash`, `onboarding`, `auth` (login, sign_up, verification, forgot_password,
-new_password), `home`, `library`, `store`, `search`, `book` (pre_purchase, review, author_detail,
+new_password), `home`, `library`, `browse`, `search`, `book` (pre_purchase, review, author_detail,
 category_detail), `reading`, `collections` (list, details, edit), `goal`, `social` (friends,
 friend_detail, chat, invite_friends, no_friends), `payment`, `membership`,
 `premium_membership`, `profile`, `notifications`, `settings`, plus `common`, `mvi` and
@@ -249,20 +251,20 @@ shared/src/commonMain/kotlin/com/example/dz/presentation/navigation
 - `Routes.kt` — every route string in the app.
 - `NavGraph.kt` — `DZNavGraph`, which owns the `NavHost`, wires each screen to its ViewModel and
   collects navigation effects.
-- `BottomNavHost.kt` — the five bottom-bar destinations.
+- `BottomNavHost.kt` — the four bottom-bar destinations.
 
 Bottom navigation routes:
 
 - `home`
 - `library`
-- `store`
 - `friend_list`
 - `profile_tab`
 
-Search is reachable from Home and Library rather than being a tab of its own. The bar hides itself
-on the auth flow, the reader and pushed detail screens; `bottomBarHiddenRoutes` in `NavGraph.kt` is
-the list. Switching tabs pops back to Home rather than stacking, so each tab keeps its own scroll
-position and back stack through save/restore.
+Browse and Search are not tabs. Every search circle — Home's and Library's — opens Browse, and
+Browse's search bar opens Search; both are pushed screens with their own way back. The bar hides
+itself on the auth flow, the reader, Browse, Search and pushed detail screens;
+`bottomBarHiddenRoutes` in `NavGraph.kt` is the list. Switching tabs pops back to Home rather than
+stacking, so each tab keeps its own scroll position and back stack through save/restore.
 
 ## Backend & Auth
 
