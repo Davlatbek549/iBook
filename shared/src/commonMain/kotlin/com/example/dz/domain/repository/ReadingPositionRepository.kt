@@ -12,6 +12,8 @@ package com.example.dz.domain.repository
  */
 interface ReadingPositionRepository {
     /** The offset this book was last left at; 0 when it has never been opened. */
+    suspend fun resumeOffset(bookId: String, textLength: Int): Int = lastOffset(bookId)
+
     fun lastOffset(bookId: String): Int
 
     fun saveLastOffset(bookId: String, offset: Int)

@@ -273,6 +273,28 @@ user's library and their collections, so there is no third-party backend in betw
 `KtorAuthApi` calls it through the shared Ktor client using `ApiConfig.baseUrl`, which already
 includes the `/api/v1` prefix.
 
+### Cross-device reading data
+
+The shared app now uses the authenticated `/library/books` and `/collections` endpoints.
+Library entries, progress percentages, collection titles/descriptions and collection membership
+sync for the signed-in account. Changes are saved locally before upload; pending edits and
+collection deletions survive restarts and are retried when reading data is opened and every
+30 seconds while the app is in the foreground. Lists reload when their screens resume.
+
+Each account has its own persistent cache and pending edits. Existing on-device shelves are
+imported once; an existing server copy takes precedence over an unedited legacy copy. Newly
+created collections use UUIDs so two devices can independently create shelves with the same name.
+Only pending edits are uploaded. With the current server contract, concurrent edits to the same
+collection or reading percentage use the last successful upload; there are no server revision
+numbers or conflict-resolution prompts yet.
+
+Downloads and file paths stay on their device. Exact reader offsets and bookmarks, reading goals
+and session history, reader preferences, and collection colors/sharing flags remain local because
+the current reading-data endpoints do not represent them. Opening a book uses its synchronized
+percentage when the local exact position differs, so resuming on another device is approximate.
+No server deployment is required for these existing endpoints, provided the deployed service
+matches the sibling `dz-server` library/collections contract.
+
 ### Sessions
 
 Login and sign-up return a short-lived access token (15 minutes) alongside a refresh token that

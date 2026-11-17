@@ -165,8 +165,8 @@ class ReadingViewModel(
     }
 
     /** Opens the book where it was left rather than at its first word. */
-    private fun applyContent(content: BookContent) {
-        val resumed = readingPosition.lastOffset(bookId).coerceIn(0, content.text.length)
+    private suspend fun applyContent(content: BookContent) {
+        val resumed = readingPosition.resumeOffset(bookId, content.text.length).coerceIn(0, content.text.length)
         _uiState.update {
             it.copy(
                 bookTitle = content.title,

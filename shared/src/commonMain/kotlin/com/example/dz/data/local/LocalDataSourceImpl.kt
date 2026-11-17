@@ -30,6 +30,7 @@ private val USER_DATA_PREFIXES = listOf(
     // Where the reader had got to in each book, which page they pinned, and how they like a page
     // set. All of it is theirs.
     "reader_",
+    "reading_sync_",
 )
 
 class LocalDataSourceImpl(private val settings: Settings) : LocalDataSource {
@@ -88,9 +89,16 @@ class LocalDataSourceImpl(private val settings: Settings) : LocalDataSource {
     }
 
     override fun clearUserData() {
+        val owner = getUserId() ?: getSetting("reading_sync_owner")
         clearSession()
         settings.keys
-            .filter { key -> USER_DATA_PREFIXES.any { key.startsWith(it) } }
+            .filter { key ->
+                when {
+                    key.startsWith("reading_sync_account_") -> key == "reading_sync_account_$owner"
+                    key.startsWith("reader_account_") -> key.startsWith("reader_account_${owner}_")
+                    else -> USER_DATA_PREFIXES.any { key.startsWith(it) }
+                }
+            }
             .forEach(settings::remove)
     }
 

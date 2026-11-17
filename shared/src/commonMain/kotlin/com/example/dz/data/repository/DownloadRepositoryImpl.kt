@@ -70,6 +70,6 @@ class DownloadRepositoryImpl(
 
     override suspend fun isDownloaded(bookId: String): Boolean = withContext(io) {
         val entry = library.getLibraryBook(bookId) ?: return@withContext false
-        entry.isDownloaded && library.getDownloadPath(bookId) != null
+        entry.isDownloaded && library.getDownloadPath(bookId)?.let(fileStorage::exists) == true
     }
 }
