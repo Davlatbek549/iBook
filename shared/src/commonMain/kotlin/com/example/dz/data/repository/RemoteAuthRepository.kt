@@ -27,7 +27,8 @@ import com.example.dz.domain.repository.AuthRepository
  */
 class RemoteAuthRepository(
     private val api: AuthApi,
-    private val local: LocalDataSource
+    private val local: LocalDataSource,
+    private val sync: com.example.dz.data.sync.ReadingDataSync? = null,
 ) : AuthRepository {
 
     override suspend fun login(email: String, password: String): AppResult<User> =
@@ -72,22 +73,22 @@ class RemoteAuthRepository(
             // The server has just revoked every session, including whatever this device was
             // holding. Keeping it would leave a token that can never refresh and a Home whose
             // every request is refused.
-            .also { if (it is AppResult.Success) local.clearSession() }
+            .also { if (it is AppResult.Success) sessionChange { local.clearSession() } }
 
-    override suspend fun logout(): AppResult<Unit> {
+    override suspend fun logout(): AppResult<Unit> = sessionChange {
         // Best effort on the server; the local session is always cleared. The refresh token
         // names the session to revoke — without it the server would end every session this
         // user has, signing out their other devices too.
         runRemote { api.logout(LogoutRequestDto(refreshToken = local.getRefreshToken())) }
         local.clearSession()
-        return AppResult.Success(Unit)
+        AppResult.Success(Unit)
     }
 
     override suspend fun deleteAccount(): AppResult<Unit> =
         runRemote { api.deleteAccount() }
             // Only once the server has let go of it. A failed attempt leaves the reader signed in
             // to an account that still exists, which is the truth, and lets them try again.
-            .also { if (it is AppResult.Success) local.clearSession() }
+            .also { if (it is AppResult.Success) sessionChange { local.clearSession() } }
 
     override suspend fun getCurrentUser(): AppResult<User?> {
         if (!local.isLoggedIn()) return AppResult.Success(null)
@@ -112,7 +113,7 @@ class RemoteAuthRepository(
         local.saveSetting(kind.lastSentSettingKey, currentEpochMillis().toString())
     }
 
-    private fun AppResult<AuthResponseDto>.persistSession(): AppResult<User> = when (this) {
+    private suspend fun AppResult<AuthResponseDto>.persistSession(): AppResult<User> = sessionChange { when (this) {
         is AppResult.Success -> {
             local.saveUserSession(
                 userId = data.user.id,
@@ -125,7 +126,10 @@ class RemoteAuthRepository(
             AppResult.Success(data.user.toDomain())
         }
         is AppResult.Error -> this
-    }
+    } }
+
+    private suspend fun <T> sessionChange(block: suspend () -> T): T =
+        sync?.sessionChange(block) ?: block()
 }
 
 private fun UserDto.toDomain(): User =

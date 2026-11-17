@@ -23,4 +23,12 @@ internal fun AppError.toPresentationMessage(): String =
             AppError.AuthReason.TooManyAttempts -> "Too many attempts. Please try again later."
             AppError.AuthReason.Unknown -> "Sign-in failed. Please try again."
         }
+        is AppError.Profile -> when (reason) {
+            AppError.ProfileReason.UsernameTaken -> "That username is taken. Try another one."
+            AppError.ProfileReason.DateOfBirthLocked ->
+                "Your date of birth is already set. Contact support to change it."
+            AppError.ProfileReason.GenderLocked -> "Your gender is already set. Contact support to change it."
+            AppError.ProfileReason.InvalidDateOfBirth -> "Check the year of your date of birth."
+            AppError.ProfileReason.Invalid -> "Something in your profile isn't valid. Check it and try again."
+        }
     }

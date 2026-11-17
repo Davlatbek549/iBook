@@ -20,6 +20,22 @@ sealed interface AppError {
      */
     data class Auth(val reason: AuthReason) : AppError
 
+    /**
+     * dz-server refused a profile edit for a reason Edit Profile shows against one field rather
+     * than as a general failure.
+     */
+    data class Profile(val reason: ProfileReason) : AppError
+
+    enum class ProfileReason {
+        UsernameTaken,
+        DateOfBirthLocked,
+        GenderLocked,
+        InvalidDateOfBirth,
+
+        /** Validation failed on something the app should have caught first. */
+        Invalid,
+    }
+
     enum class AuthReason {
         InvalidCredentials,
         EmailAlreadyInUse,

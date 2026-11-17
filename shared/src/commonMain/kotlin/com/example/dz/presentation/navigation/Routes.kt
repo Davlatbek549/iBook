@@ -51,6 +51,8 @@ object Routes {
     const val PAYMENT_FAILED = "payment_failed"
 
     // Discovery
+    /** The handoff's Categories screen: moods and every genre as a tile. Every search icon opens it. */
+    const val BROWSE = "browse"
     const val CATEGORY_DETAIL = "category_detail/{categoryName}"
     const val AUTHOR_DETAIL = "author_detail/{authorId}"
 
@@ -64,7 +66,6 @@ object Routes {
     const val SETTINGS = "settings"
     const val NOTIFICATIONS = "notifications"
     const val GOAL = "goal"
-    const val MEMBERSHIP = "membership"
     const val PREMIUM_MEMBERSHIP = "premium_membership"
 
     // Social

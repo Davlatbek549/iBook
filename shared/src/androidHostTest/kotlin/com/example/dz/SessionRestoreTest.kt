@@ -2,12 +2,17 @@ package com.example.dz
 
 import com.example.dz.core.error.AppError
 import com.example.dz.core.result.AppResult
+import com.example.dz.domain.model.ReaderPreferences
 import com.example.dz.domain.model.User
+import com.example.dz.domain.model.UserProfile
 import com.example.dz.domain.repository.AuthRepository
 import com.example.dz.domain.repository.DeviceDataRepository
+import com.example.dz.domain.repository.ReaderPreferencesRepository
+import com.example.dz.domain.repository.UserRepository
 import com.example.dz.domain.usecase.account.DeleteAccountUseCase
 import com.example.dz.domain.usecase.auth.GetCurrentUserUseCase
 import com.example.dz.domain.usecase.auth.LogoutUseCase
+import com.example.dz.domain.usecase.user.GetProfileUseCase
 import com.example.dz.presentation.settings.SettingsEffect
 import com.example.dz.presentation.settings.SettingsEvent
 import com.example.dz.presentation.settings.SettingsViewModel
@@ -126,6 +131,8 @@ class SessionRestoreTest {
     fun `signing out clears the session and returns to login`() = runTest {
         val repository = FakeAuthRepository(currentUser = User(id = "u-1", name = "Ada"))
         val viewModel = SettingsViewModel(
+            GetProfileUseCase(StubUserRepository),
+            StubReaderPreferencesRepository,
             LogoutUseCase(repository),
             DeleteAccountUseCase(repository, NothingOnDevice),
         )
@@ -140,4 +147,17 @@ class SessionRestoreTest {
 
 private object NothingOnDevice : DeviceDataRepository {
     override suspend fun eraseAccountData() = Unit
+}
+
+/** Settings loads a profile and reader prefs on init; neither is what these tests are about. */
+private object StubUserRepository : UserRepository {
+    override suspend fun getProfile(): AppResult<UserProfile> =
+        AppResult.Success(UserProfile(user = User(id = "u-1", name = "Ada")))
+    override suspend fun updateProfile(profile: UserProfile): AppResult<UserProfile> =
+        error("not part of session restore")
+}
+
+private object StubReaderPreferencesRepository : ReaderPreferencesRepository {
+    override fun get(): ReaderPreferences = ReaderPreferences()
+    override fun save(preferences: ReaderPreferences) = error("not part of session restore")
 }

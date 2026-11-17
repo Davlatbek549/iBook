@@ -17,6 +17,12 @@ import kotlin.coroutines.cancellation.CancellationException
 class AuthBackendException(val reason: AppError.AuthReason) : Exception(reason.name)
 
 /**
+ * Thrown when dz-server refuses a profile edit for a reason Edit Profile shows against one field
+ * (a taken username, a locked date of birth, ...). [runRemote] maps it to [AppError.Profile].
+ */
+class ProfileBackendException(val reason: AppError.ProfileReason) : Exception(reason.name)
+
+/**
  * Runs a remote call and maps transport / HTTP failures onto [AppError] so repositories can
  * return a uniform [AppResult] without leaking Ktor exceptions into the domain layer.
  *
@@ -31,6 +37,8 @@ suspend fun <T> runRemote(block: suspend () -> T): AppResult<T> =
         AppResult.Success(withContext(Dispatchers.Default) { block() })
     } catch (error: AuthBackendException) {
         AppResult.Error(AppError.Auth(error.reason))
+    } catch (error: ProfileBackendException) {
+        AppResult.Error(AppError.Profile(error.reason))
     } catch (error: ResponseException) {
         AppResult.Error(
             when (error.response.status.value) {

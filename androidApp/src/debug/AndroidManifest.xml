@@ -1,0 +1,6 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <!-- Isolated design fixtures; absent from release builds and never touch account data. -->
+        <activity android:name=".RedesignPreviewActivity" android:exported="true" android:label="DZ design preview" />
+    </application>
+</manifest>

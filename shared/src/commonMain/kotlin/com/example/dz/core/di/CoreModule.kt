@@ -1,5 +1,17 @@
 package com.example.dz.core.di
 
+import com.example.dz.data.remote.api.ReadingDataApi
+import com.example.dz.data.remote.api.KtorReadingDataApi
+import com.example.dz.data.remote.api.KtorProfileApi
+import com.example.dz.data.remote.api.ProfileApi
+import com.example.dz.data.repository.RemoteProfileRepository
+import com.example.dz.domain.repository.ProfileRepository
+import com.example.dz.domain.usecase.user.CheckUsernameUseCase
+import com.example.dz.domain.usecase.user.GetEditableProfileUseCase
+import com.example.dz.domain.usecase.user.SaveEditableProfileUseCase
+import com.example.dz.data.sync.ReadingDataSync
+import com.example.dz.data.repository.SyncedLibraryRepository
+import com.example.dz.data.repository.SyncedCollectionRepository
 import com.example.dz.data.local.CollectionLocalDataSource
 import com.example.dz.data.local.GoalLocalDataSource
 import com.example.dz.data.local.LibraryLocalDataSource
@@ -25,6 +37,7 @@ import com.example.dz.data.repository.LocalReaderPreferencesRepository
 import com.example.dz.data.repository.LocalReadingPositionRepository
 import com.example.dz.data.repository.LocalReviewRepository
 import com.example.dz.data.repository.LocalLibraryRepository
+import com.example.dz.data.repository.LocalSearchHistoryRepository
 import com.example.dz.data.repository.MembershipRepositoryImpl
 import com.example.dz.data.repository.NotificationRepositoryImpl
 import com.example.dz.data.repository.PaymentRepositoryImpl
@@ -37,6 +50,7 @@ import com.example.dz.domain.repository.BookRepository
 import com.example.dz.domain.repository.ChatRepository
 import com.example.dz.domain.repository.CollectionRepository
 import com.example.dz.domain.repository.DeviceDataRepository
+import com.example.dz.domain.repository.SearchHistoryRepository
 import com.example.dz.domain.repository.DownloadRepository
 import com.example.dz.domain.repository.GoalRepository
 import com.example.dz.domain.repository.ReaderPreferencesRepository
@@ -64,6 +78,7 @@ import com.example.dz.domain.usecase.book.GetBookDetailsUseCase
 import com.example.dz.domain.usecase.book.GetBookRatingsUseCase
 import com.example.dz.domain.usecase.book.GetBooksByCategoryUseCase
 import com.example.dz.domain.usecase.book.GetCategoriesUseCase
+import com.example.dz.domain.usecase.book.GetCategoryBookCountUseCase
 import com.example.dz.domain.usecase.book.GetHomeBooksUseCase
 import com.example.dz.domain.usecase.book.SearchBooksUseCase
 import com.example.dz.domain.usecase.book.DeleteDownloadUseCase
@@ -92,6 +107,8 @@ import com.example.dz.domain.usecase.payment.PurchaseBookUseCase
 import com.example.dz.domain.usecase.review.DeleteMyReviewUseCase
 import com.example.dz.domain.usecase.review.GetMyReviewUseCase
 import com.example.dz.domain.usecase.review.SaveMyReviewUseCase
+import com.example.dz.domain.usecase.search.GetRecentSearchesUseCase
+import com.example.dz.domain.usecase.search.SaveRecentSearchUseCase
 import com.example.dz.domain.usecase.social.GetFriendDetailsUseCase
 import com.example.dz.domain.usecase.social.GetFriendsUseCase
 import com.example.dz.domain.usecase.social.InviteFriendUseCase
@@ -112,7 +129,6 @@ import com.example.dz.presentation.collections.edit.CollectionsEditViewModel
 import com.example.dz.presentation.collections.list.CollectionsViewModel
 import com.example.dz.presentation.goal.GoalViewModel
 import com.example.dz.presentation.home.HomeViewModel
-import com.example.dz.presentation.membership.MembershipViewModel
 import com.example.dz.presentation.notifications.NotificationsViewModel
 import com.example.dz.presentation.onboarding.OnboardingViewModel
 import com.example.dz.presentation.splash.SplashViewModel
@@ -133,13 +149,14 @@ import com.example.dz.presentation.social.invite_friends.InviteFriendsViewModel
 import com.example.dz.presentation.social.no_friends.NoFriendsViewModel
 import com.example.dz.presentation.library.LibraryViewModel
 import com.example.dz.presentation.search.SearchViewModel
-import com.example.dz.presentation.store.StoreViewModel
+import com.example.dz.presentation.browse.BrowseViewModel
 import com.russhwolf.settings.Settings
 import io.ktor.client.HttpClient
 import org.koin.core.context.startKoin
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import org.koin.mp.KoinPlatform
+import com.example.dz.presentation.profile.profile_edit.EditProfileViewModel
 
 fun startKoinIfNeeded() {
     if (KoinPlatform.getKoinOrNull() == null) {
@@ -174,8 +191,15 @@ val coreModule = module {
     }
 
     // ── Person B — User & Commerce (local / session-backed) ─────────────────
-    single<AuthRepository> { RemoteAuthRepository(get(), get()) }
+    single<ReadingDataApi> { KtorReadingDataApi(get(named(AUTH_HTTP_CLIENT)), get<ApiConfig>().baseUrl) }
+    single { ReadingDataSync(get(), get(), get(), get()) }
+    single<AuthRepository> { RemoteAuthRepository(get(), get(), get()) }
     single<UserRepository> { UserRepositoryImpl(get()) }
+    single<ProfileApi> { KtorProfileApi(get(named(AUTH_HTTP_CLIENT)), get<ApiConfig>().baseUrl) }
+    single<ProfileRepository> { RemoteProfileRepository(get(), get()) }
+    factory { GetEditableProfileUseCase(get()) }
+    factory { SaveEditableProfileUseCase(get()) }
+    factory { CheckUsernameUseCase(get()) }
     single<SocialRepository> { SocialRepositoryImpl(get()) }
     single<ChatRepository> { ChatRepositoryImpl(get()) }
     single<NotificationRepository> { NotificationRepositoryImpl(get()) }
@@ -187,18 +211,21 @@ val coreModule = module {
     single<GutendexApi> { KtorGutendexApi(get()) }
     single<OpenLibraryApi> { KtorOpenLibraryApi(get()) }
     single<BookRepository> { RemoteBookRepository(get(), get(), get()) }
-    single<LibraryRepository> { LocalLibraryRepository(get()) }
+    single<LibraryRepository> { SyncedLibraryRepository(get(), get()) }
     single<GoalRepository> { LocalGoalRepository(get()) }
     single<ReaderPreferencesRepository> { LocalReaderPreferencesRepository(get()) }
-    single<ReadingPositionRepository> { LocalReadingPositionRepository(get()) }
+    single<ReadingPositionRepository> { LocalReadingPositionRepository(get(), get()) }
     single<ReviewRepository> { LocalReviewRepository(get()) }
-    single<CollectionRepository> { LocalCollectionRepository(get()) }
+    single<CollectionRepository> { SyncedCollectionRepository(get(), get()) }
 
     // ── Offline downloads (Phase 3) ──────────────────────────────────────────
-    single<DownloadRepository> { DownloadRepositoryImpl(get(), get(), get()) }
+    single<DownloadRepository> {
+        com.example.dz.data.repository.AccountDownloadRepository(DownloadRepositoryImpl(get(), get(), get()), get())
+    }
     single<DeviceDataRepository> { LocalDeviceDataRepository(get(), get(), get(), get(), get(), get()) }
+    single<SearchHistoryRepository> { LocalSearchHistoryRepository(get()) }
 
-    // Domain use cases
+    factory { EditProfileViewModel(get(), get(), get()) }
     factory { LoginUseCase(get()) }
     factory { SignUpUseCase(get()) }
     factory { SignInWithGoogleUseCase(get()) }
@@ -222,6 +249,9 @@ val coreModule = module {
     factory { SaveMyReviewUseCase(get()) }
     factory { DeleteMyReviewUseCase(get()) }
     factory { GetCategoriesUseCase(get()) }
+    factory { GetCategoryBookCountUseCase(get()) }
+    factory { GetRecentSearchesUseCase(get()) }
+    factory { SaveRecentSearchUseCase(get()) }
     factory { GetBookContentUseCase(repository = get(), downloadRepository = get()) }
     factory { DownloadBookUseCase(get()) }
     factory { DeleteDownloadUseCase(get()) }
@@ -269,8 +299,8 @@ val coreModule = module {
     factory { (email: String, code: String) -> NewPasswordViewModel(email, code, get()) }
     factory { HomeViewModel(get(), get(), get(), get(), get(), get(), get(), get()) }
     factory { LibraryViewModel(get(), get(), get(), get()) }
-    factory { SearchViewModel(get(), get()) }
-    factory { StoreViewModel(get(), get()) }
+    factory { SearchViewModel(get(), get(), get(), get()) }
+    factory { BrowseViewModel(get(), get()) }
     factory { (authorId: String) -> AuthorDetailViewModel(authorId) }
     factory { (bookId: String) -> PrePurchaseViewModel(bookId, get(), get(), get(), get(), get(), get()) }
     factory { (bookId: String) -> BookReviewViewModel(bookId, get(), get(), get(), get(), get()) }
@@ -280,30 +310,30 @@ val coreModule = module {
     factory { (collectionId: String) -> CollectionDetailsViewModel(collectionId, get(), get(), get()) }
     factory { (collectionId: String) -> CollectionsEditViewModel(collectionId, get(), get(), get(), get(), get()) }
 
-    factory { GoalViewModel(get()) }
+    factory { GoalViewModel(get(), get()) }
 
-    factory { MembershipViewModel(get()) }
-    factory { PremiumMembershipViewModel(get(), get()) }
+    factory { PremiumMembershipViewModel(get(), get(), get()) }
 
     factory { NotificationsViewModel(get(), get()) }
 
     factory { SplashViewModel(get(), get()) }
     factory { OnboardingViewModel(get()) }
 
-    factory { (bookId: String) -> PurchaseDetailsViewModel(bookId, get()) }
+    factory { (bookId: String) -> PurchaseDetailsViewModel(bookId, get(), get()) }
     factory { (bookId: String) -> PurchaseReceiptViewModel(bookId, get()) }
     factory { PaymentMethodsViewModel(get()) }
-    factory { PurchaseConfirmationViewModel() }
-    factory { PaymentSuccessViewModel() }
+    single { com.example.dz.presentation.payment.common.CheckoutSession(get()) }
+    factory { PurchaseConfirmationViewModel(get()) }
+    factory { PaymentSuccessViewModel(get()) }
     factory { PaymentFailedViewModel() }
 
-    factory { ProfileViewModel(get()) }
+    factory { ProfileViewModel(get(), get(), get(), get()) }
     factory { (bookId: String) -> ReadingViewModel(bookId, get(), get(), get(), get(), get(), get(), get(), get()) }
-    factory { SettingsViewModel(get(), get()) }
+    factory { SettingsViewModel(get(), get(), get(), get()) }
 
     factory { FriendListViewModel(get()) }
     factory { (friendId: String) -> FriendDetailViewModel(friendId, get()) }
-    factory { (friendId: String) -> ChatViewModel(friendId, get(), get()) }
+    factory { (friendId: String) -> ChatViewModel(friendId, get(), get(), get()) }
     factory { InviteFriendsViewModel(get()) }
     factory { NoFriendsViewModel() }
 }
