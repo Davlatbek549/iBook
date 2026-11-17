@@ -8,8 +8,12 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class PurchaseConfirmationViewModel : ViewModel() {
-    private val _uiState = MutableStateFlow(PurchaseConfirmationUiState())
+class PurchaseConfirmationViewModel(checkout: com.example.dz.presentation.payment.common.CheckoutSession) : ViewModel() {
+    private val _uiState = MutableStateFlow(checkout.purchase?.let { order ->
+        PurchaseConfirmationUiState(bookId = order.book.id, title = order.book.title,
+            author = order.book.authors.firstOrNull()?.name.orEmpty(), coverUrl = order.book.coverUrl,
+            bookPrice = order.bookPrice, discount = order.discount ?: "$0.00", tax = order.tax ?: "$0.00", total = order.total)
+    } ?: PurchaseConfirmationUiState())
     val uiState = _uiState.asStateFlow()
 
     private val _effects = MutableSharedFlow<PurchaseConfirmationEffect>()

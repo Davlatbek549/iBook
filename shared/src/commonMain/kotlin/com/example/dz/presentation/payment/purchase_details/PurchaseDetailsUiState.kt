@@ -4,6 +4,7 @@ import com.example.dz.domain.model.Purchase
 
 data class PurchaseDetailsUiState(
     val bookId: String = "",
+    val coverUrl: String? = null,
     val title: String = "",
     val author: String = "",
     val bookPrice: String = "$0.00",
@@ -17,6 +18,7 @@ data class PurchaseDetailsUiState(
 fun Purchase.toPurchaseDetailsUiState(): PurchaseDetailsUiState =
     PurchaseDetailsUiState(
         bookId = book.id,
+        coverUrl = book.coverUrl,
         title = book.title,
         author = book.authors.firstOrNull()?.name.orEmpty().ifBlank { "Unknown author" },
         bookPrice = bookPrice,

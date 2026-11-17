@@ -1,11 +1,13 @@
 package com.example.dz.presentation.premium_membership
 
 data class PremiumMembershipUiState(
-    val memberName: String = "Amelia Hartwell",
-    val hasActiveMembership: Boolean = true,
-    val renewalPrice: String = "$59.99 / yr",
-    val booksReadThisYear: String = "18 books",
-    val amountSaved: String = "$112",
+    val hasActiveMembership: Boolean = false,
+    val planTitle: String = "",
+    val planPrice: String = "",
+    val benefits: List<String> = emptyList(),
+    val alternatePlanTitle: String? = null,
+    val alternatePlanPrice: String? = null,
+    val paymentMethodLabel: String? = null,
     val isLoading: Boolean = false,
     val errorMessage: String? = null
 )

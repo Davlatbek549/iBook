@@ -3,9 +3,11 @@ package com.example.dz.presentation.goal
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.dz.core.result.AppResult
-import com.example.dz.domain.model.DayMinutes
 import com.example.dz.domain.usecase.goal.GetReadingGoalUseCase
+import com.example.dz.domain.usecase.library.GetContinueReadingUseCase
 import com.example.dz.presentation.mvi.toPresentationMessage
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -14,7 +16,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class GoalViewModel(
-    private val getReadingGoal: GetReadingGoalUseCase
+    private val getReadingGoal: GetReadingGoalUseCase,
+    private val getContinueReading: GetContinueReadingUseCase,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(GoalUiState(isLoading = true))
     val uiState = _uiState.asStateFlow()
@@ -29,61 +32,55 @@ class GoalViewModel(
     fun onEvent(event: GoalEvent) {
         when (event) {
             GoalEvent.BackClicked -> emitEffect(GoalEffect.NavigateBack)
-            GoalEvent.SettingsClicked -> emitEffect(GoalEffect.NavigateToSettings)
+            // No target-editing flow exists yet — the Ink screen's own Edit was the same no-op.
             GoalEvent.EditGoalClicked -> Unit
+            GoalEvent.FinishItClicked -> {
+                _uiState.value.continueReadingBookId?.let {
+                    emitEffect(GoalEffect.NavigateToReading(it))
+                }
+            }
         }
     }
 
     private fun load() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
-            when (val result = getReadingGoal()) {
-                is AppResult.Success -> _uiState.update {
-                    val goal = result.data
-                    // Minutes, the week strip and the streak are now measured from reading
-                    // sessions. The yearly figures still have no source — nothing counts books
-                    // finished per year — so those stay as they were.
-                    it.copy(
-                        minutesRead = goal.minutesToday,
-                        goalMinutes = goal.targetMinutes,
-                        week = goal.week.toWeekUi(goal.targetMinutes),
-                        todayIndex = (goal.week.size - 1).coerceAtLeast(0),
-                        streakDays = goal.streakDays,
-                        longestStreak = maxOf(goal.streakDays, it.longestStreak),
-                        isLoading = false,
-                        errorMessage = null
-                    )
-                }
-                is AppResult.Error -> _uiState.update {
-                    it.copy(isLoading = false, errorMessage = result.error.toPresentationMessage())
+
+            coroutineScope {
+                val goalAsync = async { getReadingGoal() }
+                val continueReadingAsync = async { getContinueReading() }
+
+                val goalResult = goalAsync.await()
+                val continueReading = (continueReadingAsync.await() as? AppResult.Success)?.data
+
+                when (goalResult) {
+                    is AppResult.Success -> {
+                        val goal = goalResult.data
+                        _uiState.update {
+                            it.copy(
+                                minutesToday = goal.minutesToday,
+                                targetMinutes = goal.targetMinutes,
+                                week = goal.week.toGoalWeekUi(goal.targetMinutes),
+                                streakDays = goal.streakDays,
+                                longestStreakDays = maxOf(goal.streakDays, it.longestStreakDays),
+                                continueReadingBookId = continueReading?.book?.id,
+                                continueReadingTitle = continueReading?.book?.title,
+                                isLoading = false,
+                                errorMessage = null
+                            )
+                        }
+                    }
+                    is AppResult.Error -> _uiState.update {
+                        it.copy(isLoading = false, errorMessage = goalResult.error.toPresentationMessage())
+                    }
                 }
             }
         }
     }
 
-    /**
-     * Turns measured minutes into the week strip.
-     *
-     * The weekday letter comes from the day key itself: 1970-01-01 was a Thursday, so a Monday-first
-     * index is `(dayKey + 3) % 7`. That keeps the strip correct across month and year boundaries
-     * without a calendar library.
-     */
-    private fun List<DayMinutes>.toWeekUi(target: Int): List<GoalDayUi> =
-        map { day ->
-            GoalDayUi(
-                label = WEEKDAY_LETTERS[((day.dayKey + 3) % 7 + 7) % 7],
-                completion = if (target <= 0) 0f else (day.minutes.toFloat() / target).coerceIn(0f, 1f)
-            )
-        }
-
     private fun emitEffect(effect: GoalEffect) {
         viewModelScope.launch {
             _effects.emit(effect)
         }
-    }
-
-    private companion object {
-        /** Monday-first, matching the design's week strip. */
-        val WEEKDAY_LETTERS = listOf("M", "T", "W", "T", "F", "S", "S")
     }
 }
