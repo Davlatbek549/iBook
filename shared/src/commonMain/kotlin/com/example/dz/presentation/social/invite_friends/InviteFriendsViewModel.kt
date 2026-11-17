@@ -2,11 +2,13 @@ package com.example.dz.presentation.social.invite_friends
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.dz.core.result.AppResult
 import com.example.dz.domain.usecase.social.InviteFriendUseCase
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class InviteFriendsViewModel(
@@ -27,9 +29,18 @@ class InviteFriendsViewModel(
     }
 
     private fun inviteContact(contactId: String) {
-        viewModelScope.launch { inviteFriend(contactId) }
-        // Existing behavior: the contact action routes on to people discovery.
-        emitEffect(InviteFriendsEffect.NavigateToDiscover)
+        viewModelScope.launch {
+            when (inviteFriend(contactId)) {
+                is AppResult.Success -> _uiState.update { state ->
+                    state.copy(
+                        contacts = state.contacts.map { contact ->
+                            if (contact.id == contactId) contact.copy(invited = true) else contact
+                        }
+                    )
+                }
+                is AppResult.Error -> Unit
+            }
+        }
     }
 
     private fun emitEffect(effect: InviteFriendsEffect) {

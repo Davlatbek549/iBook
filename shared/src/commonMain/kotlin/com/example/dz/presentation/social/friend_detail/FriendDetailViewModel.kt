@@ -31,7 +31,8 @@ class FriendDetailViewModel(
             FriendDetailEvent.BackClicked -> emitEffect(FriendDetailEffect.NavigateBack)
             FriendDetailEvent.MessageClicked -> emitEffect(FriendDetailEffect.NavigateToChat(friendId))
             FriendDetailEvent.OptionsClicked,
-            FriendDetailEvent.SeeAllClicked -> Unit
+            FriendDetailEvent.ShareClicked,
+            FriendDetailEvent.SharedShelfClicked -> Unit
         }
     }
 

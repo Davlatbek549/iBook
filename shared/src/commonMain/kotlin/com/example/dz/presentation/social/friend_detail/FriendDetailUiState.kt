@@ -1,43 +1,34 @@
 package com.example.dz.presentation.social.friend_detail
 
 import com.example.dz.domain.model.Friend
-import dz.shared.generated.resources.Res
-import dz.shared.generated.resources.book_cover
-import dz.shared.generated.resources.book_cover_2
-import dz.shared.generated.resources.book_cover_3
-import dz.shared.generated.resources.book_cover_4
-import org.jetbrains.compose.resources.DrawableResource
 
 data class FriendDetailUiState(
     val friendId: String = "",
-    val name: String = "Patricia Lane",
-    val subtitle: String = "@patricia.reads · friends since March",
-    val online: Boolean = true,
-    val booksCount: String = "73",
-    val friendsCount: String = "28",
-    val inCommonCount: String = "9",
-    val currentBookTitle: String = "Olive, Again",
-    val currentBookAuthor: String = "Elizabeth Strout",
-    val currentBookProgress: Float = 0.44f,
-    val shelfCovers: List<DrawableResource> = defaultShelfCovers,
+    val name: String = "",
+    val isOnline: Boolean = false,
+    val currentBookTitle: String? = null,
+    val currentBookAuthor: String? = null,
+    val currentBookCoverUrl: String? = null,
+    // Nothing tracks a friendship's start date, a reading streak per friend, a yearly book count
+    // for them, how far into their current book they are, or a shared-collection link between two
+    // readers — all carry the same not-yet-wired defaults the Ink screen already showed; the
+    // screen resolves fixed copy for the first two directly rather than routing it through state.
+    val booksThisYear: Int = 31,
+    val dayStreak: Int = 58,
+    val currentBookProgress: Float = 0.55f,
     val isLoading: Boolean = false,
     val errorMessage: String? = null
 ) {
-    val firstName: String get() = name.substringBefore(' ')
+    val avatarInitial: String get() = name.trim().firstOrNull()?.uppercase() ?: "?"
+    val firstName: String get() = name.substringBefore(' ').ifBlank { name }
 }
-
-val defaultShelfCovers: List<DrawableResource> = listOf(
-    Res.drawable.book_cover_4,
-    Res.drawable.book_cover,
-    Res.drawable.book_cover_2,
-    Res.drawable.book_cover_3
-)
 
 fun Friend.toFriendDetailUiState(): FriendDetailUiState =
     FriendDetailUiState(
         friendId = id,
         name = name,
-        online = isOnline,
-        currentBookTitle = currentBook?.title ?: "Olive, Again",
-        currentBookAuthor = currentBook?.authors?.firstOrNull()?.name ?: "Elizabeth Strout"
+        isOnline = isOnline,
+        currentBookTitle = currentBook?.title,
+        currentBookAuthor = currentBook?.authors?.firstOrNull()?.name,
+        currentBookCoverUrl = currentBook?.coverUrl,
     )

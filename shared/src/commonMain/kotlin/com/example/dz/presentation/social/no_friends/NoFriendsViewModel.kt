@@ -13,8 +13,8 @@ class NoFriendsViewModel : ViewModel() {
     fun onEvent(event: NoFriendsEvent) {
         when (event) {
             NoFriendsEvent.BackClicked -> emitEffect(NoFriendsEffect.NavigateBack)
-            NoFriendsEvent.FindFriendsClicked -> emitEffect(NoFriendsEffect.NavigateToInvite)
-            NoFriendsEvent.InviteContactsClicked -> emitEffect(NoFriendsEffect.NavigateToInvite)
+            NoFriendsEvent.FindFriendsClicked -> emitEffect(NoFriendsEffect.NavigateToFriends)
+            NoFriendsEvent.InviteByLinkClicked -> emitEffect(NoFriendsEffect.NavigateToInvite)
         }
     }
 

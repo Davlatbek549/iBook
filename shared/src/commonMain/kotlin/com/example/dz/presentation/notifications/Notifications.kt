@@ -1,109 +1,206 @@
 package com.example.dz.presentation.notifications
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.dz.designsystem.components.ink.InkChip
-import com.example.dz.designsystem.components.ink.InkTopBar
-import com.example.dz.designsystem.theme.InkColors
-import com.example.dz.designsystem.theme.InkShape
-import com.example.dz.designsystem.theme.inkBodyFontFamily
-import com.example.dz.designsystem.theme.inkColors
+import com.example.dz.designsystem.components.icons.OrganicIcons
+import com.example.dz.designsystem.components.organic.ORGANIC_GUTTER
+import com.example.dz.designsystem.components.organic.ORGANIC_TAB_BAR_CLEARANCE
+import com.example.dz.designsystem.components.organic.OrganicAvatar
+import com.example.dz.designsystem.components.organic.OrganicCircleIconButton
+import com.example.dz.designsystem.components.organic.OrganicKicker
+import com.example.dz.designsystem.components.organic.OrganicScreen
+import com.example.dz.presentation.common.uniqueLazyKeys
+import com.example.dz.designsystem.theme.OrganicColors
+import com.example.dz.designsystem.theme.OrganicShape
+import com.example.dz.designsystem.theme.organicBodyFontFamily
+import com.example.dz.designsystem.theme.organicHeadingFontFamily
 import dz.shared.generated.resources.Res
+import dz.shared.generated.resources.nav_back
 import dz.shared.generated.resources.notif_all
+import dz.shared.generated.resources.notif_earlier
+import dz.shared.generated.resources.notif_empty
 import dz.shared.generated.resources.notif_friends
+import dz.shared.generated.resources.notif_goals
 import dz.shared.generated.resources.notif_mark_all
 import dz.shared.generated.resources.notif_store
+import dz.shared.generated.resources.notif_time_ago
 import dz.shared.generated.resources.notif_title
-import org.jetbrains.compose.resources.painterResource
+import dz.shared.generated.resources.notif_today
 import org.jetbrains.compose.resources.stringResource
 
+/**
+ * Notifications — unread count, four filter chips, then everything grouped into Today and
+ * Earlier. Every row leads with the same initial-circle treatment the rest of the app uses for
+ * identity: nothing in the data says what kind of event a notification is, so there is no real
+ * per-type icon to draw instead.
+ *
+ * Geometry from `dz-all-screens.html`.
+ */
 @Composable
 fun NotificationsScreen(
     uiState: NotificationsUiState = NotificationsUiState(),
     onEvent: (NotificationsEvent) -> Unit = {},
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
-    val colors = inkColors()
-    val bodyFont = inkBodyFontFamily()
-
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(colors.paper)
-            .statusBarsPadding()
-            .verticalScroll(rememberScrollState())
-            .padding(bottom = 30.dp)
-    ) {
-        InkTopBar(
-            title = stringResource(Res.string.notif_title),
-            onBackClick = { onEvent(NotificationsEvent.BackClicked) },
-            right = {
-                Text(
-                    text = stringResource(Res.string.notif_mark_all),
-                    modifier = Modifier
-                        .clickable { onEvent(NotificationsEvent.MarkAllReadClicked) }
-                        .padding(6.dp),
-                    fontFamily = bodyFont,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 12.sp,
-                    color = colors.accent
-                )
-            },
-            colors = colors
-        )
-
-        Row(
-            modifier = Modifier.padding(start = 22.dp, end = 22.dp, bottom = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+    OrganicScreen(modifier = modifier) {
+        LazyColumn(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(top = 16.dp, bottom = ORGANIC_TAB_BAR_CLEARANCE),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            FilterChip(stringResource(Res.string.notif_all), NotificationFilter.All, uiState.filter, onEvent, colors)
-            FilterChip(stringResource(Res.string.notif_friends), NotificationFilter.Friends, uiState.filter, onEvent, colors)
-            FilterChip(stringResource(Res.string.notif_store), NotificationFilter.Store, uiState.filter, onEvent, colors)
-        }
+            item(key = "header") {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = ORGANIC_GUTTER),
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OrganicCircleIconButton(
+                        icon = OrganicIcons.ChevronLeft,
+                        onClick = { onEvent(NotificationsEvent.BackClicked) },
+                        contentDescription = stringResource(Res.string.nav_back),
+                        size = 38.dp,
+                        iconSize = 18.dp,
+                    )
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        horizontalArrangement = Arrangement.spacedBy(9.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = stringResource(Res.string.notif_title),
+                            modifier = Modifier.weight(1f, fill = false),
+                            fontFamily = organicHeadingFontFamily(),
+                            fontWeight = FontWeight.Normal,
+                            fontSize = 30.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            color = OrganicColors.text
+                        )
+                        if (uiState.unreadCount > 0) {
+                            Text(
+                                text = uiState.unreadCount.toString(),
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(OrganicShape.pill))
+                                    .background(OrganicColors.accent)
+                                    .padding(horizontal = 10.dp, vertical = 4.dp),
+                                fontFamily = organicBodyFontFamily(),
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 12.sp,
+                                color = Color.White
+                            )
+                        }
+                    }
+                    Text(
+                        text = stringResource(Res.string.notif_mark_all),
+                        modifier = Modifier.clickable(role = Role.Button) { onEvent(NotificationsEvent.MarkAllReadClicked) },
+                        fontFamily = organicBodyFontFamily(),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp,
+                        color = OrganicColors.accent700
+                    )
+                }
+            }
 
-        Column(modifier = Modifier.padding(horizontal = 22.dp)) {
-            val items = uiState.visibleItems
-            items.forEachIndexed { i, item ->
-                NotificationRow(
-                    item = item,
-                    onClick = { onEvent(NotificationsEvent.NotificationClicked(item.id)) },
-                    colors = colors
-                )
-                if (i < items.size - 1) {
-                    HorizontalDivider(thickness = 1.dp, color = colors.line)
+            item(key = "filters") {
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = ORGANIC_GUTTER),
+                    horizontalArrangement = Arrangement.spacedBy(9.dp)
+                ) {
+                    item {
+                        FilterChip(stringResource(Res.string.notif_all), NotificationFilter.All, uiState.filter) {
+                            onEvent(NotificationsEvent.FilterSelected(NotificationFilter.All))
+                        }
+                    }
+                    item {
+                        FilterChip(stringResource(Res.string.notif_friends), NotificationFilter.Friends, uiState.filter) {
+                            onEvent(NotificationsEvent.FilterSelected(NotificationFilter.Friends))
+                        }
+                    }
+                    item {
+                        FilterChip(stringResource(Res.string.notif_goals), NotificationFilter.Goals, uiState.filter) {
+                            onEvent(NotificationsEvent.FilterSelected(NotificationFilter.Goals))
+                        }
+                    }
+                    item {
+                        FilterChip(stringResource(Res.string.notif_store), NotificationFilter.Store, uiState.filter) {
+                            onEvent(NotificationsEvent.FilterSelected(NotificationFilter.Store))
+                        }
+                    }
+                }
+            }
+
+            if (uiState.visibleItems.isEmpty()) {
+                item(key = "empty") {
+                    Text(
+                        text = stringResource(Res.string.notif_empty),
+                        modifier = Modifier.padding(horizontal = ORGANIC_GUTTER),
+                        fontFamily = organicBodyFontFamily(),
+                        fontSize = 13.sp,
+                        color = OrganicColors.neutral700
+                    )
+                }
+            }
+
+            if (uiState.todayItems.isNotEmpty()) {
+                item(key = "today-label") { GroupLabel(stringResource(Res.string.notif_today)) }
+                val todayKeys = uiState.todayItems.uniqueLazyKeys { it.id }
+                items(uiState.todayItems.size, key = { todayKeys[it] }) { index ->
+                    val item = uiState.todayItems[index]
+                    NotificationRow(
+                        item = item,
+                        modifier = Modifier.padding(horizontal = 20.dp),
+                        onClick = { onEvent(NotificationsEvent.NotificationClicked(item.id)) },
+                    )
+                }
+            }
+
+            if (uiState.earlierItems.isNotEmpty()) {
+                item(key = "earlier-label") { GroupLabel(stringResource(Res.string.notif_earlier)) }
+                val earlierKeys = uiState.earlierItems.uniqueLazyKeys { it.id }
+                items(uiState.earlierItems.size, key = { earlierKeys[it] }) { index ->
+                    val item = uiState.earlierItems[index]
+                    NotificationRow(
+                        item = item,
+                        modifier = Modifier.padding(horizontal = 20.dp),
+                        onClick = { onEvent(NotificationsEvent.NotificationClicked(item.id)) },
+                    )
                 }
             }
         }
     }
+}
+
+@Composable
+private fun GroupLabel(text: String) {
+    OrganicKicker(
+        text = text,
+        color = OrganicColors.neutral600,
+        modifier = Modifier.padding(horizontal = ORGANIC_GUTTER),
+    )
 }
 
 @Composable
@@ -111,108 +208,77 @@ private fun FilterChip(
     text: String,
     filter: NotificationFilter,
     selected: NotificationFilter,
-    onEvent: (NotificationsEvent) -> Unit,
-    colors: InkColors,
+    onClick: () -> Unit,
 ) {
-    Box(modifier = Modifier.clickable { onEvent(NotificationsEvent.FilterSelected(filter)) }) {
-        InkChip(text = text, solid = filter == selected, colors = colors)
-    }
+    val isSelected = filter == selected
+    Text(
+        text = text,
+        modifier = Modifier
+            .clip(RoundedCornerShape(OrganicShape.pill))
+            .background(if (isSelected) OrganicColors.accent else OrganicColors.neutral200)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 9.dp),
+        fontFamily = organicBodyFontFamily(),
+        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+        fontSize = 13.sp,
+        color = if (isSelected) Color.White else OrganicColors.text
+    )
 }
 
+/** Unread rows sit on a filled card; read ones fade to bare rows — the design's own distinction. */
 @Composable
 private fun NotificationRow(
     item: NotificationUi,
+    modifier: Modifier = Modifier,
     onClick: () -> Unit,
-    colors: InkColors,
 ) {
-    val bodyFont = inkBodyFontFamily()
-
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(13.dp)
+            .clip(RoundedCornerShape(OrganicShape.radiusLg))
+            .background(if (item.unread) OrganicColors.neutral100 else Color.Transparent)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(14.dp),
+        horizontalArrangement = Arrangement.spacedBy(13.dp),
+        verticalAlignment = Alignment.Top
     ) {
-        if (item.avatarRes != null) {
-            Image(
-                painter = painterResource(item.avatarRes),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .size(42.dp)
-                    .clip(RoundedCornerShape(InkShape.radiusSm))
-            )
-        } else if (item.icon != null) {
-            Box(
-                modifier = Modifier
-                    .size(42.dp)
-                    .clip(RoundedCornerShape(InkShape.radiusSm))
-                    .background(colors.alt),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = item.icon,
-                    contentDescription = null,
-                    tint = colors.accent,
-                    modifier = Modifier.size(17.dp)
-                )
-            }
-        }
-        Column(modifier = Modifier.weight(1f)) {
+        OrganicAvatar(name = item.title, size = 40.dp, fontSize = 15.sp)
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Text(
-                text = richText(colors, item.textParts),
-                fontFamily = bodyFont,
+                text = item.title,
+                fontFamily = organicBodyFontFamily(),
+                fontWeight = FontWeight.Bold,
+                fontSize = 14.sp,
+                lineHeight = 18.sp,
+                color = OrganicColors.text,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = item.message,
+                fontFamily = organicBodyFontFamily(),
                 fontSize = 13.sp,
-                lineHeight = 19.sp,
-                color = colors.inkSoft
+                lineHeight = 18.85.sp,
+                color = OrganicColors.neutral700,
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis
             )
+        }
+        Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(
-                text = "${item.time} ago",
-                modifier = Modifier.padding(top = 5.dp),
-                fontFamily = bodyFont,
-                fontSize = 10.5.sp,
-                color = colors.muted
+                text = stringResource(Res.string.notif_time_ago, item.time),
+                fontFamily = organicBodyFontFamily(),
+                fontSize = 11.sp,
+                color = OrganicColors.neutral600
             )
-        }
-        if (item.coverRes != null) {
-            Image(
-                painter = painterResource(item.coverRes),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .size(width = 30.dp, height = 44.dp)
-                    .clip(RoundedCornerShape(InkShape.cover - 2.dp))
-            )
-        }
-        if (item.unread) {
-            Box(
-                modifier = Modifier
-                    .padding(start = 4.dp)
-                    .size(7.dp)
-                    .clip(androidx.compose.foundation.shape.CircleShape)
-                    .background(colors.accent)
-            )
+            if (item.unread) {
+                Box(modifier = Modifier.size(9.dp).clip(CircleShape).background(OrganicColors.accent))
+            }
         }
     }
 }
 
-@Composable
-private fun richText(colors: InkColors, parts: List<String>): AnnotatedString =
-    buildAnnotatedString {
-        parts.forEachIndexed { i, part ->
-            if (i % 2 == 0) {
-                withStyle(SpanStyle(color = colors.ink, fontWeight = FontWeight.SemiBold)) {
-                    append(part)
-                }
-            } else {
-                append(part)
-            }
-        }
-    }
-
-@Preview(showBackground = true, widthDp = 375, heightDp = 820)
+@Preview
 @Composable
 private fun NotificationsScreenPreview() {
     NotificationsScreen()

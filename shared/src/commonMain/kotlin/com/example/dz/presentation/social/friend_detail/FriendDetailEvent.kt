@@ -4,5 +4,6 @@ sealed interface FriendDetailEvent {
     data object BackClicked : FriendDetailEvent
     data object OptionsClicked : FriendDetailEvent
     data object MessageClicked : FriendDetailEvent
-    data object SeeAllClicked : FriendDetailEvent
+    data object ShareClicked : FriendDetailEvent
+    data object SharedShelfClicked : FriendDetailEvent
 }

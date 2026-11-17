@@ -5,7 +5,10 @@ import androidx.lifecycle.viewModelScope
 import com.example.dz.core.result.AppResult
 import com.example.dz.domain.usecase.chat.GetMessagesUseCase
 import com.example.dz.domain.usecase.chat.SendMessageUseCase
+import com.example.dz.domain.usecase.social.GetFriendDetailsUseCase
 import com.example.dz.presentation.mvi.toPresentationMessage
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -16,10 +19,11 @@ import kotlinx.coroutines.launch
 class ChatViewModel(
     private val friendId: String,
     private val getMessages: GetMessagesUseCase,
-    private val sendMessage: SendMessageUseCase
+    private val sendMessage: SendMessageUseCase,
+    private val getFriendDetails: GetFriendDetailsUseCase,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(
-        ChatUiState(friendId = friendId, friendName = friendId, isLoading = true)
+        ChatUiState(friendId = friendId, isLoading = true)
     )
     val uiState = _uiState.asStateFlow()
 
@@ -42,13 +46,30 @@ class ChatViewModel(
     private fun load() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
-            when (val result = getMessages(friendId)) {
-                is AppResult.Success -> _uiState.update { state ->
-                    val messages = result.data.map { it.toChatMessageUi() }
-                    state.copy(messages = messages, isLoading = false, errorMessage = null)
-                }
-                is AppResult.Error -> _uiState.update {
-                    it.copy(isLoading = false, errorMessage = result.error.toPresentationMessage())
+            coroutineScope {
+                val messagesAsync = async { getMessages(friendId) }
+                val friendAsync = async { getFriendDetails(friendId) }
+
+                val messagesResult = messagesAsync.await()
+                val friend = (friendAsync.await() as? AppResult.Success)?.data
+
+                when (messagesResult) {
+                    is AppResult.Success -> _uiState.update {
+                        it.copy(
+                            friendName = friend?.name ?: it.friendName,
+                            friendCurrentBookTitle = friend?.currentBook?.title,
+                            messages = messagesResult.data.map { message -> message.toChatMessageUi() },
+                            isLoading = false,
+                            errorMessage = null
+                        )
+                    }
+                    is AppResult.Error -> _uiState.update {
+                        it.copy(
+                            friendName = friend?.name ?: it.friendName,
+                            isLoading = false,
+                            errorMessage = messagesResult.error.toPresentationMessage()
+                        )
+                    }
                 }
             }
         }
@@ -62,7 +83,6 @@ class ChatViewModel(
                 messages = it.messages + ChatMessageUi(
                     id = "local-${it.messages.size}",
                     text = text,
-                    time = "now",
                     fromMe = true
                 ),
                 composerText = ""

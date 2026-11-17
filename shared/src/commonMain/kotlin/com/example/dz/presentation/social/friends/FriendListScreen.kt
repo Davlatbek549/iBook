@@ -1,119 +1,148 @@
 package com.example.dz.presentation.social.friends
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.dz.designsystem.components.icons.InkIcons
-import com.example.dz.designsystem.components.ink.InkField
-import com.example.dz.designsystem.components.ink.InkIconButton
-import com.example.dz.designsystem.components.ink.InkLabel
-import com.example.dz.designsystem.components.ink.InkTopBar
-import com.example.dz.designsystem.theme.InkColors
-import com.example.dz.designsystem.theme.InkShape
-import com.example.dz.designsystem.theme.inkBodyFontFamily
-import com.example.dz.designsystem.theme.inkColors
+import com.example.dz.designsystem.components.icons.OrganicIcons
+import com.example.dz.designsystem.components.organic.ORGANIC_GUTTER
+import com.example.dz.designsystem.components.organic.ORGANIC_TAB_BAR_CLEARANCE
+import com.example.dz.designsystem.components.organic.OrganicAvatar
+import com.example.dz.designsystem.components.organic.OrganicCircleIconButton
+import com.example.dz.designsystem.components.organic.OrganicKicker
+import com.example.dz.designsystem.components.organic.OrganicScreen
+import com.example.dz.designsystem.components.organic.OrganicScreenHeader
+import com.example.dz.designsystem.components.organic.organicIdentityTint
+import com.example.dz.designsystem.theme.OrganicColors
+import com.example.dz.designsystem.theme.OrganicShape
+import com.example.dz.designsystem.theme.organicBodyFontFamily
 import dz.shared.generated.resources.Res
-import dz.shared.generated.resources.friends_everyone
-import dz.shared.generated.resources.friends_online_now
+import dz.shared.generated.resources.friends_no_book_open
+import dz.shared.generated.resources.friends_quiet_lately
+import dz.shared.generated.resources.friends_reading_book
 import dz.shared.generated.resources.friends_search
 import dz.shared.generated.resources.friends_title
-import org.jetbrains.compose.resources.painterResource
+import dz.shared.generated.resources.friend_reading_now
+import dz.shared.generated.resources.nav_back
 import org.jetbrains.compose.resources.stringResource
 
+/**
+ * Friends — search, then who is reading right now against who has gone quiet. An empty roster
+ * never renders here at all: [FriendListViewModel] hands off to the dedicated empty screen instead.
+ *
+ * The handoff's "2 friend requests" banner and per-row "2h ago" timestamps have no source — there
+ * is no pending-request concept in the domain and no last-active timestamp on a friend — so both
+ * are left out rather than shown as numbers that can never change or a request nothing can act on.
+ *
+ * Geometry from `dz-all-screens.html`.
+ */
 @Composable
 fun FriendListScreen(
     uiState: FriendListUiState = FriendListUiState(),
     onEvent: (FriendListEvent) -> Unit = {},
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
-    val colors = inkColors()
-
-    val online = uiState.onlineFriends
-    val everyone = uiState.everyoneFriends
-
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(colors.paper)
-            .statusBarsPadding()
-            .verticalScroll(rememberScrollState())
-            .padding(bottom = 30.dp)
-    ) {
-        InkTopBar(
-            title = stringResource(Res.string.friends_title),
-            subtitle = "12 friends · 3 online",
-            onBackClick = { onEvent(FriendListEvent.BackClicked) },
-            right = { InkIconButton(icon = InkIcons.Plus, onClick = { onEvent(FriendListEvent.AddFriendClicked) }, colors = colors) },
-            colors = colors
-        )
-
-        Box(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 4.dp)) {
-            InkField(
-                value = uiState.query,
-                onValueChange = { onEvent(FriendListEvent.QueryChanged(it)) },
-                placeholder = stringResource(Res.string.friends_search),
-                leadingIcon = InkIcons.Search,
-                colors = colors
-            )
-        }
-
-        if (online.isNotEmpty()) {
-            Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 20.dp)) {
-                InkLabel(text = stringResource(Res.string.friends_online_now), colors = colors)
-                Column(modifier = Modifier.padding(top = 4.dp)) {
-                    online.forEach { friend ->
-                        FriendRow(
-                            friend = friend,
-                            onClick = { onEvent(FriendListEvent.FriendClicked(friend.id)) },
-                            colors = colors
+    OrganicScreen(modifier = modifier) {
+        LazyColumn(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(top = 16.dp, bottom = ORGANIC_TAB_BAR_CLEARANCE),
+            verticalArrangement = Arrangement.spacedBy(18.dp)
+        ) {
+            item(key = "header") {
+                OrganicScreenHeader(
+                    title = stringResource(Res.string.friends_title),
+                    modifier = Modifier.padding(horizontal = ORGANIC_GUTTER),
+                    leading = {
+                        OrganicCircleIconButton(
+                            icon = OrganicIcons.ChevronLeft,
+                            onClick = { onEvent(FriendListEvent.BackClicked) },
+                            contentDescription = stringResource(Res.string.nav_back),
+                            size = 38.dp,
+                            iconSize = 18.dp,
                         )
-                        HorizontalDivider(thickness = 1.dp, color = colors.line)
-                    }
+                    },
+                    trailing = {
+                        OrganicCircleIconButton(
+                            icon = OrganicIcons.Friends,
+                            onClick = { onEvent(FriendListEvent.AddFriendClicked) },
+                            contentDescription = stringResource(Res.string.friends_title),
+                            size = 38.dp,
+                            iconSize = 17.dp,
+                            background = OrganicColors.accent,
+                            tint = Color.White,
+                        )
+                    },
+                )
+            }
+
+            item(key = "search") {
+                FriendSearchField(
+                    value = uiState.query,
+                    onValueChange = { onEvent(FriendListEvent.QueryChanged(it)) },
+                    modifier = Modifier.padding(horizontal = ORGANIC_GUTTER),
+                )
+            }
+
+            if (uiState.readingNow.isNotEmpty()) {
+                item(key = "reading-now-label") {
+                    OrganicKicker(
+                        text = stringResource(Res.string.friend_reading_now),
+                        color = OrganicColors.neutral600,
+                        modifier = Modifier.padding(horizontal = ORGANIC_GUTTER),
+                    )
+                }
+                items(uiState.readingNow.size, key = { "reading-${uiState.readingNow[it].id}" }) { index ->
+                    val friend = uiState.readingNow[index]
+                    FriendRow(
+                        friend = friend,
+                        subtitle = stringResource(Res.string.friends_reading_book, friend.currentBookTitle.orEmpty()),
+                        modifier = Modifier.padding(horizontal = ORGANIC_GUTTER),
+                        onClick = { onEvent(FriendListEvent.FriendClicked(friend.id)) },
+                    )
                 }
             }
-        }
 
-        if (everyone.isNotEmpty()) {
-            Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 18.dp)) {
-                InkLabel(text = stringResource(Res.string.friends_everyone), colors = colors)
-                Column(modifier = Modifier.padding(top = 4.dp)) {
-                    everyone.forEachIndexed { i, friend ->
-                        FriendRow(
-                            friend = friend,
-                            onClick = { onEvent(FriendListEvent.FriendClicked(friend.id)) },
-                            colors = colors
-                        )
-                        if (i < everyone.size - 1) {
-                            HorizontalDivider(thickness = 1.dp, color = colors.line)
-                        }
-                    }
+            if (uiState.quietLately.isNotEmpty()) {
+                item(key = "quiet-label") {
+                    OrganicKicker(
+                        text = stringResource(Res.string.friends_quiet_lately),
+                        color = OrganicColors.neutral600,
+                        modifier = Modifier.padding(horizontal = ORGANIC_GUTTER),
+                    )
+                }
+                items(uiState.quietLately.size, key = { "quiet-${uiState.quietLately[it].id}" }) { index ->
+                    val friend = uiState.quietLately[index]
+                    FriendRow(
+                        friend = friend,
+                        subtitle = stringResource(Res.string.friends_no_book_open),
+                        modifier = Modifier.padding(horizontal = ORGANIC_GUTTER),
+                        onClick = { onEvent(FriendListEvent.FriendClicked(friend.id)) },
+                    )
                 }
             }
         }
@@ -121,81 +150,92 @@ fun FriendListScreen(
 }
 
 @Composable
-private fun FriendRow(
-    friend: FriendUi,
-    onClick: () -> Unit,
-    colors: InkColors,
-) {
-    val bodyFont = inkBodyFontFamily()
-
-    Row(
-        modifier = Modifier
+private fun FriendSearchField(value: String, onValueChange: (String) -> Unit, modifier: Modifier = Modifier) {
+    BasicTextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(13.dp)
-    ) {
-        Box {
-            Image(
-                painter = painterResource(friend.avatarRes),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(RoundedCornerShape(InkShape.radiusSm))
-            )
-            if (friend.online) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .offset(x = 2.dp, y = 2.dp)
-                        .size(11.dp)
-                        .clip(CircleShape)
-                        .background(colors.paper)
-                        .padding(2.dp)
-                        .clip(CircleShape)
-                        .background(colors.accent)
+            .height(48.dp)
+            .clip(RoundedCornerShape(OrganicShape.pill))
+            .background(OrganicColors.neutral200),
+        textStyle = TextStyle(
+            fontFamily = organicBodyFontFamily(),
+            fontSize = 14.sp,
+            color = OrganicColors.text
+        ),
+        singleLine = true,
+        cursorBrush = SolidColor(OrganicColors.accent),
+        decorationBox = { innerTextField ->
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = OrganicIcons.Search,
+                    contentDescription = null,
+                    tint = OrganicColors.neutral600,
+                    modifier = Modifier.size(16.dp)
                 )
+                Box {
+                    if (value.isEmpty()) {
+                        Text(
+                            text = stringResource(Res.string.friends_search),
+                            fontFamily = organicBodyFontFamily(),
+                            fontSize = 14.sp,
+                            color = OrganicColors.neutral600
+                        )
+                    }
+                    innerTextField()
+                }
             }
         }
-        Column(modifier = Modifier.weight(1f)) {
+    )
+}
+
+@Composable
+private fun FriendRow(
+    friend: FriendRowUi,
+    subtitle: String,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(vertical = 11.dp),
+        horizontalArrangement = Arrangement.spacedBy(13.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        OrganicAvatar(
+            name = friend.name,
+            size = 46.dp,
+            background = organicIdentityTint(friend.id),
+            textColor = Color.White,
+            fontSize = 18.sp,
+        )
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Text(
                 text = friend.name,
-                fontFamily = bodyFont,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 13.5.sp,
-                color = colors.ink
+                fontFamily = organicBodyFontFamily(),
+                fontWeight = FontWeight.Bold,
+                fontSize = 15.sp,
+                color = OrganicColors.text
             )
             Text(
-                text = friend.handle,
-                modifier = Modifier.padding(top = 5.dp),
-                fontFamily = bodyFont,
-                fontSize = 11.5.sp,
-                color = colors.muted
-            )
-        }
-        Box(
-            modifier = Modifier
-                .size(38.dp)
-                .clip(RoundedCornerShape(InkShape.radiusSm))
-                .let {
-                    if (friend.online) it.background(colors.accentSoft)
-                    else it.border(1.dp, colors.line, RoundedCornerShape(InkShape.radiusSm))
-                },
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = InkIcons.Chat,
-                contentDescription = null,
-                tint = if (friend.online) colors.accent else colors.muted,
-                modifier = Modifier.size(16.dp)
+                text = subtitle,
+                fontFamily = organicBodyFontFamily(),
+                fontSize = 12.sp,
+                lineHeight = 16.8.sp,
+                color = OrganicColors.neutral700
             )
         }
     }
 }
 
-@Preview(showBackground = true, widthDp = 375, heightDp = 820)
+@Preview
 @Composable
 private fun FriendListScreenPreview() {
     FriendListScreen()
