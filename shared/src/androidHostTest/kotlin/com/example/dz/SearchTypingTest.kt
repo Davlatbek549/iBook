@@ -5,9 +5,15 @@ import com.example.dz.core.result.AppResult
 import com.example.dz.domain.model.Book
 import com.example.dz.domain.model.BookRatings
 import com.example.dz.domain.model.Category
+import com.example.dz.domain.model.LibraryBook
+import com.example.dz.domain.model.ReadingProgress
 import com.example.dz.domain.repository.BookRepository
-import com.example.dz.domain.usecase.book.GetCategoriesUseCase
+import com.example.dz.domain.repository.LibraryRepository
+import com.example.dz.domain.repository.SearchHistoryRepository
+import com.example.dz.domain.usecase.library.GetLibraryBooksUseCase
 import com.example.dz.domain.usecase.book.SearchBooksUseCase
+import com.example.dz.domain.usecase.search.GetRecentSearchesUseCase
+import com.example.dz.domain.usecase.search.SaveRecentSearchUseCase
 import com.example.dz.presentation.search.SearchEvent
 import com.example.dz.presentation.search.SearchViewModel
 import kotlinx.coroutines.Dispatchers
@@ -60,13 +66,30 @@ class SearchTypingTest {
         override suspend fun getBookText(textUrl: String): AppResult<String> = unused()
     }
 
-    private fun viewModel(repository: SlowSearchRepository) =
-        SearchViewModel(GetCategoriesUseCase(repository), SearchBooksUseCase(repository))
+    private object StubSearchHistoryRepository : SearchHistoryRepository {
+        override suspend fun getRecentSearches(): AppResult<List<String>> = AppResult.Success(emptyList())
+        override suspend fun saveRecentSearch(query: String): AppResult<Unit> = AppResult.Success(Unit)
+    }
 
-    /** What the screen sends on every keystroke. */
+    private object StubLibraryRepository : LibraryRepository {
+        override suspend fun add(book: Book): AppResult<Unit> = AppResult.Success(Unit)
+        override suspend fun getLibraryBooks(): AppResult<List<LibraryBook>> = AppResult.Success(emptyList())
+        override suspend fun getContinueReading(): AppResult<LibraryBook?> = AppResult.Success(null)
+        override suspend fun updateReadingProgress(bookId: String, progressPercent: Int): AppResult<ReadingProgress> =
+            AppResult.Error(AppError.NotFound)
+    }
+
+    private fun viewModel(repository: SlowSearchRepository) =
+        SearchViewModel(
+            SearchBooksUseCase(repository),
+            GetRecentSearchesUseCase(StubSearchHistoryRepository),
+            SaveRecentSearchUseCase(StubSearchHistoryRepository),
+            GetLibraryBooksUseCase(StubLibraryRepository),
+        )
+
+    /** What the field sends on every keystroke — a submit is a separate, explicit event. */
     private fun SearchViewModel.type(text: String) {
         onEvent(SearchEvent.QueryChanged(text))
-        onEvent(SearchEvent.SearchClicked)
     }
 
     @Test
@@ -81,7 +104,7 @@ class SearchTypingTest {
         testScheduler.advanceUntilIdle()
 
         assertEquals(listOf("dickens"), repository.searched, "one request per letter is waste")
-        assertEquals(listOf("result-for-dickens"), viewModel.uiState.value.books.map { it.id })
+        assertEquals(listOf("result-for-dickens"), viewModel.uiState.value.results.map { it.id })
     }
 
     @Test
@@ -95,7 +118,7 @@ class SearchTypingTest {
         viewModel.type("dickens")
         testScheduler.advanceUntilIdle()   // long enough for both to have answered
 
-        assertEquals(listOf("result-for-dickens"), viewModel.uiState.value.books.map { it.id })
+        assertEquals(listOf("result-for-dickens"), viewModel.uiState.value.results.map { it.id })
         assertNull(viewModel.uiState.value.errorMessage, "a cancelled search is not a failed one")
     }
 }

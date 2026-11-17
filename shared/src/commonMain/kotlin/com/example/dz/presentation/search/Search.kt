@@ -3,231 +3,148 @@ package com.example.dz.presentation.search
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
-import com.example.dz.presentation.common.uniqueLazyKeys
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.Box
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.dz.designsystem.components.icons.InkIcons
-import com.example.dz.designsystem.components.ink.InkField
-import com.example.dz.designsystem.components.ink.InkBookRow
-import com.example.dz.designsystem.components.ink.InkLabel
-import com.example.dz.designsystem.components.ink.InkSectionTitle
-import com.example.dz.designsystem.components.ink.InkTopBar
-import com.example.dz.designsystem.components.ink.inkCard
-import com.example.dz.designsystem.theme.InkColors
-import com.example.dz.designsystem.theme.inkBodyFontFamily
-import com.example.dz.designsystem.theme.inkColors
-import com.example.dz.designsystem.theme.inkDisplayFontFamily
-import com.example.dz.domain.model.Book
-import com.example.dz.domain.model.Category
+import com.example.dz.designsystem.components.icons.OrganicIcons
+import com.example.dz.designsystem.components.organic.ORGANIC_GUTTER
+import com.example.dz.designsystem.components.organic.ORGANIC_TAB_BAR_CLEARANCE
+import com.example.dz.designsystem.components.organic.OrganicBookCover
+import com.example.dz.designsystem.components.organic.OrganicCircleIconButton
+import com.example.dz.designsystem.components.organic.OrganicKicker
+import com.example.dz.designsystem.components.organic.OrganicScreen
+import com.example.dz.designsystem.theme.OrganicColors
+import com.example.dz.designsystem.theme.OrganicShape
+import com.example.dz.designsystem.theme.organicBodyFontFamily
+import com.example.dz.designsystem.theme.organicHeadingFontFamily
 import dz.shared.generated.resources.Res
-import dz.shared.generated.resources.book_cover
-import dz.shared.generated.resources.book_cover_2
-import dz.shared.generated.resources.book_cover_3
-import dz.shared.generated.resources.book_cover_4
-import dz.shared.generated.resources.olive_again_book
-import dz.shared.generated.resources.search_browse_by_mood
+import dz.shared.generated.resources.search_free
+import dz.shared.generated.resources.search_in_library
 import dz.shared.generated.resources.search_placeholder
 import dz.shared.generated.resources.search_recent
+import dz.shared.generated.resources.search_results_count
 import dz.shared.generated.resources.search_title
-import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.stringResource
 
-private val moodCategories = listOf(
-    "Literary fiction", "History", "Romance", "Essays",
-    "Poetry", "Biography", "Fantasy", "Health"
-)
-
-private val searchCoverFallbacks = listOf(
-    Res.drawable.book_cover,
-    Res.drawable.book_cover_2,
-    Res.drawable.book_cover_3,
-    Res.drawable.book_cover_4,
-    Res.drawable.olive_again_book
-)
-
+/**
+ * Search — query and results, in the Organic design system. Geometry from `#scr-search`.
+ *
+ * The old Ink screen mixed a category/mood grid into this same list; that grid is now Browse's
+ * (reached one step earlier, from Home/Library's search circle), so this screen is just the field,
+ * real recent-search chips, and results showing "In your library" or a price.
+ */
 @Composable
 fun SearchScreen(
     uiState: SearchUiState = SearchUiState(),
     onEvent: (SearchEvent) -> Unit = {},
-    onCategoryClick: (String) -> Unit = {},
-    onBookClick: (bookId: String) -> Unit = {},
-    onAuthorClick: (authorId: String) -> Unit = {}
+    modifier: Modifier = Modifier
 ) {
-    val colors = inkColors()
-    val bodyFont = inkBodyFontFamily()
-
-    val recentSearches = remember {
-        listOf("olive again", "paulo coelho", "gothic novels").toMutableStateList()
-    }
-    val displayCategories = uiState.categories.ifEmpty {
-        moodCategories.map { Category(id = it.toCategoryId(), name = it) }
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(colors.paper)
-            .statusBarsPadding()
-    ) {
-        // Search is a pushed screen with no tab of its own, so it carries its own way back rather
-        // than relying on the system gesture alone.
-        InkTopBar(
-            title = stringResource(Res.string.search_title),
-            onBackClick = { onEvent(SearchEvent.BackClicked) },
-            colors = colors
-        )
-
-        // Pinned above the list rather than scrolling with it: a lazy list disposes what scrolls
-        // out of view, and a focused field disposed that way loses focus without reliably saying so.
-        Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp)) {
-            InkField(
-                value = uiState.query,
-                onValueChange = {
-                    onEvent(SearchEvent.QueryChanged(it))
-                    onEvent(SearchEvent.SearchClicked)
-                },
-                placeholder = stringResource(Res.string.search_placeholder),
-                modifier = Modifier.padding(top = 16.dp),
-                leadingIcon = InkIcons.Search,
-                colors = colors
-            )
-        }
-
-        // Lazy, so a long page of results composes only the rows on screen — and only those rows
-        // start loading their covers, instead of every result's cover being fetched at once.
+    OrganicScreen(modifier = modifier) {
         LazyColumn(
-            modifier = Modifier.weight(1f).fillMaxWidth(),
-            contentPadding = PaddingValues(bottom = 96.dp)
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(top = 16.dp, bottom = ORGANIC_TAB_BAR_CLEARANCE),
+            verticalArrangement = Arrangement.spacedBy(22.dp)
         ) {
-            if (recentSearches.isNotEmpty()) {
-                item(key = "recent", contentType = "recent") {
-                    Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 24.dp)) {
-                        InkLabel(text = stringResource(Res.string.search_recent), colors = colors)
-                        Column(modifier = Modifier.padding(top = 6.dp)) {
-                            recentSearches.forEachIndexed { i, recent ->
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable {
-                                            onEvent(SearchEvent.QueryChanged(recent))
-                                            onEvent(SearchEvent.SearchClicked)
-                                        }
-                                        .padding(vertical = 11.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = InkIcons.Search,
-                                        contentDescription = null,
-                                        tint = colors.muted,
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                    Text(
-                                        text = recent,
-                                        modifier = Modifier.weight(1f),
-                                        fontFamily = bodyFont,
-                                        fontSize = 13.5.sp,
-                                        color = colors.inkSoft
-                                    )
-                                    Icon(
-                                        imageVector = InkIcons.Close,
-                                        contentDescription = null,
-                                        tint = colors.muted,
-                                        modifier = Modifier
-                                            .size(11.dp)
-                                            .clickable { recentSearches.remove(recent) }
-                                    )
-                                }
-                                if (i < recentSearches.size - 1) {
-                                    HorizontalDivider(thickness = 1.dp, color = colors.line)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (uiState.books.isNotEmpty()) {
-                val bookKeys = uiState.books.uniqueLazyKeys { it.id }
-                item(key = "results-title", contentType = "section-title") {
-                    Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 22.dp)) {
-                        InkSectionTitle(text = "Results", colors = colors)
-                        Spacer(modifier = Modifier.height(4.dp))
-                    }
-                }
-                itemsIndexed(
-                    items = uiState.books,
-                    key = { index, _ -> "book:" + bookKeys[index] },
-                    contentType = { _, _ -> "book" }
-                ) { index, book ->
-                    Box(modifier = Modifier.padding(horizontal = 22.dp)) {
-                        SearchBookRow(
-                            book = book,
-                            cover = searchCoverFallbacks[index % searchCoverFallbacks.size],
-                            showDivider = index > 0,
-                            onClick = {
-                                onEvent(SearchEvent.BookClicked(book.id))
-                                onBookClick(book.id)
-                            },
-                            colors = colors
-                        )
-                    }
-                }
-            }
-
-            item(key = "moods", contentType = "moods") {
-                Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 22.dp)) {
-                    InkSectionTitle(
-                        text = stringResource(Res.string.search_browse_by_mood),
-                        colors = colors
+            item(key = "header") {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = ORGANIC_GUTTER),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    OrganicCircleIconButton(
+                        icon = OrganicIcons.ChevronLeft,
+                        onClick = { onEvent(SearchEvent.BackClicked) },
+                        contentDescription = "Back",
+                        size = 38.dp
                     )
+                    Text(
+                        text = stringResource(Res.string.search_title),
+                        fontFamily = organicHeadingFontFamily(),
+                        fontWeight = FontWeight.Normal,
+                        fontSize = 30.sp,
+                        color = OrganicColors.text
+                    )
+                }
+            }
+
+            item(key = "field") {
+                SearchField(
+                    value = uiState.query,
+                    onValueChange = { onEvent(SearchEvent.QueryChanged(it)) },
+                    onSubmit = { onEvent(SearchEvent.SearchClicked) },
+                    modifier = Modifier.padding(horizontal = ORGANIC_GUTTER)
+                )
+            }
+
+            if (uiState.recentSearches.isNotEmpty()) {
+                item(key = "recent") {
                     Column(
-                        modifier = Modifier.padding(top = 14.dp),
+                        modifier = Modifier.padding(horizontal = ORGANIC_GUTTER),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        displayCategories.chunked(2).forEachIndexed { rowIndex, rowCats ->
-                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                rowCats.forEachIndexed { colIndex, category ->
-                                    val index = rowIndex * 2 + colIndex
-                                    MoodCard(
-                                        number = index + 1,
-                                        name = category.name,
-                                        highlighted = index % 3 == 0,
-                                        onClick = {
-                                            onEvent(SearchEvent.CategoryClicked(category.id))
-                                            onCategoryClick(category.id)
-                                        },
-                                        modifier = Modifier.weight(1f),
-                                        colors = colors
-                                    )
-                                }
+                        OrganicKicker(text = stringResource(Res.string.search_recent), color = OrganicColors.neutral700)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            uiState.recentSearches.forEach { recent ->
+                                Text(
+                                    text = recent,
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(OrganicShape.pill))
+                                        .background(OrganicColors.neutral200)
+                                        .clickable(role = Role.Button) {
+                                            onEvent(SearchEvent.RecentSearchClicked(recent))
+                                        }
+                                        .padding(horizontal = 16.dp, vertical = 9.dp),
+                                    fontFamily = organicBodyFontFamily(),
+                                    fontSize = 13.sp,
+                                    color = OrganicColors.text
+                                )
                             }
                         }
                     }
+                }
+            }
+
+            if (uiState.results.isNotEmpty()) {
+                item(key = "results-count") {
+                    OrganicKicker(
+                        text = stringResource(Res.string.search_results_count, uiState.results.size),
+                        color = OrganicColors.neutral700,
+                        modifier = Modifier.padding(horizontal = ORGANIC_GUTTER)
+                    )
+                }
+                itemsIndexed(items = uiState.results, key = { _, result -> result.id }) { _, result ->
+                    SearchResultRow(
+                        result = result,
+                        onClick = { onEvent(SearchEvent.BookClicked(result.id)) },
+                        modifier = Modifier.padding(horizontal = ORGANIC_GUTTER)
+                    )
                 }
             }
         }
@@ -235,76 +152,120 @@ fun SearchScreen(
 }
 
 @Composable
-private fun SearchBookRow(
-    book: Book,
-    cover: DrawableResource,
-    showDivider: Boolean,
-    onClick: () -> Unit,
-    colors: InkColors,
+private fun SearchField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    onSubmit: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    InkBookRow(
-        cover = cover,
-        coverUrl = book.coverUrl,
-        title = book.title,
-        author = book.authors.firstOrNull()?.name.orEmpty().ifBlank { "Unknown author" },
-        modifier = Modifier.clickable(onClick = onClick),
-        showDivider = showDivider,
-        meta = {
-            Text(
-                text = book.categories.firstOrNull()?.name.orEmpty(),
-                fontFamily = inkBodyFontFamily(),
-                fontSize = 11.sp,
-                color = colors.muted
-            )
-        },
-        colors = colors
+    BasicTextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = modifier
+            .fillMaxWidth()
+            .height(56.dp)
+            .clip(RoundedCornerShape(OrganicShape.pill))
+            .background(OrganicColors.neutral100),
+        textStyle = TextStyle(
+            fontFamily = organicBodyFontFamily(),
+            fontSize = 15.sp,
+            color = OrganicColors.text
+        ),
+        singleLine = true,
+        cursorBrush = SolidColor(OrganicColors.accent),
+        keyboardActions = KeyboardActions(onSearch = { onSubmit() }),
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+        decorationBox = { innerTextField ->
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 22.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = OrganicIcons.Search,
+                    contentDescription = null,
+                    tint = OrganicColors.neutral700,
+                    modifier = Modifier.size(18.dp)
+                )
+                Box(modifier = Modifier.weight(1f)) {
+                    if (value.isEmpty()) {
+                        Text(
+                            text = stringResource(Res.string.search_placeholder),
+                            fontFamily = organicBodyFontFamily(),
+                            fontSize = 15.sp,
+                            color = OrganicColors.neutral600
+                        )
+                    }
+                    innerTextField()
+                }
+            }
+        }
     )
 }
 
-private fun String.toCategoryId(): String =
-    trim()
-        .lowercase()
-        .replace(Regex("[^a-z0-9]+"), "-")
-        .trim('-')
-        .ifBlank { "category" }
-
 @Composable
-private fun MoodCard(
-    number: Int,
-    name: String,
-    highlighted: Boolean,
+private fun SearchResultRow(
+    result: SearchResultUi,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    colors: InkColors,
 ) {
-    Column(
+    Row(
         modifier = modifier
-            .inkCard(colors)
-            .let { if (highlighted) it.background(colors.alt) else it }
-            .clickable(onClick = onClick)
-            .padding(horizontal = 15.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(22.dp)
+            .fillMaxWidth()
+            .clickable(role = Role.Button, onClick = onClick),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        Text(
-            text = number.toString().padStart(2, '0'),
-            fontFamily = inkDisplayFontFamily(),
-            fontStyle = FontStyle.Italic,
-            fontSize = 11.sp,
-            color = colors.muted
-        )
-        Text(
-            text = name,
-            fontFamily = inkDisplayFontFamily(),
-            fontWeight = FontWeight.Medium,
-            fontSize = 15.sp,
-            lineHeight = 18.sp,
-            color = colors.ink
+        OrganicBookCover(title = result.title, coverUrl = result.coverUrl, width = 52.dp, height = 76.dp, cornerRadius = 10.dp)
+
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text(
+                text = result.title,
+                fontFamily = organicHeadingFontFamily(),
+                fontWeight = FontWeight.Normal,
+                fontSize = 17.sp,
+                lineHeight = 19.sp,
+                color = OrganicColors.text
+            )
+            Text(
+                text = result.author,
+                fontFamily = organicBodyFontFamily(),
+                fontSize = 12.sp,
+                color = OrganicColors.neutral700
+            )
+            Text(
+                text = when {
+                    result.inLibrary -> stringResource(Res.string.search_in_library)
+                    result.price != null -> result.price
+                    result.isFree -> stringResource(Res.string.search_free)
+                    else -> ""
+                },
+                fontFamily = organicBodyFontFamily(),
+                fontSize = 12.sp,
+                color = OrganicColors.accent700
+            )
+        }
+
+        Icon(
+            imageVector = OrganicIcons.ChevronRight,
+            contentDescription = null,
+            tint = OrganicColors.neutral600,
+            modifier = Modifier.size(15.dp)
         )
     }
 }
 
 @Preview(showBackground = true, widthDp = 375, heightDp = 820)
 @Composable
-fun SearchScreenPreview() {
-    SearchScreen()
+private fun SearchScreenPreview() {
+    SearchScreen(
+        uiState = SearchUiState(
+            query = "gothic",
+            recentSearches = listOf("Strout", "short stories", "audio"),
+            results = listOf(
+                SearchResultUi("1", "Mexican Gothic", "Silvia Moreno-Garcia", null, inLibrary = true, isFree = false, price = null),
+                SearchResultUi("2", "The Hacienda", "Isabel Cañas", null, inLibrary = false, isFree = false, price = "$10.99"),
+            )
+        )
+    )
 }
