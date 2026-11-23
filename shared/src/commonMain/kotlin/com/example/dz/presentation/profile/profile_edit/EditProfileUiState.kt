@@ -1,5 +1,6 @@
 package com.example.dz.presentation.profile.profile_edit
 
+import com.example.dz.core.media.CropShape
 import com.example.dz.core.media.PickedImage
 import com.example.dz.domain.model.BirthDate
 import com.example.dz.domain.model.EditableProfile
@@ -24,6 +25,8 @@ data class EditProfileUiState(
      */
     val newPhoto: PickedImage? = null,
     val newBanner: PickedImage? = null,
+    /** A pick on its way to the crop screen, which covers the form until it is used or cancelled. */
+    val crop: PhotoCrop? = null,
     /** The last pick could not be read as a picture. Cleared by the next edit or sheet. */
     val photoUnreadable: Boolean = false,
     val isSaving: Boolean = false,
@@ -127,6 +130,18 @@ sealed interface EditProfileSheet {
 }
 
 enum class PhotoTarget { Banner, Profile }
+
+/**
+ * A picked picture being framed for [target]. [isCutting] while the cropped JPEG is being made,
+ * which takes a moment on a large photo; the crop screen holds still until it is done.
+ */
+data class PhotoCrop(val target: PhotoTarget, val image: PickedImage, val isCutting: Boolean = false) {
+    val shape: CropShape
+        get() = when (target) {
+            PhotoTarget.Banner -> CropShape.Banner
+            PhotoTarget.Profile -> CropShape.Circle
+        }
+}
 enum class CountryTarget { Phone, Address }
 
 sealed interface EditProfileDialog {

@@ -891,6 +891,10 @@ Try searching through your social networks</string>
     <string name="ep_choose_photo">Choose from library</string>
     <string name="ep_remove_photo">Remove photo</string>
     <string name="ep_photo_unreadable">That picture could not be opened. Try another one.</string>
+    <string name="ep_crop_title">Move and scale</string>
+    <string name="ep_crop_hint">Drag to move, pinch to zoom</string>
+    <string name="ep_crop_area_photo">Profile photo, framed in a circle. Drag to move, pinch to zoom.</string>
+    <string name="ep_crop_area_banner">Banner photo, framed three times as wide as tall. Drag to move, pinch to zoom.</string>
     <string name="ep_dob_sheet_body">Only you can see it. Friends never will.</string>
     <string name="ep_done">Done</string>
     <string name="ep_country_search">Search countries</string>

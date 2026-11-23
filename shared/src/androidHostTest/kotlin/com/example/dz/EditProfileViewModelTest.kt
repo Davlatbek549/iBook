@@ -1,6 +1,9 @@
 package com.example.dz
 
 import com.example.dz.core.error.AppError
+import com.example.dz.core.media.CropPosition
+import com.example.dz.core.media.CropRegion
+import com.example.dz.core.media.CropShape
 import com.example.dz.core.media.PickedImage
 import com.example.dz.core.result.AppResult
 import com.example.dz.domain.model.BirthDate
@@ -18,6 +21,7 @@ import com.example.dz.presentation.profile.profile_edit.EditProfileEffect
 import com.example.dz.presentation.profile.profile_edit.EditProfileEvent
 import com.example.dz.presentation.profile.profile_edit.EditProfileSheet
 import com.example.dz.presentation.profile.profile_edit.EditProfileViewModel
+import com.example.dz.presentation.profile.profile_edit.PhotoTarget
 import com.example.dz.presentation.profile.profile_edit.ProfileField
 import com.example.dz.presentation.profile.profile_edit.UsernameStatus
 import kotlinx.coroutines.Dispatchers
@@ -91,6 +95,7 @@ class EditProfileViewModelTest {
     private fun TestScope.viewModel(
         repository: FakeProfileRepository,
         region: String? = "PL",
+        cropper: FakeCropper = FakeCropper(),
     ): Pair<EditProfileViewModel, MutableList<EditProfileEffect>> {
         val vm = EditProfileViewModel(
             GetEditableProfileUseCase(repository),
@@ -98,6 +103,7 @@ class EditProfileViewModelTest {
             CheckUsernameUseCase(repository),
             today = { today },
             deviceRegion = { region },
+            cropImage = cropper::crop,
         )
         val effects = mutableListOf<EditProfileEffect>()
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.effects.collect { effects += it } }
@@ -322,24 +328,84 @@ class EditProfileViewModelTest {
         assertEquals("PL", withoutAddress.uiState.value.phoneCountry)
     }
 
-    private fun picture() = PickedImage(byteArrayOf(1, 2, 3), width = 1200, height = 800)
+    /** Stands in for the platform codec: records what it was asked to cut, answers at the shape's size. */
+    private class FakeCropper(var fails: Boolean = false) {
+        val asked = mutableListOf<Pair<CropRegion, CropShape>>()
+
+        suspend fun crop(image: PickedImage, region: CropRegion, shape: CropShape): PickedImage {
+            asked += region to shape
+            if (fails) error("Could not decode")
+            return PickedImage(byteArrayOf(7), shape.outputWidth, shape.outputHeight)
+        }
+    }
+
+    private fun picture() = PickedImage(byteArrayOf(1, 2, 3), width = 1200, height = 1600)
+
+    private fun EditProfileViewModel.pickAndCrop(target: PhotoTarget) {
+        onEvent(if (target == PhotoTarget.Banner) EditProfileEvent.BannerClicked else EditProfileEvent.PhotoClicked)
+        onEvent(EditProfileEvent.PhotoPicked(picture()))
+        onEvent(EditProfileEvent.CropConfirmed(CropPosition()))
+    }
 
     @Test
-    fun `a picked photo lands on the picture whose sheet is open, and counts as a change`() = runTest(dispatcher) {
-        val (vm, _) = viewModel(FakeProfileRepository(amelia.copy(avatarUrl = "https://cdn/amelia.jpg")))
+    fun `a pick goes to the crop screen for the picture whose sheet is open`() = runTest(dispatcher) {
+        val (vm, _) = viewModel(FakeProfileRepository(amelia))
         val photo = picture()
 
-        vm.onEvent(EditProfileEvent.PhotoClicked)
+        vm.onEvent(EditProfileEvent.BannerClicked)
         vm.onEvent(EditProfileEvent.PhotoPicked(photo))
 
         val state = vm.uiState.value
         assertNull(state.sheet)
-        assertEquals(photo, state.newPhoto)
+        assertEquals(PhotoTarget.Banner, state.crop?.target)
+        assertEquals(CropShape.Banner, state.crop?.shape)
+        assertEquals(photo, state.crop?.image)
+        // Nothing reaches the form until the crop is used.
         assertNull(state.newBanner)
-        // The pick is shown instead of the saved photo.
-        assertEquals(photo.bytes, state.photoModel)
+        assertFalse(state.hasChanges)
+    }
+
+    @Test
+    fun `using the crop puts the cut picture on the form`() = runTest(dispatcher) {
+        val cropper = FakeCropper()
+        val (vm, _) = viewModel(FakeProfileRepository(amelia.copy(avatarUrl = "https://cdn/amelia.jpg")), cropper = cropper)
+
+        vm.pickAndCrop(PhotoTarget.Profile)
+        advanceUntilIdle()
+
+        val state = vm.uiState.value
+        assertNull(state.crop)
+        // The middle square of the 1200x1600 portrait, cut for the circle.
+        assertEquals(listOf(CropRegion(0, 200, 1200, 1200) to CropShape.Circle), cropper.asked)
+        assertEquals(512, state.newPhoto?.width)
+        assertEquals(state.newPhoto?.bytes, state.photoModel)
         assertTrue(state.hasChanges)
         assertEquals(listOf(ProfileField.Photo), state.changedFields)
+    }
+
+    @Test
+    fun `cancelling the crop leaves the form as it was`() = runTest(dispatcher) {
+        val (vm, _) = viewModel(FakeProfileRepository(amelia))
+
+        vm.onEvent(EditProfileEvent.PhotoClicked)
+        vm.onEvent(EditProfileEvent.PhotoPicked(picture()))
+        vm.onEvent(EditProfileEvent.CropCancelled)
+
+        assertNull(vm.uiState.value.crop)
+        assertNull(vm.uiState.value.newPhoto)
+        assertFalse(vm.uiState.value.hasChanges)
+    }
+
+    @Test
+    fun `a crop that cannot be made says the picture could not be opened`() = runTest(dispatcher) {
+        val (vm, _) = viewModel(FakeProfileRepository(amelia), cropper = FakeCropper(fails = true))
+
+        vm.pickAndCrop(PhotoTarget.Banner)
+        advanceUntilIdle()
+
+        assertNull(vm.uiState.value.crop)
+        assertNull(vm.uiState.value.newBanner)
+        assertTrue(vm.uiState.value.photoUnreadable)
     }
 
     @Test
@@ -348,8 +414,7 @@ class EditProfileViewModelTest {
 
         vm.onEvent(EditProfileEvent.PhotoPicked(picture()))
 
-        assertNull(vm.uiState.value.newPhoto)
-        assertNull(vm.uiState.value.newBanner)
+        assertNull(vm.uiState.value.crop)
         assertFalse(vm.uiState.value.hasChanges)
     }
 
@@ -357,8 +422,8 @@ class EditProfileViewModelTest {
     fun `removing a banner removes a new pick as well as the saved one`() = runTest(dispatcher) {
         val (vm, _) = viewModel(FakeProfileRepository(amelia.copy(bannerUrl = "https://cdn/banner.jpg")))
 
-        vm.onEvent(EditProfileEvent.BannerClicked)
-        vm.onEvent(EditProfileEvent.PhotoPicked(picture()))
+        vm.pickAndCrop(PhotoTarget.Banner)
+        advanceUntilIdle()
         vm.onEvent(EditProfileEvent.BannerClicked)
         vm.onEvent(EditProfileEvent.RemovePhotoClicked)
 
@@ -369,11 +434,11 @@ class EditProfileViewModelTest {
     }
 
     @Test
-    fun `cancel asks before throwing away a picked photo`() = runTest(dispatcher) {
+    fun `cancel asks before throwing away a cropped photo`() = runTest(dispatcher) {
         val (vm, effects) = viewModel(FakeProfileRepository(amelia))
 
-        vm.onEvent(EditProfileEvent.PhotoClicked)
-        vm.onEvent(EditProfileEvent.PhotoPicked(picture()))
+        vm.pickAndCrop(PhotoTarget.Profile)
+        advanceUntilIdle()
         vm.onEvent(EditProfileEvent.CancelClicked)
         advanceUntilIdle()
 

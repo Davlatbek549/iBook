@@ -3,6 +3,12 @@ package com.example.dz.presentation.profile.profile_edit
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.dz.core.error.AppError
+import com.example.dz.core.media.CropGeometry
+import com.example.dz.core.media.CropPosition
+import com.example.dz.core.media.CropRegion
+import com.example.dz.core.media.CropShape
+import com.example.dz.core.media.PickedImage
+import com.example.dz.core.media.cropToJpeg
 import com.example.dz.core.platform.deviceRegionCode
 import com.example.dz.core.result.AppResult
 import com.example.dz.core.time.currentEpochMillis
@@ -15,6 +21,7 @@ import com.example.dz.domain.usecase.user.CheckUsernameUseCase
 import com.example.dz.domain.usecase.user.GetEditableProfileUseCase
 import com.example.dz.domain.usecase.user.SaveEditableProfileUseCase
 import com.example.dz.presentation.mvi.toPresentationMessage
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -34,6 +41,8 @@ class EditProfileViewModel(
         BirthDate.fromEpochMillis(now, localUtcOffsetMillis(now))
     },
     deviceRegion: () -> String? = ::deviceRegionCode,
+    /** Injected so tests need no image codec. */
+    private val cropImage: suspend (PickedImage, CropRegion, CropShape) -> PickedImage = ::cropToJpeg,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(
@@ -84,6 +93,8 @@ class EditProfileViewModel(
             EditProfileEvent.RemovePhotoClicked -> removePhoto()
             is EditProfileEvent.PhotoPicked -> usePickedPhoto(event)
             EditProfileEvent.PhotoUnreadable -> _uiState.update { it.copy(sheet = null, photoUnreadable = true) }
+            is EditProfileEvent.CropConfirmed -> useCrop(event.position)
+            EditProfileEvent.CropCancelled -> _uiState.update { if (it.crop?.isCutting == true) it else it.copy(crop = null) }
             EditProfileEvent.DateOfBirthClicked ->
                 if (!_uiState.value.dateOfBirthLocked) openSheet(EditProfileSheet.DateOfBirth)
             is EditProfileEvent.DateOfBirthPicked -> {
@@ -200,15 +211,35 @@ class EditProfileViewModel(
 
     /**
      * The sheet stays open while the camera or library is up, so it still says which picture the
-     * pick is for when the answer comes back.
+     * pick is for when the answer comes back. The pick goes to the crop screen, not the form.
      */
     private fun usePickedPhoto(event: EditProfileEvent.PhotoPicked) {
         val target = (_uiState.value.sheet as? EditProfileSheet.Photo)?.target ?: return
         _uiState.update {
-            when (target) {
-                PhotoTarget.Banner -> it.copy(newBanner = event.image)
-                PhotoTarget.Profile -> it.copy(newPhoto = event.image)
-            }.copy(sheet = null, saveError = null, photoUnreadable = false)
+            it.copy(crop = PhotoCrop(target, event.image), sheet = null, saveError = null, photoUnreadable = false)
+        }
+    }
+
+    private fun useCrop(position: CropPosition) {
+        val crop = _uiState.value.crop?.takeUnless { it.isCutting } ?: return
+        _uiState.update { it.copy(crop = crop.copy(isCutting = true)) }
+        viewModelScope.launch {
+            val region = CropGeometry(crop.image.width, crop.image.height, crop.shape).region(position)
+            val cropped = try {
+                cropImage(crop.image, region, crop.shape)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                null
+            }
+            _uiState.update {
+                val placed = when {
+                    cropped == null -> it
+                    crop.target == PhotoTarget.Banner -> it.copy(newBanner = cropped)
+                    else -> it.copy(newPhoto = cropped)
+                }
+                placed.copy(crop = null, photoUnreadable = cropped == null)
+            }
         }
     }
 

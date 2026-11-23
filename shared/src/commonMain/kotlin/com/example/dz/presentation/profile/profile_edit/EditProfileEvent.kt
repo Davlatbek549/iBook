@@ -1,5 +1,6 @@
 package com.example.dz.presentation.profile.profile_edit
 
+import com.example.dz.core.media.CropPosition
 import com.example.dz.core.media.PickedImage
 import com.example.dz.domain.model.BirthDate
 import com.example.dz.domain.model.Gender
@@ -34,6 +35,10 @@ sealed interface EditProfileEvent {
     /** From the camera or library, for whichever picture the open photo sheet is for. */
     class PhotoPicked(val image: PickedImage) : EditProfileEvent
     data object PhotoUnreadable : EditProfileEvent
+
+    // Cropping
+    data class CropConfirmed(val position: CropPosition) : EditProfileEvent
+    data object CropCancelled : EditProfileEvent
     data object DateOfBirthClicked : EditProfileEvent
     data class DateOfBirthPicked(val date: BirthDate) : EditProfileEvent
     data object GenderClicked : EditProfileEvent

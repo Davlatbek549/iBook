@@ -165,25 +165,37 @@ fun EditProfileScreen(
         }
     }
 
-    // The system back gesture asks the same question Cancel does.
-    SystemBackHandler(enabled = !uiState.isSaving) { send(EditProfileEvent.CancelClicked) }
+    // The system back gesture asks the same question Cancel does; over the crop screen, it backs out of the crop.
+    SystemBackHandler(enabled = !uiState.isSaving) {
+        send(if (uiState.crop != null) EditProfileEvent.CropCancelled else EditProfileEvent.CancelClicked)
+    }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(OrganicColors.bg)
-            .statusBarsPadding()
-            .navigationBarsPadding()
-            .imePadding(),
-    ) {
-        TopBar(uiState = uiState, onEvent = send)
+    val crop = uiState.crop
+    if (crop != null) {
+        PhotoCropScreen(
+            crop = crop,
+            onConfirm = { send(EditProfileEvent.CropConfirmed(it)) },
+            onCancel = { send(EditProfileEvent.CropCancelled) },
+            modifier = modifier,
+        )
+    } else {
+        Column(
+            modifier = modifier
+                .fillMaxSize()
+                .background(OrganicColors.bg)
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .imePadding(),
+        ) {
+            TopBar(uiState = uiState, onEvent = send)
 
-        when {
-            uiState.isLoading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = OrganicColors.accent)
+            when {
+                uiState.isLoading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = OrganicColors.accent)
+                }
+                uiState.loadError != null -> LoadError(message = uiState.loadError, onRetry = { send(EditProfileEvent.RetryLoad) })
+                else -> Form(uiState = uiState, onEvent = send)
             }
-            uiState.loadError != null -> LoadError(message = uiState.loadError, onRetry = { send(EditProfileEvent.RetryLoad) })
-            else -> Form(uiState = uiState, onEvent = send)
         }
     }
 
