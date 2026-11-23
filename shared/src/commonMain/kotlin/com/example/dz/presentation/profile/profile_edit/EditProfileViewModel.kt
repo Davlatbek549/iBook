@@ -82,6 +82,8 @@ class EditProfileViewModel(
             EditProfileEvent.BannerClicked -> openSheet(EditProfileSheet.Photo(PhotoTarget.Banner))
             EditProfileEvent.PhotoClicked -> openSheet(EditProfileSheet.Photo(PhotoTarget.Profile))
             EditProfileEvent.RemovePhotoClicked -> removePhoto()
+            is EditProfileEvent.PhotoPicked -> usePickedPhoto(event)
+            EditProfileEvent.PhotoUnreadable -> _uiState.update { it.copy(sheet = null, photoUnreadable = true) }
             EditProfileEvent.DateOfBirthClicked ->
                 if (!_uiState.value.dateOfBirthLocked) openSheet(EditProfileSheet.DateOfBirth)
             is EditProfileEvent.DateOfBirthPicked -> {
@@ -132,7 +134,7 @@ class EditProfileViewModel(
     }
 
     private fun editDraft(change: EditableProfile.() -> EditableProfile) {
-        _uiState.update { it.copy(draft = it.draft.change(), saveError = null) }
+        _uiState.update { it.copy(draft = it.draft.change(), saveError = null, photoUnreadable = false) }
     }
 
     /**
@@ -181,19 +183,33 @@ class EditProfileViewModel(
         else -> null
     }
 
-    private fun openSheet(sheet: EditProfileSheet) = _uiState.update { it.copy(sheet = sheet) }
+    private fun openSheet(sheet: EditProfileSheet) = _uiState.update { it.copy(sheet = sheet, photoUnreadable = false) }
 
     private fun closeSheet() = _uiState.update { it.copy(sheet = null) }
 
     private fun removePhoto() {
         val target = (_uiState.value.sheet as? EditProfileSheet.Photo)?.target ?: return
-        editDraft {
+        // Removes a new pick as well as the saved picture: "Remove" leaves no photo either way.
+        _uiState.update {
             when (target) {
-                PhotoTarget.Banner -> copy(bannerUrl = null)
-                PhotoTarget.Profile -> copy(avatarUrl = null)
-            }
+                PhotoTarget.Banner -> it.copy(draft = it.draft.copy(bannerUrl = null), newBanner = null)
+                PhotoTarget.Profile -> it.copy(draft = it.draft.copy(avatarUrl = null), newPhoto = null)
+            }.copy(sheet = null, saveError = null)
         }
-        closeSheet()
+    }
+
+    /**
+     * The sheet stays open while the camera or library is up, so it still says which picture the
+     * pick is for when the answer comes back.
+     */
+    private fun usePickedPhoto(event: EditProfileEvent.PhotoPicked) {
+        val target = (_uiState.value.sheet as? EditProfileSheet.Photo)?.target ?: return
+        _uiState.update {
+            when (target) {
+                PhotoTarget.Banner -> it.copy(newBanner = event.image)
+                PhotoTarget.Profile -> it.copy(newPhoto = event.image)
+            }.copy(sheet = null, saveError = null, photoUnreadable = false)
+        }
     }
 
     private fun pickCountry(code: String) {

@@ -1,5 +1,6 @@
 package com.example.dz.presentation.profile.profile_edit
 
+import com.example.dz.core.media.PickedImage
 import com.example.dz.domain.model.BirthDate
 import com.example.dz.domain.model.Gender
 import com.example.dz.domain.model.ProfileVisibility
@@ -29,6 +30,10 @@ sealed interface EditProfileEvent {
     data object BannerClicked : EditProfileEvent
     data object PhotoClicked : EditProfileEvent
     data object RemovePhotoClicked : EditProfileEvent
+
+    /** From the camera or library, for whichever picture the open photo sheet is for. */
+    class PhotoPicked(val image: PickedImage) : EditProfileEvent
+    data object PhotoUnreadable : EditProfileEvent
     data object DateOfBirthClicked : EditProfileEvent
     data class DateOfBirthPicked(val date: BirthDate) : EditProfileEvent
     data object GenderClicked : EditProfileEvent

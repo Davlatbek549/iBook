@@ -1,6 +1,7 @@
 package com.example.dz
 
 import com.example.dz.core.error.AppError
+import com.example.dz.core.media.PickedImage
 import com.example.dz.core.result.AppResult
 import com.example.dz.domain.model.BirthDate
 import com.example.dz.domain.model.EditableProfile
@@ -319,5 +320,78 @@ class EditProfileViewModelTest {
 
         val (withoutAddress, _) = viewModel(FakeProfileRepository(amelia.copy(address = PostalAddress())), region = "PL")
         assertEquals("PL", withoutAddress.uiState.value.phoneCountry)
+    }
+
+    private fun picture() = PickedImage(byteArrayOf(1, 2, 3), width = 1200, height = 800)
+
+    @Test
+    fun `a picked photo lands on the picture whose sheet is open, and counts as a change`() = runTest(dispatcher) {
+        val (vm, _) = viewModel(FakeProfileRepository(amelia.copy(avatarUrl = "https://cdn/amelia.jpg")))
+        val photo = picture()
+
+        vm.onEvent(EditProfileEvent.PhotoClicked)
+        vm.onEvent(EditProfileEvent.PhotoPicked(photo))
+
+        val state = vm.uiState.value
+        assertNull(state.sheet)
+        assertEquals(photo, state.newPhoto)
+        assertNull(state.newBanner)
+        // The pick is shown instead of the saved photo.
+        assertEquals(photo.bytes, state.photoModel)
+        assertTrue(state.hasChanges)
+        assertEquals(listOf(ProfileField.Photo), state.changedFields)
+    }
+
+    @Test
+    fun `a pick that arrives with no photo sheet open is ignored`() = runTest(dispatcher) {
+        val (vm, _) = viewModel(FakeProfileRepository(amelia))
+
+        vm.onEvent(EditProfileEvent.PhotoPicked(picture()))
+
+        assertNull(vm.uiState.value.newPhoto)
+        assertNull(vm.uiState.value.newBanner)
+        assertFalse(vm.uiState.value.hasChanges)
+    }
+
+    @Test
+    fun `removing a banner removes a new pick as well as the saved one`() = runTest(dispatcher) {
+        val (vm, _) = viewModel(FakeProfileRepository(amelia.copy(bannerUrl = "https://cdn/banner.jpg")))
+
+        vm.onEvent(EditProfileEvent.BannerClicked)
+        vm.onEvent(EditProfileEvent.PhotoPicked(picture()))
+        vm.onEvent(EditProfileEvent.BannerClicked)
+        vm.onEvent(EditProfileEvent.RemovePhotoClicked)
+
+        val state = vm.uiState.value
+        assertNull(state.newBanner)
+        assertNull(state.bannerModel)
+        assertEquals(listOf(ProfileField.Banner), state.changedFields)
+    }
+
+    @Test
+    fun `cancel asks before throwing away a picked photo`() = runTest(dispatcher) {
+        val (vm, effects) = viewModel(FakeProfileRepository(amelia))
+
+        vm.onEvent(EditProfileEvent.PhotoClicked)
+        vm.onEvent(EditProfileEvent.PhotoPicked(picture()))
+        vm.onEvent(EditProfileEvent.CancelClicked)
+        advanceUntilIdle()
+
+        assertEquals(EditProfileDialog.Discard, vm.uiState.value.dialog)
+        assertEquals(emptyList(), effects)
+    }
+
+    @Test
+    fun `an unreadable pick says so until the next edit`() = runTest(dispatcher) {
+        val (vm, _) = viewModel(FakeProfileRepository(amelia))
+
+        vm.onEvent(EditProfileEvent.PhotoClicked)
+        vm.onEvent(EditProfileEvent.PhotoUnreadable)
+        assertTrue(vm.uiState.value.photoUnreadable)
+        assertNull(vm.uiState.value.sheet)
+        assertFalse(vm.uiState.value.hasChanges)
+
+        vm.onEvent(EditProfileEvent.BioChanged("Something new"))
+        assertFalse(vm.uiState.value.photoUnreadable)
     }
 }

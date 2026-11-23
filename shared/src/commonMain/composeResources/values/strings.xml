@@ -890,7 +890,7 @@ Try searching through your social networks</string>
     <string name="ep_take_photo">Take photo</string>
     <string name="ep_choose_photo">Choose from library</string>
     <string name="ep_remove_photo">Remove photo</string>
-    <string name="ep_photos_soon">Adding photos is coming soon.</string>
+    <string name="ep_photo_unreadable">That picture could not be opened. Try another one.</string>
     <string name="ep_dob_sheet_body">Only you can see it. Friends never will.</string>
     <string name="ep_done">Done</string>
     <string name="ep_country_search">Search countries</string>

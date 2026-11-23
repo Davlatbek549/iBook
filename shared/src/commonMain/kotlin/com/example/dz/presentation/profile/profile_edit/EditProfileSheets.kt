@@ -33,6 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.dz.core.media.ImagePicker
 import com.example.dz.designsystem.components.icons.OrganicIcons
 import com.example.dz.designsystem.components.organic.OrganicBottomSheet
 import com.example.dz.designsystem.components.organic.OrganicButton
@@ -86,7 +87,6 @@ import dz.shared.generated.resources.ep_gender_none
 import dz.shared.generated.resources.ep_go_back
 import dz.shared.generated.resources.ep_keep_editing
 import dz.shared.generated.resources.ep_once_warning
-import dz.shared.generated.resources.ep_photos_soon
 import dz.shared.generated.resources.ep_remove_photo
 import dz.shared.generated.resources.ep_save
 import dz.shared.generated.resources.ep_cancel
@@ -128,16 +128,23 @@ internal fun genderText(gender: Gender): String = stringResource(
 )
 
 @Composable
-internal fun EditProfileSheets(uiState: EditProfileUiState, onEvent: (EditProfileEvent) -> Unit) {
+internal fun EditProfileSheets(
+    uiState: EditProfileUiState,
+    onEvent: (EditProfileEvent) -> Unit,
+    imagePicker: ImagePicker,
+) {
     val dismiss = { onEvent(EditProfileEvent.SheetDismissed) }
     when (val sheet = uiState.sheet) {
         null -> Unit
         is EditProfileSheet.Photo -> PhotoSheet(
             target = sheet.target,
             hasPhoto = when (sheet.target) {
-                PhotoTarget.Banner -> uiState.draft.bannerUrl != null
-                PhotoTarget.Profile -> uiState.draft.avatarUrl != null
+                PhotoTarget.Banner -> uiState.bannerModel != null
+                PhotoTarget.Profile -> uiState.photoModel != null
             },
+            canTakePhoto = imagePicker.canTakePhoto,
+            onTakePhoto = imagePicker::takePhoto,
+            onChoosePhoto = imagePicker::choosePhoto,
             onRemove = { onEvent(EditProfileEvent.RemovePhotoClicked) },
             onDismiss = dismiss,
         )
@@ -165,19 +172,28 @@ internal fun EditProfileSheets(uiState: EditProfileUiState, onEvent: (EditProfil
 }
 
 /**
- * Taking and choosing photos are drawn but switched off: there is nowhere to store an uploaded
- * image yet, and a photo that vanished on Save would be worse than none. Removing one works.
+ * Stays open while the camera or library is up; the pick closes it (see EditProfileViewModel).
+ * Take photo is left out where there is no camera, rather than drawn and refusing.
  */
 @Composable
-private fun PhotoSheet(target: PhotoTarget, hasPhoto: Boolean, onRemove: () -> Unit, onDismiss: () -> Unit) {
+private fun PhotoSheet(
+    target: PhotoTarget,
+    hasPhoto: Boolean,
+    canTakePhoto: Boolean,
+    onTakePhoto: () -> Unit,
+    onChoosePhoto: () -> Unit,
+    onRemove: () -> Unit,
+    onDismiss: () -> Unit,
+) {
     OrganicBottomSheet(
         title = stringResource(if (target == PhotoTarget.Banner) Res.string.ep_sheet_banner else Res.string.ep_sheet_profile_photo),
         onDismiss = onDismiss,
     ) {
         Column {
-            OrganicSheetAction(text = stringResource(Res.string.ep_take_photo), icon = OrganicIcons.Camera, onClick = {}, enabled = false)
-            OrganicSheetAction(text = stringResource(Res.string.ep_choose_photo), icon = OrganicIcons.Image, onClick = {}, enabled = false)
-            OrganicHelperText(stringResource(Res.string.ep_photos_soon), modifier = Modifier.padding(top = 4.dp, bottom = 6.dp))
+            if (canTakePhoto) {
+                OrganicSheetAction(text = stringResource(Res.string.ep_take_photo), icon = OrganicIcons.Camera, onClick = onTakePhoto)
+            }
+            OrganicSheetAction(text = stringResource(Res.string.ep_choose_photo), icon = OrganicIcons.Image, onClick = onChoosePhoto)
             if (hasPhoto) {
                 OrganicSheetAction(
                     text = stringResource(Res.string.ep_remove_photo),

@@ -47,12 +47,14 @@ import com.example.dz.designsystem.theme.organicBodyFontFamily
  * Spec: banner full width at 3:1 with a 28dp radius; photo a 96dp circle in a 4dp page-colour ring,
  * its top 52dp above the banner's bottom and 14dp from its left. An empty banner is a sage tint
  * with soft circles — never a grey box; an empty photo is the initial, as everywhere else.
+ *
+ * [banner] and [photo] are anything Coil loads: a URL, or the bytes of a picture not uploaded yet.
  */
 @Composable
 fun OrganicProfilePhotos(
     name: String,
-    bannerUrl: String?,
-    photoUrl: String?,
+    banner: Any?,
+    photo: Any?,
     onBannerClick: () -> Unit,
     onPhotoClick: () -> Unit,
     bannerDescription: String,
@@ -77,8 +79,8 @@ fun OrganicProfilePhotos(
                     .clickable(enabled = enabled, role = Role.Button, onClick = onBannerClick)
                     .semantics { contentDescription = bannerDescription },
             ) {
-                if (bannerUrl != null) {
-                    WashedImage(url = bannerUrl, modifier = Modifier.fillMaxSize())
+                if (banner != null) {
+                    WashedImage(model = banner, modifier = Modifier.fillMaxSize())
                 } else {
                     EmptyBanner(label = emptyBannerLabel)
                 }
@@ -105,8 +107,8 @@ fun OrganicProfilePhotos(
                         .semantics { contentDescription = photoDescription },
                     contentAlignment = Alignment.Center,
                 ) {
-                    if (photoUrl != null) {
-                        WashedImage(url = photoUrl, modifier = Modifier.fillMaxSize())
+                    if (photo != null) {
+                        WashedImage(model = photo, modifier = Modifier.fillMaxSize())
                     } else {
                         OrganicAvatar(name = name, size = 96.dp, fontSize = 38.sp)
                     }
@@ -194,9 +196,9 @@ private fun EmptyBanner(label: String?) {
  * into the warm page rather than on top of it.
  */
 @Composable
-private fun WashedImage(url: String, modifier: Modifier = Modifier) {
+private fun WashedImage(model: Any, modifier: Modifier = Modifier) {
     AsyncImage(
-        model = url,
+        model = model,
         contentDescription = null,
         modifier = modifier.alpha(0.94f),
         contentScale = ContentScale.Crop,

@@ -1,5 +1,6 @@
 package com.example.dz.presentation.profile.profile_edit
 
+import com.example.dz.core.media.PickedImage
 import com.example.dz.domain.model.BirthDate
 import com.example.dz.domain.model.EditableProfile
 import com.example.dz.domain.model.Gender
@@ -17,6 +18,14 @@ data class EditProfileUiState(
     val saved: EditableProfile? = null,
     val draft: EditableProfile = EditableProfile(name = ""),
     val usernameStatus: UsernameStatus = UsernameStatus.Unchanged,
+    /**
+     * Picked this visit and not uploaded yet. Shown in place of [EditableProfile.avatarUrl] and
+     * [EditableProfile.bannerUrl], and they count as changes, so Cancel asks before dropping them.
+     */
+    val newPhoto: PickedImage? = null,
+    val newBanner: PickedImage? = null,
+    /** The last pick could not be read as a picture. Cleared by the next edit or sheet. */
+    val photoUnreadable: Boolean = false,
     val isSaving: Boolean = false,
     val saveError: String? = null,
     val sheet: EditProfileSheet? = null,
@@ -27,7 +36,11 @@ data class EditProfileUiState(
     val today: BirthDate = BirthDate(2026, 1, 1),
 ) {
     val hasChanges: Boolean
-        get() = saved != null && draft.normalized() != saved.normalized()
+        get() = saved != null && (draft.normalized() != saved.normalized() || newPhoto != null || newBanner != null)
+
+    /** What the photo and banner show: a new pick first, then the saved picture. */
+    val photoModel: Any? get() = newPhoto?.bytes ?: draft.avatarUrl
+    val bannerModel: Any? get() = newBanner?.bytes ?: draft.bannerUrl
 
     val nameMissing: Boolean get() = draft.name.isBlank()
 
@@ -57,8 +70,8 @@ data class EditProfileUiState(
             val before = saved?.normalized() ?: return emptyList()
             val after = draft.normalized()
             return buildList {
-                if (after.avatarUrl != before.avatarUrl) add(ProfileField.Photo)
-                if (after.bannerUrl != before.bannerUrl) add(ProfileField.Banner)
+                if (newPhoto != null || after.avatarUrl != before.avatarUrl) add(ProfileField.Photo)
+                if (newBanner != null || after.bannerUrl != before.bannerUrl) add(ProfileField.Banner)
                 if (after.name != before.name) add(ProfileField.Name)
                 if (after.username != before.username) add(ProfileField.Username)
                 if (after.bio != before.bio) add(ProfileField.Bio)

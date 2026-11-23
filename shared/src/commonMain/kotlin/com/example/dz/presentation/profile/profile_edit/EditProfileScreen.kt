@@ -48,6 +48,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.dz.core.media.ImagePickResult
+import com.example.dz.core.media.rememberImagePicker
 import com.example.dz.designsystem.components.icons.OrganicIcons
 import com.example.dz.designsystem.components.organic.ORGANIC_GUTTER
 import com.example.dz.designsystem.components.organic.OrganicButton
@@ -111,6 +113,7 @@ import dz.shared.generated.resources.ep_phone_label
 import dz.shared.generated.resources.ep_photo_description
 import dz.shared.generated.resources.ep_photo_hint_empty
 import dz.shared.generated.resources.ep_photo_hint_filled
+import dz.shared.generated.resources.ep_photo_unreadable
 import dz.shared.generated.resources.ep_private_body
 import dz.shared.generated.resources.ep_private_tag
 import dz.shared.generated.resources.ep_public_body
@@ -184,7 +187,17 @@ fun EditProfileScreen(
         }
     }
 
-    EditProfileSheets(uiState = uiState, onEvent = send)
+    // Here rather than in the photo sheet, so the answer still has somewhere to land if the sheet
+    // leaves composition while the camera or library is up.
+    val imagePicker = rememberImagePicker { result ->
+        when (result) {
+            is ImagePickResult.Picked -> send(EditProfileEvent.PhotoPicked(result.image))
+            is ImagePickResult.Failed -> send(EditProfileEvent.PhotoUnreadable)
+            ImagePickResult.Cancelled -> Unit
+        }
+    }
+
+    EditProfileSheets(uiState = uiState, onEvent = send, imagePicker = imagePicker)
     EditProfileDialogs(uiState = uiState, onEvent = send)
 }
 
@@ -269,18 +282,19 @@ private fun Form(uiState: EditProfileUiState, onEvent: (EditProfileEvent) -> Uni
         verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
         uiState.saveError?.let { SaveErrorBanner(it) }
+        if (uiState.photoUnreadable) SaveErrorBanner(stringResource(Res.string.ep_photo_unreadable))
 
         OrganicProfilePhotos(
             name = draft.name,
-            bannerUrl = draft.bannerUrl,
-            photoUrl = draft.avatarUrl,
+            banner = uiState.bannerModel,
+            photo = uiState.photoModel,
             onBannerClick = { onEvent(EditProfileEvent.BannerClicked) },
             onPhotoClick = { onEvent(EditProfileEvent.PhotoClicked) },
             bannerDescription = stringResource(Res.string.ep_banner_description),
             photoDescription = stringResource(Res.string.ep_photo_description),
-            emptyBannerLabel = stringResource(Res.string.ep_banner_empty).takeIf { draft.bannerUrl == null },
+            emptyBannerLabel = stringResource(Res.string.ep_banner_empty).takeIf { uiState.bannerModel == null },
             hint = stringResource(
-                if (draft.avatarUrl == null) Res.string.ep_photo_hint_empty else Res.string.ep_photo_hint_filled
+                if (uiState.photoModel == null) Res.string.ep_photo_hint_empty else Res.string.ep_photo_hint_filled
             ),
             enabled = enabled,
         )
