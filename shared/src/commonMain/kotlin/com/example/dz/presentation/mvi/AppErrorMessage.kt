@@ -30,5 +30,10 @@ internal fun AppError.toPresentationMessage(): String =
             AppError.ProfileReason.GenderLocked -> "Your gender is already set. Contact support to change it."
             AppError.ProfileReason.InvalidDateOfBirth -> "Check the year of your date of birth."
             AppError.ProfileReason.Invalid -> "Something in your profile isn't valid. Check it and try again."
+            AppError.ProfileReason.ImageUnreadable,
+            AppError.ProfileReason.ImageWrongShape,
+            AppError.ProfileReason.ImageTooSmall -> "That picture couldn't be used. Try another one."
+            AppError.ProfileReason.ImageTooLarge -> "That picture is too large. Try a smaller one."
+            AppError.ProfileReason.PhotosUnavailable -> "Photos can't be saved yet. Try again later."
         }
     }

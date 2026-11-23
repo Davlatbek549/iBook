@@ -25,6 +25,8 @@ import com.example.dz.domain.repository.ProfileRepository
 import com.example.dz.domain.usecase.user.CheckUsernameUseCase
 import com.example.dz.domain.usecase.user.GetEditableProfileUseCase
 import com.example.dz.domain.usecase.user.SaveEditableProfileUseCase
+import com.example.dz.domain.usecase.user.SaveProfileImageUseCase
+import com.example.dz.domain.model.ProfileImage
 import com.example.dz.presentation.profile.profile_edit.EditProfileScreen
 import com.example.dz.presentation.profile.profile_edit.EditProfileViewModel
 
@@ -57,7 +59,7 @@ class RedesignPreviewActivity : ComponentActivity() {
                         "edit-profile" -> {
                             val vm = remember {
                                 val profiles = InMemoryProfiles()
-                                EditProfileViewModel(GetEditableProfileUseCase(profiles), SaveEditableProfileUseCase(profiles), CheckUsernameUseCase(profiles))
+                                EditProfileViewModel(GetEditableProfileUseCase(profiles), SaveEditableProfileUseCase(profiles), CheckUsernameUseCase(profiles), SaveProfileImageUseCase(profiles))
                             }
                             val state by vm.uiState.collectAsState()
                             EditProfileScreen(uiState = state, onEvent = vm::onEvent)
@@ -75,4 +77,17 @@ private class InMemoryProfiles : ProfileRepository {
     override suspend fun getEditableProfile() = AppResult.Success(profile)
     override suspend fun saveEditableProfile(profile: EditableProfile) = AppResult.Success(profile.also { this.profile = it })
     override suspend fun checkUsername(username: String) = AppResult.Success(UsernameAvailability(username, available = true))
+
+    /** Stored as a data URI so Coil can show it back, as it would a server URL. */
+    @OptIn(kotlin.io.encoding.ExperimentalEncodingApi::class)
+    override suspend fun uploadImage(image: ProfileImage, jpeg: ByteArray): AppResult<EditableProfile> {
+        val url = "data:image/jpeg;base64," + kotlin.io.encoding.Base64.encode(jpeg)
+        profile = if (image == ProfileImage.Photo) profile.copy(avatarUrl = url) else profile.copy(bannerUrl = url)
+        return AppResult.Success(profile)
+    }
+
+    override suspend fun removeImage(image: ProfileImage): AppResult<EditableProfile> {
+        profile = if (image == ProfileImage.Photo) profile.copy(avatarUrl = null) else profile.copy(bannerUrl = null)
+        return AppResult.Success(profile)
+    }
 }

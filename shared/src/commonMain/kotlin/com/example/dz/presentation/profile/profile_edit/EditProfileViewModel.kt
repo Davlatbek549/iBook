@@ -16,10 +16,12 @@ import com.example.dz.core.time.localUtcOffsetMillis
 import com.example.dz.domain.model.BirthDate
 import com.example.dz.domain.model.Countries
 import com.example.dz.domain.model.EditableProfile
+import com.example.dz.domain.model.ProfileImage
 import com.example.dz.domain.model.UsernameProblem
 import com.example.dz.domain.usecase.user.CheckUsernameUseCase
 import com.example.dz.domain.usecase.user.GetEditableProfileUseCase
 import com.example.dz.domain.usecase.user.SaveEditableProfileUseCase
+import com.example.dz.domain.usecase.user.SaveProfileImageUseCase
 import com.example.dz.presentation.mvi.toPresentationMessage
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -35,6 +37,7 @@ class EditProfileViewModel(
     private val getProfile: GetEditableProfileUseCase,
     private val saveProfile: SaveEditableProfileUseCase,
     private val checkUsername: CheckUsernameUseCase,
+    private val saveImage: SaveProfileImageUseCase,
     /** Injected so tests do not depend on the machine's clock or locale. */
     today: () -> BirthDate = {
         val now = currentEpochMillis()
@@ -269,39 +272,90 @@ class EditProfileViewModel(
         }
     }
 
+    /**
+     * One Save is up to three calls: the fields, then the photo, then the banner, each only when it
+     * changed. Fields go first, so a refused username stops the Save before any picture is sent.
+     *
+     * A call that succeeds stays saved even if a later one fails. The form then shows what is
+     * stored and keeps what is not, so Save stays live and sends only what is left.
+     */
     private fun save() {
+        val saved = _uiState.value.saved ?: return
         val draft = _uiState.value.draft.normalized()
         viewModelScope.launch {
             _uiState.update { it.copy(isSaving = true, dialog = null, saveError = null) }
-            when (val result = saveProfile(draft)) {
-                is AppResult.Success -> {
-                    _uiState.update {
+
+            if (draft.withoutPictures() != saved.normalized().withoutPictures()) {
+                when (val result = saveProfile(draft)) {
+                    is AppResult.Success -> _uiState.update {
+                        // The pictures in the draft are still to do; everything else is now stored.
                         it.copy(
-                            isSaving = false,
                             saved = result.data,
-                            draft = result.data,
+                            draft = result.data.copy(avatarUrl = it.draft.avatarUrl, bannerUrl = it.draft.bannerUrl),
                             usernameStatus = UsernameStatus.Unchanged,
                         )
                     }
-                    emit(EditProfileEffect.Saved)
-                }
-                is AppResult.Error -> {
-                    val error = result.error
-                    _uiState.update {
-                        it.copy(
-                            isSaving = false,
-                            saveError = error.toPresentationMessage(),
-                            // Someone took the username between the check and the save: show it
-                            // as taken, and ask again so the suggestions come with it.
-                            usernameStatus = if (error.isUsernameTaken()) UsernameStatus.Taken(emptyList())
-                            else it.usernameStatus,
-                        )
-                    }
-                    if (error.isUsernameTaken()) draft.username?.let { onUsernameTyped(it, keepSaveError = true) }
+                    is AppResult.Error -> return@launch saveFailed(result.error, draft.username)
                 }
             }
+
+            for (image in ProfileImage.entries) {
+                val change = pictureChange(_uiState.value, image) ?: continue
+                when (val result = saveImage(image, change.jpeg)) {
+                    is AppResult.Success -> _uiState.update { it.withStoredPicture(image, result.data) }
+                    is AppResult.Error -> return@launch saveFailed(result.error, username = null)
+                }
+            }
+
+            _uiState.update { it.copy(isSaving = false) }
+            emit(EditProfileEffect.Saved)
         }
     }
+
+    private fun saveFailed(error: AppError, username: String?) {
+        _uiState.update {
+            it.copy(
+                isSaving = false,
+                saveError = error.toPresentationMessage(),
+                // Someone took the username between the check and the save: show it as taken, and
+                // ask again so the suggestions come with it.
+                usernameStatus = if (error.isUsernameTaken()) UsernameStatus.Taken(emptyList()) else it.usernameStatus,
+            )
+        }
+        if (error.isUsernameTaken()) username?.let { onUsernameTyped(it, keepSaveError = true) }
+    }
+
+    /** `jpeg` replaces the picture; `null` removes it. */
+    private class PictureChange(val jpeg: ByteArray?)
+
+    /** What Save has to do for [image]: send a new pick, remove the stored one, or nothing. */
+    private fun pictureChange(state: EditProfileUiState, image: ProfileImage): PictureChange? {
+        val (picked, wanted, stored) = when (image) {
+            ProfileImage.Photo -> Triple(state.newPhoto, state.draft.avatarUrl, state.saved?.avatarUrl)
+            ProfileImage.Banner -> Triple(state.newBanner, state.draft.bannerUrl, state.saved?.bannerUrl)
+        }
+        return when {
+            picked != null -> PictureChange(picked.bytes)
+            wanted == null && stored != null -> PictureChange(null)
+            else -> null
+        }
+    }
+
+    /** [stored] is the whole profile after one picture changed; only that picture is taken from it. */
+    private fun EditProfileUiState.withStoredPicture(image: ProfileImage, stored: EditableProfile) = when (image) {
+        ProfileImage.Photo -> copy(
+            saved = saved?.copy(avatarUrl = stored.avatarUrl),
+            draft = draft.copy(avatarUrl = stored.avatarUrl),
+            newPhoto = null,
+        )
+        ProfileImage.Banner -> copy(
+            saved = saved?.copy(bannerUrl = stored.bannerUrl),
+            draft = draft.copy(bannerUrl = stored.bannerUrl),
+            newBanner = null,
+        )
+    }
+
+    private fun EditableProfile.withoutPictures() = copy(avatarUrl = null, bannerUrl = null)
 
     private fun onCancel() {
         if (_uiState.value.hasChanges) {

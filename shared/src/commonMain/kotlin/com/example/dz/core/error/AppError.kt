@@ -34,6 +34,16 @@ sealed interface AppError {
 
         /** Validation failed on something the app should have caught first. */
         Invalid,
+
+        // Photo and banner uploads. The app crops to the exact size, so the first three mean a
+        // bug or a damaged file rather than something the person did.
+        ImageUnreadable,
+        ImageWrongShape,
+        ImageTooSmall,
+        ImageTooLarge,
+
+        /** The server has nowhere to keep photos yet (no storage configured). */
+        PhotosUnavailable,
     }
 
     enum class AuthReason {

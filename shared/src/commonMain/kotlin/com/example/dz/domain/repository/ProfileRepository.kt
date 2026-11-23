@@ -2,6 +2,7 @@ package com.example.dz.domain.repository
 
 import com.example.dz.core.result.AppResult
 import com.example.dz.domain.model.EditableProfile
+import com.example.dz.domain.model.ProfileImage
 import com.example.dz.domain.model.UsernameAvailability
 
 /**
@@ -18,4 +19,10 @@ interface ProfileRepository {
     suspend fun saveEditableProfile(profile: EditableProfile): AppResult<EditableProfile>
 
     suspend fun checkUsername(username: String): AppResult<UsernameAvailability>
+
+    /** Replaces [image] with [jpeg], already cut to shape. Returns the profile as stored after. */
+    suspend fun uploadImage(image: ProfileImage, jpeg: ByteArray): AppResult<EditableProfile>
+
+    /** Takes [image] off the profile. Returns the profile as stored after. */
+    suspend fun removeImage(image: ProfileImage): AppResult<EditableProfile>
 }

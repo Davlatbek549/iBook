@@ -9,11 +9,13 @@ import com.example.dz.data.repository.RemoteProfileRepository
 import com.example.dz.domain.model.BirthDate
 import com.example.dz.domain.model.Gender
 import com.example.dz.domain.model.PostalAddress
+import com.example.dz.domain.model.ProfileImage
 import com.example.dz.domain.model.ProfileVisibility
 import com.example.dz.domain.model.SpecialityKind
 import com.example.dz.domain.model.UsernameProblem
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
+import io.ktor.client.engine.mock.toByteArray
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
@@ -28,6 +30,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertTrue
 
 /** The app's side of dz-server's `/users/me` and username check, against a stand-in server. */
 class ProfileApiTest {
@@ -163,5 +166,74 @@ class ProfileApiTest {
         assertEquals("1999-03-14", BirthDate(1999, 3, 14).toIso())
         // 2026-11-13T00:00:00Z
         assertEquals(BirthDate(2026, 11, 13), BirthDate.fromEpochMillis(1_794_528_000_000L))
+    }
+
+    @Test
+    fun `a picture goes up as the multipart part the server binds, with a filename`() = runBlocking {
+        var method: HttpMethod? = null
+        var path = ""
+        var contentType = ""
+        var body = ""
+        val engine = MockEngine { request ->
+            method = request.method
+            path = request.url.encodedPath
+            contentType = request.body.contentType.toString()
+            body = request.body.toByteArray().decodeToString()
+            respond(serverProfile, HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
+        }
+        createAuthHttpClient(session(), ApiConfig(baseUrl), engine).use { client ->
+            val result = RemoteProfileRepository(KtorProfileApi(client, baseUrl), session())
+                .uploadImage(ProfileImage.Banner, "JPEGBYTES".encodeToByteArray())
+
+            assertEquals(HttpMethod.Put, method)
+            assertEquals("/api/v1/users/me/banner", path)
+            assertTrue(contentType.startsWith("multipart/form-data"), contentType)
+            // Spring binds a MultipartFile only from a part that has both a name and a filename.
+            val disposition = body.lines().first { it.startsWith("Content-Disposition") }
+            assertTrue(Regex("name=\"?image\"?").containsMatchIn(disposition), disposition)
+            assertTrue(disposition.contains("filename=\"banner.jpg\""), disposition)
+            assertTrue(body.contains("Content-Type: image/jpeg"), body)
+            assertTrue(body.contains("JPEGBYTES"), body)
+            assertEquals("https://example.com/b.png", assertIs<AppResult.Success<com.example.dz.domain.model.EditableProfile>>(result).data.bannerUrl)
+        }
+    }
+
+    @Test
+    fun `removing a picture is a DELETE on its own path`() = runBlocking {
+        var method: HttpMethod? = null
+        var path = ""
+        val engine = MockEngine { request ->
+            method = request.method
+            path = request.url.encodedPath
+            respond(serverProfile, HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
+        }
+        createAuthHttpClient(session(), ApiConfig(baseUrl), engine).use { client ->
+            RemoteProfileRepository(KtorProfileApi(client, baseUrl), session()).removeImage(ProfileImage.Photo)
+            assertEquals(HttpMethod.Delete, method)
+            assertEquals("/api/v1/users/me/avatar", path)
+        }
+    }
+
+    @Test
+    fun `the server's picture refusals arrive as themselves`() = runBlocking {
+        val cases = listOf(
+            HttpStatusCode.PayloadTooLarge to AppError.ProfileReason.ImageTooLarge,
+            HttpStatusCode.BadRequest to AppError.ProfileReason.ImageWrongShape,
+            HttpStatusCode.ServiceUnavailable to AppError.ProfileReason.PhotosUnavailable,
+        )
+        for ((status, reason) in cases) {
+            val engine = MockEngine {
+                respond(
+                    """{"code":"${reason.name}","message":"No"}""",
+                    status,
+                    headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+            }
+            createAuthHttpClient(session(), ApiConfig(baseUrl), engine).use { client ->
+                val result = RemoteProfileRepository(KtorProfileApi(client, baseUrl), session())
+                    .uploadImage(ProfileImage.Photo, byteArrayOf(1))
+                assertEquals(AppError.Profile(reason), assertIs<AppResult.Error>(result).error)
+            }
+        }
     }
 }

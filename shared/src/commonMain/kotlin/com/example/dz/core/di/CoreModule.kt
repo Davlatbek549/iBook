@@ -9,6 +9,7 @@ import com.example.dz.domain.repository.ProfileRepository
 import com.example.dz.domain.usecase.user.CheckUsernameUseCase
 import com.example.dz.domain.usecase.user.GetEditableProfileUseCase
 import com.example.dz.domain.usecase.user.SaveEditableProfileUseCase
+import com.example.dz.domain.usecase.user.SaveProfileImageUseCase
 import com.example.dz.data.sync.ReadingDataSync
 import com.example.dz.data.repository.SyncedLibraryRepository
 import com.example.dz.data.repository.SyncedCollectionRepository
@@ -200,6 +201,7 @@ val coreModule = module {
     factory { GetEditableProfileUseCase(get()) }
     factory { SaveEditableProfileUseCase(get()) }
     factory { CheckUsernameUseCase(get()) }
+    factory { SaveProfileImageUseCase(get()) }
     single<SocialRepository> { SocialRepositoryImpl(get()) }
     single<ChatRepository> { ChatRepositoryImpl(get()) }
     single<NotificationRepository> { NotificationRepositoryImpl(get()) }
@@ -225,7 +227,7 @@ val coreModule = module {
     single<DeviceDataRepository> { LocalDeviceDataRepository(get(), get(), get(), get(), get(), get()) }
     single<SearchHistoryRepository> { LocalSearchHistoryRepository(get()) }
 
-    factory { EditProfileViewModel(get(), get(), get()) }
+    factory { EditProfileViewModel(get(), get(), get(), get()) }
     factory { LoginUseCase(get()) }
     factory { SignUpUseCase(get()) }
     factory { SignInWithGoogleUseCase(get()) }

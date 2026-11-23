@@ -10,12 +10,14 @@ import com.example.dz.domain.model.BirthDate
 import com.example.dz.domain.model.EditableProfile
 import com.example.dz.domain.model.Gender
 import com.example.dz.domain.model.PostalAddress
+import com.example.dz.domain.model.ProfileImage
 import com.example.dz.domain.model.UsernameAvailability
 import com.example.dz.domain.model.UsernameProblem
 import com.example.dz.domain.repository.ProfileRepository
 import com.example.dz.domain.usecase.user.CheckUsernameUseCase
 import com.example.dz.domain.usecase.user.GetEditableProfileUseCase
 import com.example.dz.domain.usecase.user.SaveEditableProfileUseCase
+import com.example.dz.domain.usecase.user.SaveProfileImageUseCase
 import com.example.dz.presentation.profile.profile_edit.EditProfileDialog
 import com.example.dz.presentation.profile.profile_edit.EditProfileEffect
 import com.example.dz.presentation.profile.profile_edit.EditProfileEvent
@@ -81,13 +83,40 @@ class EditProfileViewModelTest {
 
         override suspend fun saveEditableProfile(profile: EditableProfile): AppResult<EditableProfile> {
             saved += profile
-            return saveAnswer(profile)
+            calls += "fields"
+            // Like the server, PUT /users/me leaves the pictures as they are.
+            val answer = saveAnswer(profile.copy(avatarUrl = this.profile.avatarUrl, bannerUrl = this.profile.bannerUrl))
+            if (answer is AppResult.Success) this.profile = answer.data
+            return answer
         }
 
         override suspend fun checkUsername(username: String): AppResult<UsernameAvailability> {
             checked += username
             return checkAnswer(username)
         }
+
+        /** Every call in order: "fields", "upload Photo", "remove Banner", ... */
+        val calls = mutableListOf<String>()
+        val uploaded = mutableMapOf<ProfileImage, ByteArray>()
+        var imageAnswer: (ProfileImage) -> AppError? = { null }
+
+        override suspend fun uploadImage(image: ProfileImage, jpeg: ByteArray): AppResult<EditableProfile> {
+            calls += "upload $image"
+            imageAnswer(image)?.let { return AppResult.Error(it) }
+            uploaded[image] = jpeg
+            profile = profile.withPicture(image, "https://cdn/${image.name.lowercase()}-${calls.size}.jpg")
+            return AppResult.Success(profile)
+        }
+
+        override suspend fun removeImage(image: ProfileImage): AppResult<EditableProfile> {
+            calls += "remove $image"
+            imageAnswer(image)?.let { return AppResult.Error(it) }
+            profile = profile.withPicture(image, null)
+            return AppResult.Success(profile)
+        }
+
+        private fun EditableProfile.withPicture(image: ProfileImage, url: String?) =
+            if (image == ProfileImage.Photo) copy(avatarUrl = url) else copy(bannerUrl = url)
     }
 
     private val today = BirthDate(2026, 11, 13)
@@ -101,6 +130,7 @@ class EditProfileViewModelTest {
             GetEditableProfileUseCase(repository),
             SaveEditableProfileUseCase(repository),
             CheckUsernameUseCase(repository),
+            SaveProfileImageUseCase(repository),
             today = { today },
             deviceRegion = { region },
             cropImage = cropper::crop,
@@ -458,5 +488,98 @@ class EditProfileViewModelTest {
 
         vm.onEvent(EditProfileEvent.BioChanged("Something new"))
         assertFalse(vm.uiState.value.photoUnreadable)
+    }
+
+    @Test
+    fun `a new photo alone is uploaded without saving the fields`() = runTest(dispatcher) {
+        val repository = FakeProfileRepository(amelia)
+        val (vm, effects) = viewModel(repository)
+
+        vm.pickAndCrop(PhotoTarget.Profile)
+        advanceUntilIdle()
+        vm.onEvent(EditProfileEvent.SaveClicked)
+        advanceUntilIdle()
+
+        assertEquals(listOf("upload Photo"), repository.calls)
+        // The cropped picture is what is sent, not the original pick.
+        assertEquals(listOf<Byte>(7), repository.uploaded.getValue(ProfileImage.Photo).toList())
+        val state = vm.uiState.value
+        assertNull(state.newPhoto)
+        assertEquals("https://cdn/photo-1.jpg", state.saved?.avatarUrl)
+        assertEquals(state.saved?.avatarUrl, state.photoModel)
+        assertFalse(state.hasChanges)
+        assertEquals(listOf<EditProfileEffect>(EditProfileEffect.Saved), effects)
+    }
+
+    @Test
+    fun `fields go first, then the photo, then the banner`() = runTest(dispatcher) {
+        val repository = FakeProfileRepository(amelia.copy(avatarUrl = "https://cdn/old.jpg"))
+        val (vm, effects) = viewModel(repository)
+
+        vm.onEvent(EditProfileEvent.BioChanged("Long novels"))
+        vm.pickAndCrop(PhotoTarget.Banner)
+        advanceUntilIdle()
+        vm.onEvent(EditProfileEvent.PhotoClicked)
+        vm.onEvent(EditProfileEvent.RemovePhotoClicked)
+        vm.onEvent(EditProfileEvent.SaveClicked)
+        advanceUntilIdle()
+
+        assertEquals(listOf("fields", "remove Photo", "upload Banner"), repository.calls)
+        val state = vm.uiState.value
+        assertEquals("Long novels", state.saved?.bio)
+        assertNull(state.saved?.avatarUrl)
+        assertEquals("https://cdn/banner-3.jpg", state.saved?.bannerUrl)
+        assertFalse(state.hasChanges)
+        assertEquals(listOf<EditProfileEffect>(EditProfileEffect.Saved), effects)
+    }
+
+    @Test
+    fun `a refused username stops the save before any picture is sent`() = runTest(dispatcher) {
+        val repository = FakeProfileRepository(amelia).apply {
+            saveAnswer = { AppResult.Error(AppError.Profile(AppError.ProfileReason.UsernameTaken)) }
+        }
+        val (vm, effects) = viewModel(repository)
+
+        vm.onEvent(EditProfileEvent.BioChanged("Long novels"))
+        vm.pickAndCrop(PhotoTarget.Profile)
+        advanceUntilIdle()
+        vm.onEvent(EditProfileEvent.SaveClicked)
+        advanceUntilIdle()
+
+        assertEquals(listOf("fields"), repository.calls.filter { !it.startsWith("check") })
+        assertNotNull(vm.uiState.value.newPhoto)
+        assertNotNull(vm.uiState.value.saveError)
+        assertEquals(emptyList(), effects)
+    }
+
+    @Test
+    fun `when a picture fails, what did save stays saved and Save sends only the rest`() = runTest(dispatcher) {
+        val repository = FakeProfileRepository(amelia).apply {
+            imageAnswer = { AppError.Profile(AppError.ProfileReason.PhotosUnavailable) }
+        }
+        val (vm, effects) = viewModel(repository)
+
+        vm.onEvent(EditProfileEvent.BioChanged("Long novels"))
+        vm.pickAndCrop(PhotoTarget.Banner)
+        advanceUntilIdle()
+        vm.onEvent(EditProfileEvent.SaveClicked)
+        advanceUntilIdle()
+
+        val state = vm.uiState.value
+        assertEquals(listOf("fields", "upload Banner"), repository.calls)
+        assertEquals("Long novels", state.saved?.bio)
+        assertNotNull(state.newBanner)
+        assertEquals(listOf(ProfileField.Banner), state.changedFields)
+        assertEquals("Photos can't be saved yet. Try again later.", state.saveError)
+        assertTrue(state.canSave)
+        assertEquals(emptyList(), effects)
+
+        repository.imageAnswer = { null }
+        vm.onEvent(EditProfileEvent.SaveClicked)
+        advanceUntilIdle()
+
+        assertEquals(listOf("fields", "upload Banner", "upload Banner"), repository.calls)
+        assertFalse(vm.uiState.value.hasChanges)
+        assertEquals(listOf<EditProfileEffect>(EditProfileEffect.Saved), effects)
     }
 }

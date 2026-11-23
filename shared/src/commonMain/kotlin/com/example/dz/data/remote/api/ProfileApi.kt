@@ -3,14 +3,20 @@ package com.example.dz.data.remote.api
 import com.example.dz.core.error.AppError
 import com.example.dz.data.remote.ProfileBackendException
 import com.example.dz.data.remote.dto.ApiErrorDto
+import com.example.dz.domain.model.ProfileImage
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.ResponseException
+import io.ktor.client.request.delete
+import io.ktor.client.request.forms.MultiPartFormDataContent
+import io.ktor.client.request.forms.formData
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
 import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
+import io.ktor.http.Headers
+import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
 import kotlinx.serialization.Serializable
 
@@ -19,6 +25,11 @@ interface ProfileApi {
     suspend fun profile(): ProfileResponseDto
     suspend fun updateProfile(request: UpdateProfileRequestDto): ProfileResponseDto
     suspend fun usernameAvailability(username: String): UsernameAvailabilityDto
+
+    /** Replaces the picture with [jpeg], already cut to the server's exact size. */
+    suspend fun uploadImage(image: ProfileImage, jpeg: ByteArray): ProfileResponseDto
+
+    suspend fun removeImage(image: ProfileImage): ProfileResponseDto
 }
 
 class KtorProfileApi(private val client: HttpClient, private val baseUrl: String) : ProfileApi {
@@ -38,6 +49,39 @@ class KtorProfileApi(private val client: HttpClient, private val baseUrl: String
         client.get("$baseUrl/users/username-availability") {
             parameter("username", username)
         }.body()
+
+    /**
+     * A multipart part named `image`. The filename matters: Spring only binds a part to a
+     * `MultipartFile` when it has one, and answers "part missing" otherwise.
+     */
+    override suspend fun uploadImage(image: ProfileImage, jpeg: ByteArray): ProfileResponseDto =
+        withProfileErrors {
+            client.put("$baseUrl/users/me/${image.path}") {
+                setBody(
+                    MultiPartFormDataContent(
+                        formData {
+                            append(
+                                "image",
+                                jpeg,
+                                Headers.build {
+                                    append(HttpHeaders.ContentType, "image/jpeg")
+                                    append(HttpHeaders.ContentDisposition, "filename=\"${image.path}.jpg\"")
+                                },
+                            )
+                        }
+                    )
+                )
+            }.body()
+        }
+
+    override suspend fun removeImage(image: ProfileImage): ProfileResponseDto =
+        withProfileErrors { client.delete("$baseUrl/users/me/${image.path}").body() }
+
+    private val ProfileImage.path: String
+        get() = when (this) {
+            ProfileImage.Photo -> "avatar"
+            ProfileImage.Banner -> "banner"
+        }
 
     /**
      * Turns the server's profile refusals into [ProfileBackendException], so a taken username or a

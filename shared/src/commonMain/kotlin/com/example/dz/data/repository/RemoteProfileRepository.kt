@@ -6,6 +6,7 @@ import com.example.dz.data.mapper.ProfileMapper
 import com.example.dz.data.remote.api.ProfileApi
 import com.example.dz.data.remote.runRemote
 import com.example.dz.domain.model.EditableProfile
+import com.example.dz.domain.model.ProfileImage
 import com.example.dz.domain.model.UsernameAvailability
 import com.example.dz.domain.repository.ProfileRepository
 
@@ -25,6 +26,12 @@ class RemoteProfileRepository(
 
     override suspend fun checkUsername(username: String): AppResult<UsernameAvailability> =
         runRemote { ProfileMapper.toDomain(api.usernameAvailability(username)) }
+
+    override suspend fun uploadImage(image: ProfileImage, jpeg: ByteArray): AppResult<EditableProfile> =
+        runRemote { ProfileMapper.toDomain(api.uploadImage(image, jpeg)) }
+
+    override suspend fun removeImage(image: ProfileImage): AppResult<EditableProfile> =
+        runRemote { ProfileMapper.toDomain(api.removeImage(image)) }
 
     /**
      * Settings, Profile and Home read the name from the session on this device, not the server,
