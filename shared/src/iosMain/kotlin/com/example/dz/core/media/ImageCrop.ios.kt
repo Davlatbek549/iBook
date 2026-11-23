@@ -1,5 +1,6 @@
 package com.example.dz.core.media
 
+import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.readBytes
@@ -48,6 +49,6 @@ actual suspend fun cropToJpeg(image: PickedImage, region: CropRegion, shape: Cro
         PickedImage(jpeg.bytes?.readBytes(jpeg.length.toInt()) ?: ByteArray(0), shape.outputWidth, shape.outputHeight)
     }
 
-@OptIn(ExperimentalForeignApi::class)
+@OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
 private fun ByteArray.toNSData(): NSData =
     if (isEmpty()) NSData() else usePinned { NSData.create(bytes = it.addressOf(0), length = size.toULong()) }
