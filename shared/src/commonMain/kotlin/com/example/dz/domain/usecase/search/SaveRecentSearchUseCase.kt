@@ -5,5 +5,5 @@ import com.example.dz.domain.repository.SearchHistoryRepository
 class SaveRecentSearchUseCase(
     private val repository: SearchHistoryRepository
 ) {
-    suspend operator fun invoke(query: String) = repository.saveRecentSearch(query)
+    suspend operator fun invoke(query: String) = repository.saveSearch(query)
 }

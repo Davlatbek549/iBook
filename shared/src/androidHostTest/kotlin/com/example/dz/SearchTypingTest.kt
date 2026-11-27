@@ -2,6 +2,7 @@ package com.example.dz
 
 import com.example.dz.core.error.AppError
 import com.example.dz.core.result.AppResult
+import com.example.dz.data.repository.LocalSearchHistoryRepository
 import com.example.dz.domain.model.Book
 import com.example.dz.domain.model.BookRatings
 import com.example.dz.domain.model.Category
@@ -9,9 +10,8 @@ import com.example.dz.domain.model.LibraryBook
 import com.example.dz.domain.model.ReadingProgress
 import com.example.dz.domain.repository.BookRepository
 import com.example.dz.domain.repository.LibraryRepository
-import com.example.dz.domain.repository.SearchHistoryRepository
-import com.example.dz.domain.usecase.library.GetLibraryBooksUseCase
 import com.example.dz.domain.usecase.book.SearchBooksUseCase
+import com.example.dz.domain.usecase.library.GetLibraryBooksUseCase
 import com.example.dz.domain.usecase.search.GetRecentSearchesUseCase
 import com.example.dz.domain.usecase.search.SaveRecentSearchUseCase
 import com.example.dz.presentation.search.SearchEvent
@@ -60,36 +60,36 @@ class SearchTypingTest {
         override suspend fun getCategories(): AppResult<List<Category>> = AppResult.Success(emptyList())
 
         private fun <T> unused(): AppResult<T> = AppResult.Error(AppError.NotFound)
+        override suspend fun getCategoryBookCount(categoryId: String): AppResult<Int> = unused()
         override suspend fun getHomeBooks(): AppResult<List<Book>> = unused()
         override suspend fun getBooksByCategory(categoryId: String): AppResult<List<Book>> = unused()
         override suspend fun getBookDetails(bookId: String): AppResult<Book> = unused()
         override suspend fun getBookText(textUrl: String): AppResult<String> = unused()
     }
 
-    private object StubSearchHistoryRepository : SearchHistoryRepository {
-        override suspend fun getRecentSearches(): AppResult<List<String>> = AppResult.Success(emptyList())
-        override suspend fun saveRecentSearch(query: String): AppResult<Unit> = AppResult.Success(Unit)
-    }
-
-    private object StubLibraryRepository : LibraryRepository {
+    /** A shelf with nothing on it; these tests are about typing, not about what is already owned. */
+    private object EmptyLibrary : LibraryRepository {
         override suspend fun add(book: Book): AppResult<Unit> = AppResult.Success(Unit)
         override suspend fun getLibraryBooks(): AppResult<List<LibraryBook>> = AppResult.Success(emptyList())
         override suspend fun getContinueReading(): AppResult<LibraryBook?> = AppResult.Success(null)
-        override suspend fun updateReadingProgress(bookId: String, progressPercent: Int): AppResult<ReadingProgress> =
-            AppResult.Error(AppError.NotFound)
+        override suspend fun updateReadingProgress(bookId: String, progressPercent: Int) =
+            AppResult.Success(ReadingProgress(bookId = bookId, progressPercent = progressPercent))
     }
+
+    private val history = LocalSearchHistoryRepository(FakeLocalDataSource(), io = dispatcher)
 
     private fun viewModel(repository: SlowSearchRepository) =
         SearchViewModel(
             SearchBooksUseCase(repository),
-            GetRecentSearchesUseCase(StubSearchHistoryRepository),
-            SaveRecentSearchUseCase(StubSearchHistoryRepository),
-            GetLibraryBooksUseCase(StubLibraryRepository),
+            GetLibraryBooksUseCase(EmptyLibrary),
+            GetRecentSearchesUseCase(history),
+            SaveRecentSearchUseCase(history),
         )
 
-    /** What the field sends on every keystroke — a submit is a separate, explicit event. */
+    /** What the screen sends on every keystroke. */
     private fun SearchViewModel.type(text: String) {
         onEvent(SearchEvent.QueryChanged(text))
+        onEvent(SearchEvent.SearchClicked)
     }
 
     @Test
@@ -104,7 +104,7 @@ class SearchTypingTest {
         testScheduler.advanceUntilIdle()
 
         assertEquals(listOf("dickens"), repository.searched, "one request per letter is waste")
-        assertEquals(listOf("result-for-dickens"), viewModel.uiState.value.results.map { it.id })
+        assertEquals(listOf("result-for-dickens"), viewModel.uiState.value.books.map { it.id })
     }
 
     @Test
@@ -118,7 +118,59 @@ class SearchTypingTest {
         viewModel.type("dickens")
         testScheduler.advanceUntilIdle()   // long enough for both to have answered
 
-        assertEquals(listOf("result-for-dickens"), viewModel.uiState.value.results.map { it.id })
+        assertEquals(listOf("result-for-dickens"), viewModel.uiState.value.books.map { it.id })
         assertNull(viewModel.uiState.value.errorMessage, "a cancelled search is not a failed one")
+    }
+
+    @Test
+    fun `typing alone files nothing as a recent search`() = runTest(dispatcher) {
+        val viewModel = viewModel(SlowSearchRepository())
+
+        for (prefix in listOf("d", "di", "dic", "dick", "dicke", "dicken", "dickens")) {
+            viewModel.type(prefix)
+            testScheduler.advanceTimeBy(80)
+        }
+        testScheduler.advanceUntilIdle()
+
+        // A pause in typing is not a decision; "dick" on the way to "dickens" is not a search
+        // anyone would want offered back to them.
+        assertEquals(emptyList(), viewModel.uiState.value.recentSearches)
+    }
+
+    @Test
+    fun `opening a result files the query it came from`() = runTest(dispatcher) {
+        val viewModel = viewModel(SlowSearchRepository())
+
+        viewModel.type("dickens")
+        testScheduler.advanceUntilIdle()
+        viewModel.onEvent(SearchEvent.BookClicked("result-for-dickens"))
+        testScheduler.advanceUntilIdle()
+
+        assertEquals(listOf("dickens"), viewModel.uiState.value.recentSearches)
+    }
+
+    @Test
+    fun `a recent search runs at once, without waiting for a pause`() = runTest(dispatcher) {
+        val repository = SlowSearchRepository()
+        val viewModel = viewModel(repository)
+
+        viewModel.onEvent(SearchEvent.RecentSearchClicked("melville"))
+        testScheduler.runCurrent() // no time allowed to pass: a tapped chip is not typing
+
+        assertEquals(listOf("melville"), repository.searched)
+        assertEquals("melville", viewModel.uiState.value.query)
+    }
+
+    @Test
+    fun `clearing the box clears the results under it`() = runTest(dispatcher) {
+        val viewModel = viewModel(SlowSearchRepository())
+
+        viewModel.type("dickens")
+        testScheduler.advanceUntilIdle()
+        viewModel.type("")
+        testScheduler.advanceUntilIdle()
+
+        assertEquals(emptyList(), viewModel.uiState.value.books)
+        assertNull(viewModel.uiState.value.resultsFor)
     }
 }

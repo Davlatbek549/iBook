@@ -87,6 +87,13 @@ class RemoteBookRepository(
     override suspend fun getCategories(): AppResult<List<Category>> =
         AppResult.Success(defaultCategories)
 
+    // Asks for a single book: `numFound` is counted across the whole subject whatever the page
+    // size, so fetching twenty covers to read one number would be twenty covers of waste.
+    override suspend fun getCategoryBookCount(categoryId: String): AppResult<Int> =
+        runRemote {
+            openLibraryApi.searchBooksBySubject(categoryId, limit = 1).numFound ?: 0
+        }
+
     // Gutenberg text URLs 302-redirect to a plain http:// mirror. Ktor won't follow an
     // https -> http downgrade (and both platforms block cleartext requests anyway), so the 302
     // page itself would be served as the book text. Follow redirects by hand, forcing https.
@@ -141,6 +148,13 @@ class RemoteBookRepository(
         private const val GUTENDEX_PREFIX = "gutenberg-"
         private const val MAX_TEXT_REDIRECTS = 5
 
+        /**
+         * The genres the app browses by. The first three open Home's genre shelves, so new ones go
+         * on the end rather than ahead of them.
+         *
+         * Everything from Gothic on was added for Browse: its tiles and its mood row name genres —
+         * Gothic, Nature, Poetry, Cooking — the original seven did not cover.
+         */
         private val defaultCategories = listOf(
             Category(id = "fiction", name = "Fiction"),
             Category(id = "fantasy", name = "Fantasy"),
@@ -148,7 +162,16 @@ class RemoteBookRepository(
             Category(id = "history", name = "History"),
             Category(id = "biography", name = "Biography"),
             Category(id = "self-help", name = "Self Help"),
-            Category(id = "business", name = "Business")
+            Category(id = "business", name = "Business"),
+            Category(id = "gothic-fiction", name = "Gothic"),
+            Category(id = "horror", name = "Horror"),
+            Category(id = "mystery", name = "Mystery"),
+            Category(id = "romance", name = "Romance"),
+            Category(id = "adventure", name = "Adventure"),
+            Category(id = "poetry", name = "Poetry"),
+            Category(id = "short-stories", name = "Short Stories"),
+            Category(id = "nature", name = "Nature"),
+            Category(id = "cooking", name = "Cooking")
         )
 
         fun create(httpClient: HttpClient = createRemoteHttpClient()): RemoteBookRepository =

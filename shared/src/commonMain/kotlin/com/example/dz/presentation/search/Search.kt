@@ -2,128 +2,189 @@ package com.example.dz.presentation.search
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.DragInteraction
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dz.designsystem.components.icons.OrganicIcons
 import com.example.dz.designsystem.components.organic.ORGANIC_GUTTER
 import com.example.dz.designsystem.components.organic.ORGANIC_TAB_BAR_CLEARANCE
-import com.example.dz.designsystem.components.organic.OrganicBookCover
+import com.example.dz.designsystem.components.organic.OrganicCard
 import com.example.dz.designsystem.components.organic.OrganicCircleIconButton
-import com.example.dz.designsystem.components.organic.OrganicKicker
+import com.example.dz.designsystem.components.organic.OrganicFieldLabel
+import com.example.dz.designsystem.components.organic.OrganicListRow
+import com.example.dz.designsystem.components.organic.OrganicRowChevron
 import com.example.dz.designsystem.components.organic.OrganicScreen
+import com.example.dz.designsystem.components.organic.OrganicSearchField
+import com.example.dz.designsystem.components.organic.OrganicSkeleton
 import com.example.dz.designsystem.theme.OrganicColors
 import com.example.dz.designsystem.theme.OrganicShape
 import com.example.dz.designsystem.theme.organicBodyFontFamily
-import com.example.dz.designsystem.theme.organicHeadingFontFamily
+import com.example.dz.domain.model.Book
+import com.example.dz.presentation.common.priceLabel
+import com.example.dz.presentation.common.uniqueLazyKeys
 import dz.shared.generated.resources.Res
-import dz.shared.generated.resources.search_free
+import dz.shared.generated.resources.search_clear
+import dz.shared.generated.resources.search_close
+import dz.shared.generated.resources.search_field_hint
 import dz.shared.generated.resources.search_in_library
-import dz.shared.generated.resources.search_placeholder
+import dz.shared.generated.resources.search_no_results
 import dz.shared.generated.resources.search_recent
-import dz.shared.generated.resources.search_results_count
-import dz.shared.generated.resources.search_title
+import dz.shared.generated.resources.search_result_one
+import dz.shared.generated.resources.search_results
+import dz.shared.generated.resources.search_searching
+import kotlinx.coroutines.flow.filterIsInstance
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * Search — query and results, in the Organic design system. Geometry from `#scr-search`.
+ * Search — a live query over the catalogue, the reader's recent ones, and what it found.
  *
- * The old Ink screen mixed a category/mood grid into this same list; that grid is now Browse's
- * (reached one step earlier, from Home/Library's search circle), so this screen is just the field,
- * real recent-search chips, and results showing "In your library" or a price.
+ * Layout from `dz-all-screens.html` (`#scr-search`): a 22dp rhythm on a 24dp gutter. Search is no
+ * longer a tab, and the tab bar the frame draws is not here (see the note in the nav graph).
+ *
+ * The top behaves the way a phone search does: the box and the × beside it share one row, which
+ * rides in the list and scrolls away with the results rather than holding the top of the screen.
+ * The × is the way out — it closes Search and returns to Browse. The ⊗ inside the box is a
+ * different thing: it clears the query and keeps the reader here with the keyboard up.
+ *
+ * The field opens focused, once. Arriving here is asking to type; coming back from a result is not,
+ * so the keyboard does not climb over the results a second time.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SearchScreen(
     uiState: SearchUiState = SearchUiState(),
     onEvent: (SearchEvent) -> Unit = {},
-    modifier: Modifier = Modifier
 ) {
-    OrganicScreen(modifier = modifier) {
+    val keyboard = LocalSoftwareKeyboardController.current
+    val focusRequester = remember { FocusRequester() }
+    var focusedOnArrival by rememberSaveable { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        if (!focusedOnArrival) {
+            focusRequester.requestFocus()
+            focusedOnArrival = true
+        }
+    }
+
+    val books = uiState.books
+    val bookKeys = books.uniqueLazyKeys { it.id }
+    val listState = rememberLazyListState()
+
+    // Scrolling the results is reading them, and a keyboard over half of them is in the way. Only a
+    // finger on the list closes it: a scroll in progress would also be true while the list settles
+    // after an answer arrives, and a keyboard that shuts itself mid-word is worse than one in the
+    // way.
+    LaunchedEffect(listState) {
+        listState.interactionSource.interactions
+            .filterIsInstance<DragInteraction.Start>()
+            .collect { keyboard?.hide() }
+    }
+    val resultsFor = uiState.resultsFor
+    val errorMessage = uiState.errorMessage
+
+    OrganicScreen {
+        // Lazy, so a long page of results composes only the rows on screen — and only those rows
+        // start loading their covers, instead of every result's cover being fetched at once. The box
+        // is the first item rather than a header above the list, so it leaves with everything else
+        // as a reader scrolls down; the query lives in the view model, so scrolling it out of view
+        // loses nothing.
         LazyColumn(
-            modifier = Modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(top = 16.dp, bottom = ORGANIC_TAB_BAR_CLEARANCE),
-            verticalArrangement = Arrangement.spacedBy(22.dp)
+            state = listState,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(
+                start = ORGANIC_GUTTER,
+                end = ORGANIC_GUTTER,
+                top = 12.dp,
+                bottom = ORGANIC_TAB_BAR_CLEARANCE,
+            ),
+            verticalArrangement = Arrangement.spacedBy(ROW_GAP)
         ) {
-            item(key = "header") {
+            item(key = "field", contentType = "field") {
                 Row(
+                    // Tops the 12dp row gap up to the 22dp the frame leaves under the box.
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = ORGANIC_GUTTER),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                        .padding(bottom = SECTION_GAP - ROW_GAP),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    OrganicCircleIconButton(
-                        icon = OrganicIcons.ChevronLeft,
-                        onClick = { onEvent(SearchEvent.BackClicked) },
-                        contentDescription = "Back",
-                        size = 38.dp
+                    OrganicSearchField(
+                        value = uiState.query,
+                        onValueChange = {
+                            onEvent(SearchEvent.QueryChanged(it))
+                            onEvent(SearchEvent.SearchClicked)
+                        },
+                        placeholder = stringResource(Res.string.search_field_hint),
+                        modifier = Modifier.weight(1f),
+                        focusRequester = focusRequester,
+                        onSearch = {
+                            onEvent(SearchEvent.SearchSubmitted)
+                            keyboard?.hide()
+                        },
+                        // Clearing leaves the box ready for the next query rather than dismissing the
+                        // keyboard, which is what a reader starting over wants.
+                        onClear = { onEvent(SearchEvent.QueryChanged("")) },
+                        clearContentDescription = stringResource(Res.string.search_clear),
                     )
-                    Text(
-                        text = stringResource(Res.string.search_title),
-                        fontFamily = organicHeadingFontFamily(),
-                        fontWeight = FontWeight.Normal,
-                        fontSize = 30.sp,
-                        color = OrganicColors.text
+                    // The way out. The ⊗ inside the box only empties it: one × leaves, the other
+                    // stays and clears, and they sit far enough apart to tell apart.
+                    OrganicCircleIconButton(
+                        icon = OrganicIcons.Close,
+                        onClick = { onEvent(SearchEvent.BackClicked) },
+                        contentDescription = stringResource(Res.string.search_close),
+                        size = 38.dp,
+                        iconSize = 16.dp,
                     )
                 }
             }
-
-            item(key = "field") {
-                SearchField(
-                    value = uiState.query,
-                    onValueChange = { onEvent(SearchEvent.QueryChanged(it)) },
-                    onSubmit = { onEvent(SearchEvent.SearchClicked) },
-                    modifier = Modifier.padding(horizontal = ORGANIC_GUTTER)
-                )
-            }
-
             if (uiState.recentSearches.isNotEmpty()) {
-                item(key = "recent") {
+                item(key = "recent", contentType = "recent") {
                     Column(
-                        modifier = Modifier.padding(horizontal = ORGANIC_GUTTER),
+                        // Tops the 12dp row gap up to the 22dp the frame leaves under Recent.
+                        modifier = Modifier.padding(bottom = SECTION_GAP - ROW_GAP),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        OrganicKicker(text = stringResource(Res.string.search_recent), color = OrganicColors.neutral700)
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OrganicFieldLabel(text = stringResource(Res.string.search_recent))
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
                             uiState.recentSearches.forEach { recent ->
-                                Text(
+                                RecentChip(
                                     text = recent,
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(OrganicShape.pill))
-                                        .background(OrganicColors.neutral200)
-                                        .clickable(role = Role.Button) {
-                                            onEvent(SearchEvent.RecentSearchClicked(recent))
-                                        }
-                                        .padding(horizontal = 16.dp, vertical = 9.dp),
-                                    fontFamily = organicBodyFontFamily(),
-                                    fontSize = 13.sp,
-                                    color = OrganicColors.text
+                                    onClick = {
+                                        onEvent(SearchEvent.RecentSearchClicked(recent))
+                                        keyboard?.hide()
+                                    },
                                 )
                             }
                         }
@@ -131,141 +192,159 @@ fun SearchScreen(
                 }
             }
 
-            if (uiState.results.isNotEmpty()) {
-                item(key = "results-count") {
-                    OrganicKicker(
-                        text = stringResource(Res.string.search_results_count, uiState.results.size),
-                        color = OrganicColors.neutral700,
-                        modifier = Modifier.padding(horizontal = ORGANIC_GUTTER)
-                    )
-                }
-                itemsIndexed(items = uiState.results, key = { _, result -> result.id }) { _, result ->
-                    SearchResultRow(
-                        result = result,
-                        onClick = { onEvent(SearchEvent.BookClicked(result.id)) },
-                        modifier = Modifier.padding(horizontal = ORGANIC_GUTTER)
-                    )
-                }
-            }
-        }
-    }
-}
+            if (uiState.hasQuery) {
+                when {
+                    errorMessage != null -> item(key = "error", contentType = "note") {
+                        SearchNote(text = errorMessage)
+                    }
 
-@Composable
-private fun SearchField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    onSubmit: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    BasicTextField(
-        value = value,
-        onValueChange = onValueChange,
-        modifier = modifier
-            .fillMaxWidth()
-            .height(56.dp)
-            .clip(RoundedCornerShape(OrganicShape.pill))
-            .background(OrganicColors.neutral100),
-        textStyle = TextStyle(
-            fontFamily = organicBodyFontFamily(),
-            fontSize = 15.sp,
-            color = OrganicColors.text
-        ),
-        singleLine = true,
-        cursorBrush = SolidColor(OrganicColors.accent),
-        keyboardActions = KeyboardActions(onSearch = { onSubmit() }),
-        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-        decorationBox = { innerTextField ->
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 22.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = OrganicIcons.Search,
-                    contentDescription = null,
-                    tint = OrganicColors.neutral700,
-                    modifier = Modifier.size(18.dp)
-                )
-                Box(modifier = Modifier.weight(1f)) {
-                    if (value.isEmpty()) {
-                        Text(
-                            text = stringResource(Res.string.search_placeholder),
-                            fontFamily = organicBodyFontFamily(),
-                            fontSize = 15.sp,
-                            color = OrganicColors.neutral600
+                    // A row of grey shapes says "results are coming, and this is what they will
+                    // look like"; the word alone leaves the screen blank under it.
+                    uiState.isLoading -> {
+                        item(key = "status", contentType = "label") {
+                            OrganicFieldLabel(text = stringResource(Res.string.search_searching))
+                        }
+                        items(SEARCHING_SKELETON_ROWS, key = { "skeleton-$it" }, contentType = { "skeleton" }) {
+                            ResultRowSkeleton()
+                        }
+                    }
+
+                    resultsFor != null && books.isEmpty() -> item(key = "empty", contentType = "note") {
+                        SearchNote(text = stringResource(Res.string.search_no_results, resultsFor))
+                    }
+
+                    resultsFor != null -> item(key = "status", contentType = "label") {
+                        OrganicFieldLabel(
+                            text = if (books.size == 1) {
+                                stringResource(Res.string.search_result_one)
+                            } else {
+                                stringResource(Res.string.search_results, books.size)
+                            }
                         )
                     }
-                    innerTextField()
+                }
+
+                // The last answer stays under "Searching…" while the next is on its way, so the
+                // list does not blank and jump on every pause in typing.
+                if (errorMessage == null && resultsFor != null && !uiState.isLoading) {
+                    items(books.size, key = { "book:" + bookKeys[it] }, contentType = { "book" }) { index ->
+                        val book = books[index]
+                        ResultRow(
+                            book = book,
+                            inLibrary = uiState.isInLibrary(book),
+                            onClick = { onEvent(SearchEvent.BookClicked(book.id)) },
+                        )
+                    }
                 }
             }
         }
+    }
+}
+
+/**
+ * A result: the 52 × 76 cover of a library row, bare rather than carded, ending in a chevron. Under
+ * the author it says the one thing worth knowing before opening it — already yours, or what it
+ * costs.
+ */
+@Composable
+private fun ResultRow(
+    book: Book,
+    inLibrary: Boolean,
+    onClick: () -> Unit,
+) {
+    OrganicListRow(
+        title = book.title,
+        author = book.authors.firstOrNull()?.name,
+        meta = if (inLibrary) stringResource(Res.string.search_in_library) else book.priceLabel(),
+        coverUrl = book.coverUrl,
+        coverWidth = 52.dp,
+        coverHeight = 76.dp,
+        onClick = onClick,
+        trailing = { OrganicRowChevron() },
     )
 }
 
+/** The shape of a result before it arrives: cover, title, author. */
 @Composable
-private fun SearchResultRow(
-    result: SearchResultUi,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
+private fun ResultRowSkeleton() {
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(role = Role.Button, onClick = onClick),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp)
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        OrganicBookCover(title = result.title, coverUrl = result.coverUrl, width = 52.dp, height = 76.dp, cornerRadius = 10.dp)
-
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            Text(
-                text = result.title,
-                fontFamily = organicHeadingFontFamily(),
-                fontWeight = FontWeight.Normal,
-                fontSize = 17.sp,
-                lineHeight = 19.sp,
-                color = OrganicColors.text
+        OrganicSkeleton(
+            modifier = Modifier
+                .width(52.dp)
+                .height(76.dp),
+            cornerRadius = 10.dp,
+        )
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            OrganicSkeleton(
+                modifier = Modifier
+                    .fillMaxWidth(0.7f)
+                    .height(17.dp)
             )
-            Text(
-                text = result.author,
-                fontFamily = organicBodyFontFamily(),
-                fontSize = 12.sp,
-                color = OrganicColors.neutral700
-            )
-            Text(
-                text = when {
-                    result.inLibrary -> stringResource(Res.string.search_in_library)
-                    result.price != null -> result.price
-                    result.isFree -> stringResource(Res.string.search_free)
-                    else -> ""
-                },
-                fontFamily = organicBodyFontFamily(),
-                fontSize = 12.sp,
-                color = OrganicColors.accent700
+            OrganicSkeleton(
+                modifier = Modifier
+                    .fillMaxWidth(0.4f)
+                    .height(12.dp)
             )
         }
+    }
+}
 
-        Icon(
-            imageVector = OrganicIcons.ChevronRight,
-            contentDescription = null,
-            tint = OrganicColors.neutral600,
-            modifier = Modifier.size(15.dp)
+/** A recent query as a neutral pill; tapping it runs it again. */
+@Composable
+private fun RecentChip(
+    text: String,
+    onClick: () -> Unit,
+) {
+    Text(
+        text = text,
+        modifier = Modifier
+            .clip(RoundedCornerShape(OrganicShape.pill))
+            .background(OrganicColors.neutral200)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 9.dp),
+        fontFamily = organicBodyFontFamily(),
+        fontSize = 13.sp,
+        color = OrganicColors.text,
+        maxLines = 1
+    )
+}
+
+/**
+ * What an empty or failed search says. The handoff draws neither, so this follows Library's empty
+ * note — a filled card and a plain sentence that says what to try.
+ */
+@Composable
+private fun SearchNote(text: String) {
+    OrganicCard(
+        modifier = Modifier.fillMaxWidth(),
+        background = OrganicColors.neutral100,
+        contentPadding = PaddingValues(18.dp),
+    ) {
+        Text(
+            text = text,
+            fontFamily = organicBodyFontFamily(),
+            fontSize = 13.sp,
+            lineHeight = 19.5.sp,
+            color = OrganicColors.neutral700
         )
     }
 }
 
-@Preview(showBackground = true, widthDp = 375, heightDp = 820)
+/** Enough grey rows to fill the space the first answers will take, and no more. */
+private const val SEARCHING_SKELETON_ROWS = 4
+
+private val SECTION_GAP = 22.dp
+private val ROW_GAP = 12.dp
+
+@Preview
 @Composable
-private fun SearchScreenPreview() {
-    SearchScreen(
-        uiState = SearchUiState(
-            query = "gothic",
-            recentSearches = listOf("Strout", "short stories", "audio"),
-            results = listOf(
-                SearchResultUi("1", "Mexican Gothic", "Silvia Moreno-Garcia", null, inLibrary = true, isFree = false, price = null),
-                SearchResultUi("2", "The Hacienda", "Isabel Cañas", null, inLibrary = false, isFree = false, price = "$10.99"),
-            )
-        )
-    )
+fun SearchScreenPreview() {
+    SearchScreen()
 }

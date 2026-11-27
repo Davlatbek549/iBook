@@ -33,7 +33,6 @@ object Routes {
     // Bottom Nav Tabs
     const val HOME = "home"
     const val LIBRARY = "library"
-    const val STORE = "store"
     const val SEARCH = "search"
     const val PROFILE_TAB = "profile_tab"
 

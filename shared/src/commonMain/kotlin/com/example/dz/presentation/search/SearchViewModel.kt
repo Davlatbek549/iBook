@@ -3,7 +3,6 @@ package com.example.dz.presentation.search
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.dz.core.result.AppResult
-import com.example.dz.domain.model.Book
 import com.example.dz.domain.usecase.book.SearchBooksUseCase
 import com.example.dz.domain.usecase.library.GetLibraryBooksUseCase
 import com.example.dz.domain.usecase.search.GetRecentSearchesUseCase
@@ -26,9 +25,9 @@ private const val SEARCH_DEBOUNCE_MILLIS = 300L
 
 class SearchViewModel(
     private val searchBooks: SearchBooksUseCase,
-    private val getRecentSearches: GetRecentSearchesUseCase,
-    private val saveRecentSearch: SaveRecentSearchUseCase,
     private val getLibraryBooks: GetLibraryBooksUseCase,
+    private val getRecentSearches: GetRecentSearchesUseCase,
+    private val saveRecentSearch: SaveRecentSearchUseCase
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(SearchUiState())
     val uiState = _uiState.asStateFlow()
@@ -38,11 +37,10 @@ class SearchViewModel(
 
     /** The search for what is in the box now. Anything older is cancelled when this is replaced. */
     private var searchJob: Job? = null
-    private var libraryBookIds: Set<String> = emptySet()
 
     init {
-        loadRecent()
-        refreshLibraryIds()
+        loadRecentSearches()
+        refreshLibrary()
     }
 
     fun onEvent(event: SearchEvent) {
@@ -52,81 +50,81 @@ class SearchViewModel(
                 if (event.value.isBlank()) {
                     // Cleared box: an answer still on its way would put results back under it.
                     searchJob?.cancel()
-                    _uiState.update { it.copy(results = emptyList(), errorMessage = null) }
-                } else {
-                    search(saveToRecent = false)
-                }
-            }
-            SearchEvent.SearchClicked -> search(saveToRecent = true)
-            SearchEvent.BackClicked -> emitEffect(SearchEffect.NavigateBack)
-            is SearchEvent.BookClicked -> emitEffect(SearchEffect.NavigateToBook(event.bookId))
-            is SearchEvent.RecentSearchClicked -> {
-                _uiState.update { it.copy(query = event.query) }
-                search(saveToRecent = true)
-            }
-            SearchEvent.Resumed -> refreshLibraryIds(remapResults = true)
-        }
-    }
-
-    private fun loadRecent() {
-        viewModelScope.launch {
-            when (val result = getRecentSearches()) {
-                is AppResult.Success -> _uiState.update { it.copy(recentSearches = result.data) }
-                is AppResult.Error -> Unit
-            }
-        }
-    }
-
-    private fun refreshLibraryIds(remapResults: Boolean = false) {
-        viewModelScope.launch {
-            when (val result = getLibraryBooks()) {
-                is AppResult.Success -> {
-                    libraryBookIds = result.data.map { it.book.id }.toSet()
-                    if (remapResults) {
-                        _uiState.update { state ->
-                            state.copy(results = state.results.map { it.copy(inLibrary = it.id in libraryBookIds) })
-                        }
+                    _uiState.update {
+                        it.copy(books = emptyList(), resultsFor = null, isLoading = false, errorMessage = null)
                     }
                 }
-                is AppResult.Error -> Unit
             }
+            SearchEvent.SearchClicked -> search(afterPause = true)
+            SearchEvent.SearchSubmitted -> {
+                search(afterPause = false)
+                rememberSearch(_uiState.value.query)
+            }
+            is SearchEvent.RecentSearchClicked -> {
+                _uiState.update { it.copy(query = event.query) }
+                search(afterPause = false)
+                rememberSearch(event.query)
+            }
+            // Opening a result is the surest sign the query was the one meant — surer than a pause
+            // in typing, which would file "dick" and "dicke" on the way to "dickens".
+            is SearchEvent.BookClicked -> {
+                rememberSearch(_uiState.value.query)
+                emitEffect(SearchEffect.NavigateToBook(event.bookId))
+            }
+            SearchEvent.BackClicked -> emitEffect(SearchEffect.NavigateBack)
+            SearchEvent.Resumed -> refreshLibrary()
         }
     }
 
     /**
-     * Searches for what is in the box, after a pause in typing, replacing any search still running.
+     * Searches for what is in the box, replacing any search still running — after a pause in typing
+     * when [afterPause], at once when the reader has said the query is done.
      *
      * The field calls this on every keystroke. Each call used to start its own search and none was
-     * ever stopped, so whichever answer arrived last won. Cancelling the previous search is what
-     * makes the current query the only one that can land.
-     *
-     * [saveToRecent] is false for the live-as-you-type path — only an explicit submit (the search
-     * button, or re-running a recent chip) is worth remembering, not every half-typed word.
+     * ever stopped, so whichever answer arrived last won — a slow answer for "dick" could land after
+     * the one for "dickens" and stay on screen under a box that said "dickens". Cancelling the
+     * previous search is what makes the current query the only one that can land.
      */
-    private fun search(saveToRecent: Boolean) {
+    private fun search(afterPause: Boolean) {
         val query = _uiState.value.query.trim()
         searchJob?.cancel()
         if (query.isBlank()) return
 
         searchJob = viewModelScope.launch {
-            delay(SEARCH_DEBOUNCE_MILLIS)
+            if (afterPause) delay(SEARCH_DEBOUNCE_MILLIS)
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
-            if (saveToRecent) {
-                launch {
-                    saveRecentSearch(query)
-                    loadRecent()
-                }
-            }
             when (val result = searchBooks(query)) {
                 is AppResult.Success -> _uiState.update {
-                    it.copy(
-                        results = result.data.map { book -> book.toSearchResultUi(libraryBookIds) },
-                        isLoading = false
-                    )
+                    it.copy(books = result.data, resultsFor = query, isLoading = false)
                 }
                 is AppResult.Error -> _uiState.update {
                     it.copy(isLoading = false, errorMessage = result.error.toPresentationMessage())
                 }
+            }
+        }
+    }
+
+    private fun loadRecentSearches() {
+        viewModelScope.launch {
+            val recent = getRecentSearches()
+            _uiState.update { it.copy(recentSearches = recent) }
+        }
+    }
+
+    private fun rememberSearch(query: String) {
+        if (query.isBlank()) return
+        viewModelScope.launch {
+            val recent = saveRecentSearch(query)
+            _uiState.update { it.copy(recentSearches = recent) }
+        }
+    }
+
+    /** A shelf that cannot be read leaves every result unmarked — search itself still works. */
+    private fun refreshLibrary() {
+        viewModelScope.launch {
+            val library = (getLibraryBooks() as? AppResult.Success)?.data.orEmpty()
+            _uiState.update { state ->
+                state.copy(librarySignatures = library.flatMap { it.book.librarySignatures() }.toSet())
             }
         }
     }
@@ -137,14 +135,3 @@ class SearchViewModel(
         }
     }
 }
-
-private fun Book.toSearchResultUi(libraryBookIds: Set<String>): SearchResultUi =
-    SearchResultUi(
-        id = id,
-        title = title,
-        author = authors.firstOrNull()?.name.orEmpty().ifBlank { "Unknown author" },
-        coverUrl = coverUrl,
-        inLibrary = id in libraryBookIds,
-        isFree = isFree,
-        price = price
-    )

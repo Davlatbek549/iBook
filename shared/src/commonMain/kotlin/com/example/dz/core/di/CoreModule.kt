@@ -32,13 +32,13 @@ import com.example.dz.data.remote.api.createRemoteHttpClient
 import com.example.dz.data.repository.ChatRepositoryImpl
 import com.example.dz.data.repository.DownloadRepositoryImpl
 import com.example.dz.data.repository.LocalDeviceDataRepository
+import com.example.dz.data.repository.LocalSearchHistoryRepository
 import com.example.dz.data.repository.LocalCollectionRepository
 import com.example.dz.data.repository.LocalGoalRepository
 import com.example.dz.data.repository.LocalReaderPreferencesRepository
 import com.example.dz.data.repository.LocalReadingPositionRepository
 import com.example.dz.data.repository.LocalReviewRepository
 import com.example.dz.data.repository.LocalLibraryRepository
-import com.example.dz.data.repository.LocalSearchHistoryRepository
 import com.example.dz.data.repository.MembershipRepositoryImpl
 import com.example.dz.data.repository.NotificationRepositoryImpl
 import com.example.dz.data.repository.PaymentRepositoryImpl
