@@ -15,7 +15,7 @@ private object Keys {
 
 /**
  * Every key written on an account's behalf, by prefix: profile counters, the payment, social and
- * notification stubs, the code-send stamps, the reader's places and settings, and recent searches.
+ * notification stubs, the code-send stamps, the reader's places and settings, library sync state, and recent searches.
  * Erasing an account removes these and nothing more — on iOS the store is shared with the system,
  * so clearing it wholesale would take keys that were never the app's. A new per-account key needs one of these prefixes, or a new entry here.
  */
@@ -30,6 +30,7 @@ private val USER_DATA_PREFIXES = listOf(
     // Where the reader had got to in each book, which page they pinned, and how they like a page
     // set. All of it is theirs.
     "reader_",
+    "reading_sync_",
     "search_",
 )
 
@@ -89,9 +90,16 @@ class LocalDataSourceImpl(private val settings: Settings) : LocalDataSource {
     }
 
     override fun clearUserData() {
+        val owner = getUserId() ?: getSetting("reading_sync_owner")
         clearSession()
         settings.keys
-            .filter { key -> USER_DATA_PREFIXES.any { key.startsWith(it) } }
+            .filter { key ->
+                when {
+                    key.startsWith("reading_sync_account_") -> key == "reading_sync_account_$owner"
+                    key.startsWith("reader_account_") -> key.startsWith("reader_account_${owner}_")
+                    else -> USER_DATA_PREFIXES.any { key.startsWith(it) }
+                }
+            }
             .forEach(settings::remove)
     }
 

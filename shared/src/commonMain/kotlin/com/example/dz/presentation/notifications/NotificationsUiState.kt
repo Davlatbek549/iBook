@@ -1,12 +1,15 @@
 package com.example.dz.presentation.notifications
 
-import androidx.compose.ui.graphics.vector.ImageVector
 import com.example.dz.domain.model.AppNotification
-import org.jetbrains.compose.resources.DrawableResource
 
-enum class NotificationFilter { All, Friends, Store }
+enum class NotificationFilter { All, Friends, Goals, Store }
 
-enum class NotificationCategory { Friends, Store, Other }
+/**
+ * Nothing in [AppNotification] says what a notification is about, so every real one lands in
+ * [Other] — the Friends/Goals/Store chips are visual-complete for the design but will not
+ * actually narrow anything until the server tags notifications with a type.
+ */
+enum class NotificationCategory { Friends, Goals, Store, Other }
 
 data class NotificationsUiState(
     val filter: NotificationFilter = NotificationFilter.All,
@@ -14,35 +17,45 @@ data class NotificationsUiState(
     val isLoading: Boolean = false,
     val errorMessage: String? = null
 ) {
-    /** Items matching the currently selected filter. */
+    val unreadCount: Int
+        get() = items.count { it.unread }
+
     val visibleItems: List<NotificationUi>
         get() = when (filter) {
             NotificationFilter.All -> items
             NotificationFilter.Friends -> items.filter { it.category == NotificationCategory.Friends }
+            NotificationFilter.Goals -> items.filter { it.category == NotificationCategory.Goals }
             NotificationFilter.Store -> items.filter { it.category == NotificationCategory.Store }
         }
+
+    val todayItems: List<NotificationUi> get() = visibleItems.filter { it.isToday }
+    val earlierItems: List<NotificationUi> get() = visibleItems.filter { !it.isToday }
 }
 
-/**
- * Rich display model for a single notification row. The [textParts] alternate
- * emphasis: even indices are rendered bold, odd indices normal (see the screen's
- * `richText` helper).
- */
 data class NotificationUi(
     val id: String,
-    val textParts: List<String>,
+    val title: String,
+    val message: String,
     val time: String,
     val unread: Boolean = false,
-    val category: NotificationCategory = NotificationCategory.Other,
-    val avatarRes: DrawableResource? = null,
-    val icon: ImageVector? = null,
-    val coverRes: DrawableResource? = null
+    val isToday: Boolean = true,
+    val category: NotificationCategory = NotificationCategory.Other
 )
 
-fun AppNotification.toNotificationUi(): NotificationUi =
-    NotificationUi(
+/**
+ * [AppNotification.date] is already a relative string from the server ("2h", "1d"), not a
+ * timestamp — there is nothing to group by calendar day with. Minutes/hours read as today;
+ * anything counted in days reads as earlier, which is the same split the handoff's own mock
+ * draws even though it labels the second half "Yesterday" for entries up to four days old.
+ */
+fun AppNotification.toNotificationUi(): NotificationUi {
+    val relative = date.orEmpty()
+    return NotificationUi(
         id = id,
-        textParts = listOf(title, " — $message"),
-        time = date.orEmpty(),
-        unread = !isRead
+        title = title,
+        message = message,
+        time = relative,
+        unread = !isRead,
+        isToday = relative.isBlank() || relative.endsWith("m") || relative.endsWith("h"),
     )
+}

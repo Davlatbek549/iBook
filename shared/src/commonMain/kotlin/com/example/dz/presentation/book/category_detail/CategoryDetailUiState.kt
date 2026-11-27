@@ -1,9 +1,6 @@
 package com.example.dz.presentation.book.category_detail
 
 import com.example.dz.domain.model.Book
-import dz.shared.generated.resources.Res
-import dz.shared.generated.resources.book_cover
-import org.jetbrains.compose.resources.DrawableResource
 
 data class CategoryDetailUiState(
     val categoryId: String = "",
@@ -18,10 +15,9 @@ data class CategoryDetailBookUi(
     val id: String,
     val title: String,
     val author: String,
-    val coverRes: DrawableResource = Res.drawable.book_cover,
     val coverUrl: String? = null,
     val rating: String = "4.5",
-    val price: String = "12.99",
+    val price: String = "$12.99",
     val tag: String = "",
     val bookmarked: Boolean = false
 )

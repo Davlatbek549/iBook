@@ -18,11 +18,16 @@ import com.example.dz.domain.model.Book
 import com.example.dz.domain.model.BookReview
 import com.example.dz.domain.model.Collection
 import com.example.dz.domain.model.LibraryBook
+import com.example.dz.domain.model.ReaderPreferences
 import com.example.dz.domain.model.User
+import com.example.dz.domain.model.UserProfile
 import com.example.dz.domain.repository.AuthRepository
 import com.example.dz.domain.repository.DeviceDataRepository
+import com.example.dz.domain.repository.ReaderPreferencesRepository
+import com.example.dz.domain.repository.UserRepository
 import com.example.dz.domain.usecase.account.DeleteAccountUseCase
 import com.example.dz.domain.usecase.auth.LogoutUseCase
+import com.example.dz.domain.usecase.user.GetProfileUseCase
 import com.example.dz.presentation.settings.SettingsEffect
 import com.example.dz.presentation.settings.SettingsEvent
 import com.example.dz.presentation.settings.SettingsViewModel
@@ -209,7 +214,25 @@ class AccountDeletionTest {
     }
 
     private fun settings(repository: AuthRepository, deviceData: DeviceDataRepository) =
-        SettingsViewModel(LogoutUseCase(repository), DeleteAccountUseCase(repository, deviceData))
+        SettingsViewModel(
+            GetProfileUseCase(StubUserRepository),
+            StubReaderPreferencesRepository,
+            LogoutUseCase(repository),
+            DeleteAccountUseCase(repository, deviceData),
+        )
+
+    /** Settings loads a profile and reader prefs on init; neither is what this test is about. */
+    private object StubUserRepository : UserRepository {
+        override suspend fun getProfile(): AppResult<UserProfile> =
+            AppResult.Success(UserProfile(user = User(id = "u-1", name = "Ada")))
+        override suspend fun updateProfile(profile: UserProfile): AppResult<UserProfile> =
+            error("not part of deleting an account")
+    }
+
+    private object StubReaderPreferencesRepository : ReaderPreferencesRepository {
+        override fun get(): ReaderPreferences = ReaderPreferences()
+        override fun save(preferences: ReaderPreferences) = error("not part of deleting an account")
+    }
 
     @Test
     fun `the device is only erased once the server has deleted the account`() = runTest(dispatcher) {

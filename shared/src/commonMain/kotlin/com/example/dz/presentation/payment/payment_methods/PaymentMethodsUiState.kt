@@ -1,6 +1,6 @@
 package com.example.dz.presentation.payment.payment_methods
 
-enum class PaymentBrand { Paypal, Visa, ApplePay }
+enum class PaymentBrand { Paypal, Visa, Mastercard, ApplePay }
 
 data class PaymentMethodItem(
     val id: String,

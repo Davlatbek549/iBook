@@ -1,27 +1,25 @@
 package com.example.dz.presentation.social.chat
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -30,241 +28,203 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.dz.designsystem.components.icons.InkIcons
-import com.example.dz.designsystem.components.ink.InkIconButton
-import com.example.dz.designsystem.theme.InkColors
-import com.example.dz.designsystem.theme.InkShape
-import com.example.dz.designsystem.theme.inkBodyFontFamily
-import com.example.dz.designsystem.theme.inkColors
-import com.example.dz.designsystem.theme.inkDisplayFontFamily
+import com.example.dz.designsystem.components.icons.OrganicIcons
+import com.example.dz.designsystem.components.organic.ORGANIC_GUTTER
+import com.example.dz.designsystem.components.organic.OrganicAvatar
+import com.example.dz.designsystem.components.organic.OrganicCircleIconButton
+import com.example.dz.designsystem.components.organic.OrganicKicker
+import com.example.dz.designsystem.components.organic.OrganicScreen
+import com.example.dz.designsystem.components.organic.organicIdentityTint
+import com.example.dz.designsystem.theme.OrganicColors
+import com.example.dz.designsystem.theme.OrganicShape
+import com.example.dz.designsystem.theme.organicBodyFontFamily
 import dz.shared.generated.resources.Res
-import dz.shared.generated.resources.book_cover_3
-import dz.shared.generated.resources.chat_online
+import dz.shared.generated.resources.chat_message_placeholder
 import dz.shared.generated.resources.chat_today
-import dz.shared.generated.resources.chat_view_book
-import dz.shared.generated.resources.chat_write
-import dz.shared.generated.resources.profile_2
-import org.jetbrains.compose.resources.painterResource
+import dz.shared.generated.resources.friends_reading_book
 import org.jetbrains.compose.resources.stringResource
 
+/**
+ * Chat — message thread with a friend in the Organic design system.
+ *
+ * Geometry from `#scr-chat`: 38dp back button, 40dp avatar with bold 15sp name + "Reading {book}"
+ * subtitle, plain sent/received bubbles (no per-message timestamp — the mock shows only one
+ * "Today" divider), pill composer bar with a leading attachment glyph and trailing send button.
+ * The mock's book-share card and "..." typing indicator have no backing data (no message type
+ * field, no typing signal) so they're intentionally left out rather than hardcoded.
+ */
 @Composable
 fun ChatScreen(
     uiState: ChatUiState = ChatUiState(),
     onEvent: (ChatEvent) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val colors = inkColors()
-    val displayFont = inkDisplayFontFamily()
-    val bodyFont = inkBodyFontFamily()
-
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(colors.paper)
-            .statusBarsPadding()
-    ) {
-        // header
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 22.dp, end = 22.dp, top = 4.dp, bottom = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(13.dp)
-        ) {
-            InkIconButton(icon = InkIcons.Back, onClick = { onEvent(ChatEvent.BackClicked) }, colors = colors)
-            Box {
-                Image(
-                    painter = painterResource(Res.drawable.profile_2),
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .size(42.dp)
-                        .clip(RoundedCornerShape(InkShape.radiusSm))
-                )
-                if (uiState.online) {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .offset(x = 2.dp, y = 2.dp)
-                            .size(11.dp)
-                            .clip(CircleShape)
-                            .background(colors.paper)
-                            .padding(2.dp)
-                            .clip(CircleShape)
-                            .background(colors.accent)
-                    )
-                }
-            }
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = uiState.friendName,
-                    fontFamily = bodyFont,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 14.sp,
-                    color = colors.ink
-                )
-                if (uiState.online) {
-                    Text(
-                        text = stringResource(Res.string.chat_online),
-                        modifier = Modifier.padding(top = 4.dp),
-                        fontFamily = bodyFont,
-                        fontSize = 11.sp,
-                        color = colors.accent
-                    )
-                }
-            }
-            InkIconButton(icon = InkIcons.MoreVertical, onClick = { onEvent(ChatEvent.OptionsClicked) }, colors = colors)
-        }
-        HorizontalDivider(thickness = 1.dp, color = colors.line)
-
-        // messages
+    OrganicScreen(modifier = modifier) {
         Column(
             modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(start = 22.dp, end = 22.dp, top = 18.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+                .fillMaxSize()
+                .imePadding()
         ) {
-            Text(
-                text = stringResource(Res.string.chat_today).uppercase(),
-                modifier = Modifier.align(Alignment.CenterHorizontally),
-                fontFamily = bodyFont,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 10.sp,
-                letterSpacing = 1.sp,
-                color = colors.muted
-            )
-            uiState.messages.forEach { message ->
-                Bubble(
-                    text = message.text,
-                    time = message.time,
-                    fromMe = message.fromMe,
-                    colors = colors
-                )
-            }
-            // shared book card
-            Column(
+            // Header
+            Row(
                 modifier = Modifier
-                    .align(Alignment.End)
-                    .widthIn(max = 250.dp)
+                    .fillMaxWidth()
+                    .padding(horizontal = ORGANIC_GUTTER, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Row(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(InkShape.radius))
-                        .background(colors.surface)
-                        .border(1.dp, colors.line, RoundedCornerShape(InkShape.radius))
-                        .padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Image(
-                        painter = painterResource(Res.drawable.book_cover_3),
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .size(width = 40.dp, height = 58.dp)
-                            .clip(RoundedCornerShape(InkShape.cover - 1.dp))
+                OrganicCircleIconButton(
+                    icon = OrganicIcons.ChevronLeft,
+                    onClick = { onEvent(ChatEvent.BackClicked) },
+                    contentDescription = "Back",
+                    size = 38.dp
+                )
+
+                OrganicAvatar(
+                    name = uiState.friendName,
+                    size = 40.dp,
+                    fontSize = 16.sp,
+                    background = organicIdentityTint(uiState.friendId)
+                )
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = uiState.friendName,
+                        fontFamily = organicBodyFontFamily(),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        color = OrganicColors.text
                     )
-                    Column {
+                    val bookTitle = uiState.friendCurrentBookTitle
+                    if (bookTitle != null) {
                         Text(
-                            text = "Red at the Bone",
-                            fontFamily = displayFont,
-                            fontWeight = FontWeight.Medium,
-                            fontSize = 13.5.sp,
-                            color = colors.ink
-                        )
-                        Text(
-                            text = "Jacqueline Woodson",
-                            modifier = Modifier.padding(top = 4.dp),
-                            fontFamily = bodyFont,
+                            text = stringResource(Res.string.friends_reading_book, bookTitle),
+                            fontFamily = organicBodyFontFamily(),
                             fontSize = 11.sp,
-                            color = colors.muted
-                        )
-                        Text(
-                            text = stringResource(Res.string.chat_view_book),
-                            modifier = Modifier.padding(top = 7.dp),
-                            fontFamily = bodyFont,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 11.sp,
-                            color = colors.accent
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            color = OrganicColors.accent2_900
                         )
                     }
                 }
-                Text(
-                    text = "14:07 · Read",
-                    modifier = Modifier
-                        .align(Alignment.End)
-                        .padding(top = 5.dp, end = 4.dp),
-                    fontFamily = bodyFont,
-                    fontSize = 10.sp,
-                    color = colors.muted
-                )
             }
-        }
 
-        // composer
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 1.dp)
-                .background(colors.paper)
-                .navigationBarsPadding()
-                .padding(start = 22.dp, end = 22.dp, top = 12.dp, bottom = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Box(
+            HorizontalDivider(thickness = 1.dp, color = OrganicColors.neutral200)
+
+            // Messages List
+            Column(
                 modifier = Modifier
                     .weight(1f)
-                    .height(46.dp)
-                    .clip(CircleShape)
-                    .background(colors.surface)
-                    .border(1.dp, colors.line, CircleShape)
-                    .padding(horizontal = 16.dp),
-                contentAlignment = Alignment.CenterStart
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = ORGANIC_GUTTER, vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                BasicTextField(
-                    value = uiState.composerText,
-                    onValueChange = { onEvent(ChatEvent.ComposerChanged(it)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    textStyle = TextStyle(fontFamily = bodyFont, fontSize = 13.sp, color = colors.ink),
-                    cursorBrush = SolidColor(colors.accent),
-                    decorationBox = { inner ->
-                        if (uiState.composerText.isEmpty()) {
-                            Text(
-                                text = stringResource(Res.string.chat_write),
-                                fontFamily = bodyFont,
-                                fontSize = 13.sp,
-                                color = colors.muted
-                            )
-                        }
-                        inner()
-                    }
-                )
+                if (uiState.messages.isNotEmpty()) {
+                    OrganicKicker(
+                        text = stringResource(Res.string.chat_today),
+                        color = OrganicColors.neutral600,
+                        modifier = Modifier.align(Alignment.CenterHorizontally)
+                    )
+                }
+
+                uiState.messages.forEach { message ->
+                    Bubble(text = message.text, fromMe = message.fromMe)
+                }
             }
-            Box(
+
+            // Composer Bar
+            Row(
                 modifier = Modifier
-                    .size(46.dp)
-                    .clip(CircleShape)
-                    .background(colors.accent)
-                    .clickable { onEvent(ChatEvent.SendClicked) },
-                contentAlignment = Alignment.Center
+                    .fillMaxWidth()
+                    .background(OrganicColors.bg)
+                    .navigationBarsPadding()
+                    .padding(horizontal = ORGANIC_GUTTER, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Icon(
-                    imageVector = InkIcons.Send,
-                    contentDescription = null,
-                    tint = colors.onAccent,
-                    modifier = Modifier.size(18.dp)
-                )
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(OrganicColors.neutral200),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = OrganicIcons.Plus,
+                        contentDescription = null,
+                        tint = OrganicColors.neutral800,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp)
+                        .clip(RoundedCornerShape(OrganicShape.pill))
+                        .background(OrganicColors.neutral100)
+                        .padding(horizontal = 16.dp),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    BasicTextField(
+                        value = uiState.composerText,
+                        onValueChange = { onEvent(ChatEvent.ComposerChanged(it)) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        textStyle = TextStyle(
+                            fontFamily = organicBodyFontFamily(),
+                            fontSize = 14.sp,
+                            color = OrganicColors.text
+                        ),
+                        cursorBrush = SolidColor(OrganicColors.accent),
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                        keyboardActions = KeyboardActions(onSend = {
+                            if (uiState.canSend) onEvent(ChatEvent.SendClicked)
+                        }),
+                        decorationBox = { innerTextField ->
+                            if (uiState.composerText.isEmpty()) {
+                                Text(
+                                    text = stringResource(Res.string.chat_message_placeholder, uiState.firstName),
+                                    fontFamily = organicBodyFontFamily(),
+                                    fontSize = 14.sp,
+                                    color = OrganicColors.neutral600
+                                )
+                            }
+                            innerTextField()
+                        }
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(if (uiState.canSend) OrganicColors.accent else OrganicColors.neutral300)
+                        .clickable(enabled = uiState.canSend, role = Role.Button) {
+                            onEvent(ChatEvent.SendClicked)
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = OrganicIcons.Send,
+                        contentDescription = "Send",
+                        tint = Color.White,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
             }
         }
     }
@@ -273,53 +233,35 @@ fun ChatScreen(
 @Composable
 private fun Bubble(
     text: String,
-    time: String,
-    fromMe: Boolean,
-    colors: InkColors,
+    fromMe: Boolean
 ) {
-    val bodyFont = inkBodyFontFamily()
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = if (fromMe) Alignment.End else Alignment.Start
+    Box(
+        modifier = Modifier
+            .fillMaxWidth(),
+        contentAlignment = if (fromMe) Alignment.CenterEnd else Alignment.CenterStart
     ) {
         Box(
             modifier = Modifier
-                .widthIn(max = 270.dp)
+                .widthIn(max = 265.dp)
                 .clip(
                     RoundedCornerShape(
-                        topStart = InkShape.radius,
-                        topEnd = InkShape.radius,
-                        bottomStart = if (fromMe) InkShape.radius else 4.dp,
-                        bottomEnd = if (fromMe) 4.dp else InkShape.radius
+                        topStart = OrganicShape.radiusLg,
+                        topEnd = OrganicShape.radiusLg,
+                        bottomStart = if (fromMe) OrganicShape.radiusLg else 6.dp,
+                        bottomEnd = if (fromMe) 6.dp else OrganicShape.radiusLg
                     )
                 )
-                .background(if (fromMe) colors.accent else colors.surface)
-                .let {
-                    if (fromMe) it else it.border(
-                        1.dp, colors.line,
-                        RoundedCornerShape(
-                            topStart = InkShape.radius, topEnd = InkShape.radius,
-                            bottomStart = InkShape.radius, bottomEnd = 4.dp
-                        )
-                    )
-                }
-                .padding(horizontal = 14.dp, vertical = 11.dp)
+                .background(if (fromMe) OrganicColors.accent else OrganicColors.neutral200)
+                .padding(horizontal = 15.dp, vertical = 12.dp)
         ) {
             Text(
                 text = text,
-                fontFamily = bodyFont,
-                fontSize = 13.5.sp,
+                fontFamily = organicBodyFontFamily(),
+                fontSize = 14.sp,
                 lineHeight = 21.sp,
-                color = if (fromMe) colors.onAccent else colors.ink
+                color = if (fromMe) Color.White else OrganicColors.text
             )
         }
-        Text(
-            text = time,
-            modifier = Modifier.padding(top = 5.dp, start = 4.dp, end = 4.dp),
-            fontFamily = bodyFont,
-            fontSize = 10.sp,
-            color = colors.muted
-        )
     }
 }
 

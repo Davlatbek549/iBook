@@ -1,5 +1,18 @@
 package com.example.dz.core.di
 
+import com.example.dz.data.remote.api.ReadingDataApi
+import com.example.dz.data.remote.api.KtorReadingDataApi
+import com.example.dz.data.remote.api.KtorProfileApi
+import com.example.dz.data.remote.api.ProfileApi
+import com.example.dz.data.repository.RemoteProfileRepository
+import com.example.dz.domain.repository.ProfileRepository
+import com.example.dz.domain.usecase.user.CheckUsernameUseCase
+import com.example.dz.domain.usecase.user.GetEditableProfileUseCase
+import com.example.dz.domain.usecase.user.SaveEditableProfileUseCase
+import com.example.dz.domain.usecase.user.SaveProfileImageUseCase
+import com.example.dz.data.sync.ReadingDataSync
+import com.example.dz.data.repository.SyncedLibraryRepository
+import com.example.dz.data.repository.SyncedCollectionRepository
 import com.example.dz.data.local.CollectionLocalDataSource
 import com.example.dz.data.local.GoalLocalDataSource
 import com.example.dz.data.local.LibraryLocalDataSource
@@ -117,7 +130,6 @@ import com.example.dz.presentation.collections.edit.CollectionsEditViewModel
 import com.example.dz.presentation.collections.list.CollectionsViewModel
 import com.example.dz.presentation.goal.GoalViewModel
 import com.example.dz.presentation.home.HomeViewModel
-import com.example.dz.presentation.membership.MembershipViewModel
 import com.example.dz.presentation.notifications.NotificationsViewModel
 import com.example.dz.presentation.onboarding.OnboardingViewModel
 import com.example.dz.presentation.splash.SplashViewModel
@@ -145,6 +157,7 @@ import org.koin.core.context.startKoin
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import org.koin.mp.KoinPlatform
+import com.example.dz.presentation.profile.profile_edit.EditProfileViewModel
 
 fun startKoinIfNeeded() {
     if (KoinPlatform.getKoinOrNull() == null) {
@@ -179,8 +192,16 @@ val coreModule = module {
     }
 
     // ── Person B — User & Commerce (local / session-backed) ─────────────────
-    single<AuthRepository> { RemoteAuthRepository(get(), get()) }
+    single<ReadingDataApi> { KtorReadingDataApi(get(named(AUTH_HTTP_CLIENT)), get<ApiConfig>().baseUrl) }
+    single { ReadingDataSync(get(), get(), get(), get()) }
+    single<AuthRepository> { RemoteAuthRepository(get(), get(), get()) }
     single<UserRepository> { UserRepositoryImpl(get()) }
+    single<ProfileApi> { KtorProfileApi(get(named(AUTH_HTTP_CLIENT)), get<ApiConfig>().baseUrl) }
+    single<ProfileRepository> { RemoteProfileRepository(get(), get()) }
+    factory { GetEditableProfileUseCase(get()) }
+    factory { SaveEditableProfileUseCase(get()) }
+    factory { CheckUsernameUseCase(get()) }
+    factory { SaveProfileImageUseCase(get()) }
     single<SocialRepository> { SocialRepositoryImpl(get()) }
     single<ChatRepository> { ChatRepositoryImpl(get()) }
     single<NotificationRepository> { NotificationRepositoryImpl(get()) }
@@ -192,19 +213,21 @@ val coreModule = module {
     single<GutendexApi> { KtorGutendexApi(get()) }
     single<OpenLibraryApi> { KtorOpenLibraryApi(get()) }
     single<BookRepository> { RemoteBookRepository(get(), get(), get()) }
-    single<LibraryRepository> { LocalLibraryRepository(get()) }
+    single<LibraryRepository> { SyncedLibraryRepository(get(), get()) }
     single<GoalRepository> { LocalGoalRepository(get()) }
     single<ReaderPreferencesRepository> { LocalReaderPreferencesRepository(get()) }
-    single<ReadingPositionRepository> { LocalReadingPositionRepository(get()) }
+    single<ReadingPositionRepository> { LocalReadingPositionRepository(get(), get()) }
     single<ReviewRepository> { LocalReviewRepository(get()) }
-    single<CollectionRepository> { LocalCollectionRepository(get()) }
+    single<CollectionRepository> { SyncedCollectionRepository(get(), get()) }
 
     // ── Offline downloads (Phase 3) ──────────────────────────────────────────
-    single<DownloadRepository> { DownloadRepositoryImpl(get(), get(), get()) }
+    single<DownloadRepository> {
+        com.example.dz.data.repository.AccountDownloadRepository(DownloadRepositoryImpl(get(), get(), get()), get())
+    }
     single<DeviceDataRepository> { LocalDeviceDataRepository(get(), get(), get(), get(), get(), get()) }
     single<SearchHistoryRepository> { LocalSearchHistoryRepository(get()) }
 
-    // Domain use cases
+    factory { EditProfileViewModel(get(), get(), get(), get()) }
     factory { LoginUseCase(get()) }
     factory { SignUpUseCase(get()) }
     factory { SignInWithGoogleUseCase(get()) }
@@ -289,30 +312,30 @@ val coreModule = module {
     factory { (collectionId: String) -> CollectionDetailsViewModel(collectionId, get(), get(), get()) }
     factory { (collectionId: String) -> CollectionsEditViewModel(collectionId, get(), get(), get(), get(), get()) }
 
-    factory { GoalViewModel(get()) }
+    factory { GoalViewModel(get(), get()) }
 
-    factory { MembershipViewModel(get()) }
-    factory { PremiumMembershipViewModel(get(), get()) }
+    factory { PremiumMembershipViewModel(get(), get(), get()) }
 
     factory { NotificationsViewModel(get(), get()) }
 
     factory { SplashViewModel(get(), get()) }
     factory { OnboardingViewModel(get()) }
 
-    factory { (bookId: String) -> PurchaseDetailsViewModel(bookId, get()) }
+    factory { (bookId: String) -> PurchaseDetailsViewModel(bookId, get(), get()) }
     factory { (bookId: String) -> PurchaseReceiptViewModel(bookId, get()) }
     factory { PaymentMethodsViewModel(get()) }
-    factory { PurchaseConfirmationViewModel() }
-    factory { PaymentSuccessViewModel() }
+    single { com.example.dz.presentation.payment.common.CheckoutSession(get()) }
+    factory { PurchaseConfirmationViewModel(get()) }
+    factory { PaymentSuccessViewModel(get()) }
     factory { PaymentFailedViewModel() }
 
-    factory { ProfileViewModel(get()) }
+    factory { ProfileViewModel(get(), get(), get(), get()) }
     factory { (bookId: String) -> ReadingViewModel(bookId, get(), get(), get(), get(), get(), get(), get(), get()) }
-    factory { SettingsViewModel(get(), get()) }
+    factory { SettingsViewModel(get(), get(), get(), get()) }
 
     factory { FriendListViewModel(get()) }
     factory { (friendId: String) -> FriendDetailViewModel(friendId, get()) }
-    factory { (friendId: String) -> ChatViewModel(friendId, get(), get()) }
+    factory { (friendId: String) -> ChatViewModel(friendId, get(), get(), get()) }
     factory { InviteFriendsViewModel(get()) }
     factory { NoFriendsViewModel() }
 }

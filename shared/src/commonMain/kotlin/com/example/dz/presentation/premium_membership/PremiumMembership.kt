@@ -1,188 +1,302 @@
 package com.example.dz.presentation.premium_membership
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.dz.designsystem.components.icons.InkIcons
-import com.example.dz.designsystem.components.ink.InkLabel
-import com.example.dz.designsystem.components.ink.InkTopBar
-import com.example.dz.designsystem.components.ink.inkCard
-import com.example.dz.designsystem.theme.InkColors
-import com.example.dz.designsystem.theme.InkShape
-import com.example.dz.designsystem.theme.inkBodyFontFamily
-import com.example.dz.designsystem.theme.inkColors
-import com.example.dz.designsystem.theme.inkDisplayFontFamily
+import com.example.dz.designsystem.components.icons.OrganicIcons
+import com.example.dz.designsystem.components.organic.ORGANIC_GUTTER
+import com.example.dz.designsystem.components.organic.ORGANIC_TAB_BAR_CLEARANCE
+import com.example.dz.designsystem.components.organic.OrganicCard
+import com.example.dz.designsystem.components.organic.OrganicCircleIconButton
+import com.example.dz.designsystem.components.organic.OrganicKicker
+import com.example.dz.designsystem.components.organic.OrganicScreen
+import com.example.dz.designsystem.components.organic.OrganicScreenHeader
+import com.example.dz.designsystem.theme.OrganicColors
+import com.example.dz.designsystem.theme.OrganicShape
+import com.example.dz.designsystem.theme.organicBodyFontFamily
+import com.example.dz.designsystem.theme.organicHeadingFontFamily
 import dz.shared.generated.resources.Res
-import dz.shared.generated.resources.pmem_b1
-import dz.shared.generated.resources.pmem_b2
-import dz.shared.generated.resources.pmem_b3
-import dz.shared.generated.resources.pmem_benefits
-import dz.shared.generated.resources.pmem_billing_date
+import dz.shared.generated.resources.nav_back
+import dz.shared.generated.resources.pmem_active_badge
 import dz.shared.generated.resources.pmem_billing_history
 import dz.shared.generated.resources.pmem_cancel
-import dz.shared.generated.resources.pmem_member_since
-import dz.shared.generated.resources.pmem_read_year
-import dz.shared.generated.resources.pmem_renews
-import dz.shared.generated.resources.pmem_saved
-import dz.shared.generated.resources.pmem_status
+import dz.shared.generated.resources.pmem_change
+import dz.shared.generated.resources.pmem_no_plan
+import dz.shared.generated.resources.pmem_switch_plan
 import dz.shared.generated.resources.pmem_title
+import dz.shared.generated.resources.pmem_what_you_get
+import dz.shared.generated.resources.pmem_your_plan
 import org.jetbrains.compose.resources.stringResource
 
+/**
+ * Membership — the active plan, what it includes, and the one place to change either the plan or
+ * the card that bills it. Geometry from `dz-all-screens.html`.
+ */
 @Composable
 fun PremiumMembershipScreen(
     uiState: PremiumMembershipUiState = PremiumMembershipUiState(),
     onEvent: (PremiumMembershipEvent) -> Unit = {},
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
-    val colors = inkColors()
-    val displayFont = inkDisplayFontFamily()
-    val bodyFont = inkBodyFontFamily()
-
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(colors.paper)
-            .statusBarsPadding()
-            .verticalScroll(rememberScrollState())
-            .padding(bottom = 30.dp)
-    ) {
-        InkTopBar(title = stringResource(Res.string.pmem_title), onBackClick = { onEvent(PremiumMembershipEvent.BackClicked) }, colors = colors)
-
-        // status card — solid accent
-        Column(
-            modifier = Modifier
-                .padding(start = 22.dp, end = 22.dp, top = 8.dp)
-                .fillMaxWidth()
-                .shadow(16.dp, RoundedCornerShape(InkShape.radius + 4.dp))
-                .clip(RoundedCornerShape(InkShape.radius + 4.dp))
-                .background(colors.accent)
-                .padding(20.dp)
+    OrganicScreen(modifier = modifier) {
+        LazyColumn(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(top = 16.dp, bottom = ORGANIC_TAB_BAR_CLEARANCE),
+            verticalArrangement = Arrangement.spacedBy(18.dp)
         ) {
-            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(InkIcons.Premium, null, tint = colors.onAccent.copy(alpha = 0.85f), modifier = Modifier.size(14.dp))
+            item(key = "header") {
+                OrganicScreenHeader(
+                    title = stringResource(Res.string.pmem_title),
+                    modifier = Modifier.padding(horizontal = ORGANIC_GUTTER),
+                    leading = {
+                        OrganicCircleIconButton(
+                            icon = OrganicIcons.ChevronLeft,
+                            onClick = { onEvent(PremiumMembershipEvent.BackClicked) },
+                            contentDescription = stringResource(Res.string.nav_back),
+                            size = 38.dp,
+                            iconSize = 18.dp,
+                        )
+                    },
+                )
+            }
+
+            item(key = "plan-card") {
+                PlanCard(uiState = uiState, onChangeCard = { onEvent(PremiumMembershipEvent.ChangeCardClicked) })
+            }
+
+            if (uiState.benefits.isNotEmpty()) {
+                item(key = "benefits") {
+                    Column(
+                        modifier = Modifier.padding(horizontal = ORGANIC_GUTTER),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        OrganicKicker(text = stringResource(Res.string.pmem_what_you_get), color = OrganicColors.neutral600)
+                        uiState.benefits.forEach { BenefitRow(it) }
+                    }
+                }
+            }
+
+            if (uiState.alternatePlanTitle != null) {
+                item(key = "switch-plan") {
+                    Column(
+                        modifier = Modifier.padding(horizontal = ORGANIC_GUTTER),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        OrganicKicker(text = stringResource(Res.string.pmem_switch_plan), color = OrganicColors.neutral600)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(OrganicShape.radiusLg))
+                                .border(2.dp, OrganicColors.accent2_500, RoundedCornerShape(OrganicShape.radiusLg))
+                                .background(OrganicColors.accent2_100)
+                                .clickable(role = Role.Button) { onEvent(PremiumMembershipEvent.SwitchPlanClicked) }
+                                .padding(horizontal = 18.dp, vertical = 16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                Text(
+                                    text = uiState.alternatePlanTitle,
+                                    fontFamily = organicBodyFontFamily(),
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 15.sp,
+                                    color = OrganicColors.accent2_900
+                                )
+                                uiState.alternatePlanPrice?.let {
+                                    Text(
+                                        text = it,
+                                        fontFamily = organicBodyFontFamily(),
+                                        fontSize = 12.sp,
+                                        color = OrganicColors.accent2_900.copy(alpha = 0.85f)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            item(key = "billing-history") {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = ORGANIC_GUTTER)
+                        .clickable(role = Role.Button) { onEvent(PremiumMembershipEvent.BillingHistoryClicked) },
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Text(
-                        text = stringResource(Res.string.pmem_status).uppercase(),
-                        fontFamily = bodyFont, fontWeight = FontWeight.SemiBold, fontSize = 11.sp, letterSpacing = 1.sp,
-                        color = colors.onAccent.copy(alpha = 0.85f)
+                        text = stringResource(Res.string.pmem_billing_history),
+                        fontFamily = organicBodyFontFamily(),
+                        fontSize = 14.sp,
+                        color = OrganicColors.neutral800
+                    )
+                    Icon(
+                        imageVector = OrganicIcons.ChevronRight,
+                        contentDescription = null,
+                        tint = OrganicColors.neutral600,
+                        modifier = Modifier.size(15.dp)
                     )
                 }
-                Icon(InkIcons.BookOpen, null, tint = colors.onAccent.copy(alpha = 0.6f), modifier = Modifier.size(18.dp))
             }
-            Text(uiState.memberName, modifier = Modifier.padding(top = 16.dp), fontFamily = displayFont, fontWeight = FontWeight.Medium, fontSize = 26.sp, color = colors.onAccent)
-            Text(stringResource(Res.string.pmem_member_since), modifier = Modifier.padding(top = 6.dp), fontFamily = bodyFont, fontSize = 12.5.sp, color = colors.onAccent.copy(alpha = 0.85f))
-            HorizontalDivider(modifier = Modifier.padding(vertical = 14.dp), thickness = 1.dp, color = colors.onAccent.copy(alpha = 0.25f))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(stringResource(Res.string.pmem_renews), fontFamily = bodyFont, fontSize = 12.sp, color = colors.onAccent.copy(alpha = 0.85f))
-                Text(uiState.renewalPrice, fontFamily = bodyFont, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = colors.onAccent)
+
+            item(key = "cancel") {
+                Text(
+                    text = stringResource(Res.string.pmem_cancel),
+                    modifier = Modifier
+                        .padding(horizontal = ORGANIC_GUTTER)
+                        .clickable(role = Role.Button) { onEvent(PremiumMembershipEvent.CancelClicked) },
+                    fontFamily = organicBodyFontFamily(),
+                    fontSize = 13.sp,
+                    color = OrganicColors.neutral700,
+                    textDecoration = TextDecoration.Underline
+                )
             }
-        }
-
-        // usage cards
-        Row(
-            modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            UsageCard(stringResource(Res.string.pmem_read_year), uiState.booksReadThisYear, Modifier.weight(1f), colors)
-            UsageCard(stringResource(Res.string.pmem_saved), uiState.amountSaved, Modifier.weight(1f), colors)
-        }
-
-        // benefits
-        Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 24.dp)) {
-            InkLabel(text = stringResource(Res.string.pmem_benefits), colors = colors)
-            Column(modifier = Modifier.padding(top = 14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                BenefitRow(stringResource(Res.string.pmem_b1), colors)
-                BenefitRow(stringResource(Res.string.pmem_b2), colors)
-                BenefitRow(stringResource(Res.string.pmem_b3), colors)
-            }
-        }
-
-        // menu
-        Column(
-            modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 24.dp).fillMaxWidth().inkCard(colors)
-        ) {
-            MenuRow(InkIcons.Calendar, stringResource(Res.string.pmem_billing_date), { onEvent(PremiumMembershipEvent.BillingDateClicked) }, colors, showChevron = true)
-            HorizontalDivider(thickness = 1.dp, color = colors.line)
-            MenuRow(InkIcons.Purchased, stringResource(Res.string.pmem_billing_history), { onEvent(PremiumMembershipEvent.BillingHistoryClicked) }, colors, showChevron = true)
-            HorizontalDivider(thickness = 1.dp, color = colors.line)
-            MenuRow(InkIcons.Close, stringResource(Res.string.pmem_cancel), { onEvent(PremiumMembershipEvent.CancelClicked) }, colors, showChevron = false, danger = true)
         }
     }
 }
 
+/** The terracotta hero: plan, price, and whichever card the subscription actually bills. */
 @Composable
-private fun UsageCard(label: String, value: String, modifier: Modifier, colors: InkColors) {
-    Column(modifier = modifier.inkCard(colors).padding(horizontal = 16.dp, vertical = 14.dp)) {
-        InkLabel(text = label, colors = colors)
-        Text(value, modifier = Modifier.padding(top = 10.dp), fontFamily = inkDisplayFontFamily(), fontWeight = FontWeight.Medium, fontSize = 20.sp, color = colors.ink)
-    }
-}
-
-@Composable
-private fun BenefitRow(text: String, colors: InkColors) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Box(modifier = Modifier.size(24.dp).clip(CircleShape).background(colors.accentSoft), contentAlignment = Alignment.Center) {
-            Icon(InkIcons.Done, null, tint = colors.accent, modifier = Modifier.size(9.dp))
-        }
-        Text(text, fontFamily = inkBodyFontFamily(), fontSize = 13.5.sp, color = colors.inkSoft)
-    }
-}
-
-@Composable
-private fun MenuRow(
-    icon: ImageVector,
-    title: String,
-    onClick: () -> Unit,
-    colors: InkColors,
-    showChevron: Boolean,
-    danger: Boolean = false,
-) {
-    val tint = if (danger) colors.danger else colors.inkSoft
-    Row(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(13.dp)
+private fun PlanCard(uiState: PremiumMembershipUiState, onChangeCard: () -> Unit) {
+    OrganicCard(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = ORGANIC_GUTTER),
+        background = OrganicColors.accent,
+        contentPadding = PaddingValues(22.dp),
+        decoration = {
+            drawCircle(
+                color = OrganicColors.accent600.copy(alpha = 0.5f),
+                radius = 65.dp.toPx(),
+                center = Offset(size.width - 31.dp.toPx(), 31.dp.toPx())
+            )
+        },
     ) {
-        Icon(icon, null, tint = tint, modifier = Modifier.size(16.dp))
-        Text(
-            text = title,
-            modifier = Modifier.weight(1f),
-            fontFamily = inkBodyFontFamily(), fontWeight = FontWeight.SemiBold, fontSize = 13.sp,
-            color = if (danger) colors.danger else colors.ink
-        )
-        if (showChevron) {
-            Icon(InkIcons.Back, null, tint = colors.muted, modifier = Modifier.size(13.dp).graphicsLayer { rotationZ = 180f })
+        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        text = stringResource(Res.string.pmem_your_plan),
+                        fontFamily = organicBodyFontFamily(),
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 11.sp,
+                        letterSpacing = 1.3.sp,
+                        color = Color.White.copy(alpha = 0.75f)
+                    )
+                    Text(
+                        text = uiState.planTitle.ifBlank { stringResource(Res.string.pmem_no_plan) },
+                        fontFamily = organicHeadingFontFamily(),
+                        fontWeight = FontWeight.Normal,
+                        fontSize = 28.sp,
+                        lineHeight = 28.sp,
+                        color = Color.White
+                    )
+                }
+                if (uiState.hasActiveMembership) {
+                    Text(
+                        text = stringResource(Res.string.pmem_active_badge),
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(OrganicShape.pill))
+                            .background(Color.White)
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                        fontFamily = organicBodyFontFamily(),
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 11.sp,
+                        letterSpacing = 0.5.sp,
+                        color = OrganicColors.accent900
+                    )
+                }
+            }
+            if (uiState.planPrice.isNotBlank()) {
+                Text(
+                    text = uiState.planPrice,
+                    fontFamily = organicHeadingFontFamily(),
+                    fontWeight = FontWeight.Normal,
+                    fontSize = 26.sp,
+                    color = Color.White
+                )
+            }
+            if (uiState.paymentMethodLabel != null) {
+                Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = 0.28f)))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = uiState.paymentMethodLabel,
+                        modifier = Modifier.weight(1f),
+                        fontFamily = organicBodyFontFamily(),
+                        fontSize = 14.sp,
+                        color = Color.White
+                    )
+                    Text(
+                        text = stringResource(Res.string.pmem_change),
+                        modifier = Modifier.clickable(role = Role.Button, onClick = onChangeCard),
+                        fontFamily = organicBodyFontFamily(),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp,
+                        color = Color.White,
+                        textDecoration = TextDecoration.Underline
+                    )
+                }
+            }
         }
     }
 }
 
-@Preview(showBackground = true, widthDp = 375, heightDp = 820)
+@Composable
+private fun BenefitRow(text: String) {
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier = Modifier.size(28.dp).clip(CircleShape).background(OrganicColors.accent2_200),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = OrganicIcons.Check,
+                contentDescription = null,
+                tint = OrganicColors.accent2_900,
+                modifier = Modifier.size(14.dp)
+            )
+        }
+        Text(
+            text = text,
+            fontFamily = organicBodyFontFamily(),
+            fontSize = 14.sp,
+            color = OrganicColors.text
+        )
+    }
+}
+
+@Preview
 @Composable
 private fun PremiumMembershipScreenPreview() {
     PremiumMembershipScreen()

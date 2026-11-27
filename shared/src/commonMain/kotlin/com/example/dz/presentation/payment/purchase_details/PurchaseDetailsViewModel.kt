@@ -14,7 +14,8 @@ import kotlinx.coroutines.launch
 
 class PurchaseDetailsViewModel(
     private val bookId: String,
-    private val getPurchaseDetails: GetPurchaseDetailsUseCase
+    private val getPurchaseDetails: GetPurchaseDetailsUseCase,
+    private val checkout: com.example.dz.presentation.payment.common.CheckoutSession,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(PurchaseDetailsUiState(bookId = bookId, isLoading = true))
     val uiState = _uiState.asStateFlow()
@@ -39,8 +40,9 @@ class PurchaseDetailsViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
             when (val result = getPurchaseDetails(bookId)) {
-                is AppResult.Success -> _uiState.update {
-                    result.data.toPurchaseDetailsUiState().copy(isLoading = false, errorMessage = null)
+                is AppResult.Success -> {
+                    checkout.purchase = result.data
+                    _uiState.update { result.data.toPurchaseDetailsUiState().copy(isLoading = false, errorMessage = null) }
                 }
                 is AppResult.Error -> _uiState.update {
                     it.copy(isLoading = false, errorMessage = result.error.toPresentationMessage())

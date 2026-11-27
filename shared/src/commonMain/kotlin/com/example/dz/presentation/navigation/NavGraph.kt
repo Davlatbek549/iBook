@@ -74,9 +74,6 @@ import com.example.dz.presentation.library.LibraryViewModel
 import com.example.dz.presentation.auth.login.LoginEffect
 import com.example.dz.presentation.auth.login.LoginScreen
 import com.example.dz.presentation.auth.login.LoginViewModel
-import com.example.dz.presentation.membership.MembershipEffect
-import com.example.dz.presentation.membership.MembershipScreen
-import com.example.dz.presentation.membership.MembershipViewModel
 import com.example.dz.presentation.social.no_friends.NoFriendsEffect
 import com.example.dz.presentation.social.no_friends.NoFriendsScreen
 import com.example.dz.presentation.social.no_friends.NoFriendsViewModel
@@ -144,6 +141,10 @@ import com.example.dz.presentation.auth.verification.VerificationScreen
 import com.example.dz.presentation.auth.verification.VerificationViewModel
 import org.koin.mp.KoinPlatform
 import org.koin.core.parameter.parametersOf
+import com.example.dz.presentation.profile.profile_edit.EditProfileEffect
+import com.example.dz.presentation.profile.profile_edit.EditProfileScreen
+import com.example.dz.presentation.profile.profile_edit.EditProfileViewModel
+import com.example.dz.presentation.settings.SettingsEvent
 
 @Composable
 fun DZNavGraph() {
@@ -179,7 +180,6 @@ fun DZNavGraph() {
         Routes.INVITE_FRIENDS,
         Routes.NO_FRIENDS,
         Routes.SETTINGS,
-        Routes.MEMBERSHIP,
         Routes.PREMIUM_MEMBERSHIP,
         Routes.PROFILE_EDIT,
         Routes.READING,
@@ -594,14 +594,17 @@ fun DZNavGraph() {
                 LaunchedEffect(profileViewModel) {
                     profileViewModel.effects.collect { effect ->
                         when (effect) {
-                            ProfileEffect.NavigateBack -> navController.popBackStack()
-                            ProfileEffect.NavigateToNotifications -> navController.navigate(Routes.NOTIFICATIONS)
-                            ProfileEffect.NavigateToFriends -> navigateBottomTab(Routes.FRIEND_LIST)
-                            ProfileEffect.NavigateToGoals -> navController.navigate(Routes.GOAL)
-                            ProfileEffect.NavigateToCollections -> navController.navigate(Routes.COLLECTIONS)
-                            ProfileEffect.NavigateToPurchases -> navController.navigate(Routes.purchaseReceipt("history"))
-                            ProfileEffect.NavigateToMembership -> navController.navigate(Routes.PREMIUM_MEMBERSHIP)
                             ProfileEffect.NavigateToSettings -> navController.navigate(Routes.SETTINGS)
+                            ProfileEffect.NavigateToFriends -> navigateBottomTab(Routes.FRIEND_LIST)
+                            ProfileEffect.NavigateToInviteFriends -> navController.navigate(Routes.INVITE_FRIENDS)
+                            ProfileEffect.NavigateToReadingGoal -> navController.navigate(Routes.GOAL)
+                            ProfileEffect.NavigateToMembership -> navController.navigate(Routes.PREMIUM_MEMBERSHIP)
+                            ProfileEffect.NavigateToNotifications -> navController.navigate(Routes.NOTIFICATIONS)
+                            // Clear the whole stack: every screen behind this one belongs to
+                            // the session that was just signed out.
+                            ProfileEffect.NavigateToLogin -> navController.navigate(Routes.login()) {
+                                popUpTo(0) { inclusive = true }
+                            }
                         }
                     }
                 }
@@ -773,7 +776,8 @@ fun DZNavGraph() {
                             PaymentSuccessEffect.NavigateToHome -> navController.navigate(Routes.HOME) {
                                 popUpTo(Routes.HOME) { inclusive = false }
                             }
-                            PaymentSuccessEffect.NavigateToReading -> navController.navigate(Routes.reading("purchased-book")) {
+                            is PaymentSuccessEffect.NavigateToReceipt -> navController.navigate(Routes.purchaseReceipt(effect.bookId))
+                            is PaymentSuccessEffect.NavigateToReading -> navController.navigate(Routes.reading(effect.bookId)) {
                                 popUpTo(Routes.HOME) { inclusive = false }
                             }
                         }
@@ -920,18 +924,29 @@ fun DZNavGraph() {
                 )
             }
 
-            composable(Routes.SETTINGS) {
+            composable(Routes.SETTINGS) { settingsEntry ->
                 val settingsViewModel = koinViewModel<SettingsViewModel>()
                 val uiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
+
+                // Edit Profile leaves this flag on the way back after a save. Read once, then cleared,
+                // so a later return from anywhere else does not say "Profile updated" again.
+                val profileUpdated by settingsEntry.savedStateHandle
+                    .getStateFlow(PROFILE_UPDATED_RESULT, false)
+                    .collectAsStateWithLifecycle()
+                LaunchedEffect(profileUpdated) {
+                    if (profileUpdated) {
+                        settingsEntry.savedStateHandle[PROFILE_UPDATED_RESULT] = false
+                        settingsViewModel.onEvent(SettingsEvent.ProfileUpdated)
+                    }
+                }
 
                 LaunchedEffect(settingsViewModel) {
                     settingsViewModel.effects.collect { effect ->
                         when (effect) {
                             SettingsEffect.NavigateBack -> navController.popBackStack()
-                            // "Edit profile" reuses the purchase-history destination (existing behavior)
-                            SettingsEffect.NavigateToEditProfile -> navController.navigate(Routes.purchaseDetails("history"))
-                            // Clear the whole stack: every screen behind this one belongs to
-                            // the session that was just signed out.
+                            SettingsEffect.NavigateToEditProfile -> {
+                                navController.navigate(Routes.PROFILE_EDIT)
+                            }
                             SettingsEffect.NavigateToLogin -> navController.navigate(Routes.login()) {
                                 popUpTo(0) { inclusive = true }
                             }
@@ -942,6 +957,30 @@ fun DZNavGraph() {
                 SettingsScreen(
                     uiState = uiState,
                     onEvent = settingsViewModel::onEvent
+                )
+            }
+
+            composable(Routes.PROFILE_EDIT) {
+                val editProfileViewModel = koinViewModel<EditProfileViewModel>()
+
+                val uiState by editProfileViewModel.uiState
+                    .collectAsStateWithLifecycle()
+
+                LaunchedEffect(editProfileViewModel) {
+                    editProfileViewModel.effects.collect { effect ->
+                        when (effect) {
+                            EditProfileEffect.NavigateBack -> navController.popBackStack()
+                            EditProfileEffect.Saved -> {
+                                navController.previousBackStackEntry?.savedStateHandle?.set(PROFILE_UPDATED_RESULT, true)
+                                navController.popBackStack()
+                            }
+                        }
+                    }
+                }
+
+                EditProfileScreen(
+                    uiState = uiState,
+                    onEvent = editProfileViewModel::onEvent,
                 )
             }
 
@@ -972,7 +1011,7 @@ fun DZNavGraph() {
                     goalViewModel.effects.collect { effect ->
                         when (effect) {
                             GoalEffect.NavigateBack -> navController.popBackStack()
-                            GoalEffect.NavigateToSettings -> navController.navigate(Routes.SETTINGS)
+                            is GoalEffect.NavigateToReading -> navController.navigate(Routes.reading(effect.bookId))
                         }
                     }
                 }
@@ -980,25 +1019,6 @@ fun DZNavGraph() {
                 GoalScreen(
                     uiState = uiState,
                     onEvent = goalViewModel::onEvent
-                )
-            }
-
-            composable(Routes.MEMBERSHIP) {
-                val membershipViewModel = koinViewModel<MembershipViewModel>()
-                val uiState by membershipViewModel.uiState.collectAsStateWithLifecycle()
-
-                LaunchedEffect(membershipViewModel) {
-                    membershipViewModel.effects.collect { effect ->
-                        when (effect) {
-                            MembershipEffect.NavigateBack -> navController.popBackStack()
-                            MembershipEffect.NavigateToPremium -> navController.navigate(Routes.PREMIUM_MEMBERSHIP)
-                        }
-                    }
-                }
-
-                MembershipScreen(
-                    uiState = uiState,
-                    onEvent = membershipViewModel::onEvent
                 )
             }
 
@@ -1010,6 +1030,9 @@ fun DZNavGraph() {
                     premiumMembershipViewModel.effects.collect { effect ->
                         when (effect) {
                             PremiumMembershipEffect.NavigateBack -> navController.popBackStack()
+                            PremiumMembershipEffect.NavigateToPaymentMethods -> navController.navigate(Routes.PAYMENT_METHODS)
+                            PremiumMembershipEffect.NavigateToPaymentConfirmation -> navController.navigate(Routes.PURCHASE_CONFIRMATION)
+                            PremiumMembershipEffect.NavigateToBillingHistory -> navController.navigate(Routes.purchaseReceipt("history"))
                             PremiumMembershipEffect.NavigateToSettings -> navController.navigate(Routes.SETTINGS)
                         }
                     }
@@ -1024,6 +1047,20 @@ fun DZNavGraph() {
             composable(Routes.FRIEND_LIST) {
                 val friendListViewModel = koinViewModel<FriendListViewModel>()
                 val uiState by friendListViewModel.uiState.collectAsStateWithLifecycle()
+
+                // Driven off uiState (always current) rather than a one-shot effect: load()
+                // can resolve before this composable's effect collector even attaches (there's
+                // no real network latency to outrun on a local/stubbed backend), and a
+                // zero-buffer SharedFlow just drops an emission nobody was listening for yet.
+                // popUpTo(inclusive) removes this entry so returning from NoFriends can't land
+                // back on a fresh composition that re-evaluates isEmpty and bounces forward again.
+                LaunchedEffect(uiState.isEmpty) {
+                    if (uiState.isEmpty) {
+                        navController.navigate(Routes.NO_FRIENDS) {
+                            popUpTo(Routes.FRIEND_LIST) { inclusive = true }
+                        }
+                    }
+                }
 
                 LaunchedEffect(friendListViewModel) {
                     friendListViewModel.effects.collect { effect ->
@@ -1089,7 +1126,6 @@ fun DZNavGraph() {
                     inviteFriendsViewModel.effects.collect { effect ->
                         when (effect) {
                             InviteFriendsEffect.NavigateBack -> navController.popBackStack()
-                            InviteFriendsEffect.NavigateToDiscover -> navController.navigate(Routes.SEARCH)
                         }
                     }
                 }
@@ -1107,6 +1143,7 @@ fun DZNavGraph() {
                     noFriendsViewModel.effects.collect { effect ->
                         when (effect) {
                             NoFriendsEffect.NavigateBack -> navController.popBackStack()
+                            NoFriendsEffect.NavigateToFriends -> navController.navigate(Routes.FRIEND_LIST)
                             NoFriendsEffect.NavigateToInvite -> navController.navigate(Routes.INVITE_FRIENDS)
                         }
                     }
@@ -1137,6 +1174,9 @@ fun DZNavGraph() {
 
 /** The id the edit screen reads as "this shelf does not exist yet" — see CollectionsEditViewModel. */
 private const val NEW_COLLECTION_ID = "new"
+
+/** Set on Settings' back-stack entry when Edit Profile saves, so Settings can say "Profile updated". */
+private const val PROFILE_UPDATED_RESULT = "profile_updated"
 
 private val UnsafeRouteCharacters = Regex("[^A-Za-z0-9_-]+")
 

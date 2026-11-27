@@ -404,6 +404,28 @@ fun OrganicAvatar(
 }
 
 /**
+ * A stable background for an initial circle standing in for a specific person — the handoff cycles
+ * friend avatars through a mix of terracotta, sage and neutral rather than one flat colour.
+ *
+ * Hashed the same way [coverGradientFor] picks a book's placeholder: a person keeps the same tint
+ * on every screen they appear on, without the app having to store a colour choice anywhere.
+ */
+fun organicIdentityTint(key: String): Color {
+    if (key.isEmpty()) return OrganicIdentityTints.first()
+    val hash = key.fold(0) { acc, c -> (acc * 31 + c.code) and 0x7FFFFFFF }
+    return OrganicIdentityTints[hash % OrganicIdentityTints.size]
+}
+
+private val OrganicIdentityTints: List<Color> = listOf(
+    OrganicColors.accent600,
+    OrganicColors.accent2_600,
+    OrganicColors.neutral500,
+    OrganicColors.accent2_500,
+    OrganicColors.neutral400,
+    OrganicColors.accent500,
+)
+
+/**
  * Overlapping avatars — the presence stack on Home's "reading right now" card. Each circle after
  * the first steps 10dp left and wears a 2dp ring in the page colour so the overlap reads as depth.
  */

@@ -1,39 +1,28 @@
 package com.example.dz.presentation.social.friends
 
-import dz.shared.generated.resources.Res
-import dz.shared.generated.resources.profile_1
-import org.jetbrains.compose.resources.DrawableResource
+import com.example.dz.domain.model.Friend
 
 data class FriendListUiState(
     val query: String = "",
-    val friends: List<FriendUi> = defaultFriends,
+    val friends: List<FriendRowUi> = emptyList(),
     val isLoading: Boolean = false,
     val errorMessage: String? = null
 ) {
-    private val filtered: List<FriendUi>
-        get() = friends.filter {
-            query.isBlank() || it.name.contains(query, ignoreCase = true) || it.handle.contains(query, ignoreCase = true)
-        }
+    private val filtered: List<FriendRowUi>
+        get() = friends.filter { query.isBlank() || it.name.contains(query, ignoreCase = true) }
 
-    val onlineFriends: List<FriendUi> get() = filtered.filter { it.online }
-    val everyoneFriends: List<FriendUi> get() = filtered.filter { !it.online }
+    val readingNow: List<FriendRowUi> get() = filtered.filter { it.currentBookTitle != null }
+    val quietLately: List<FriendRowUi> get() = filtered.filter { it.currentBookTitle == null }
+
+    /** Load finished, no error, nothing there — the handoff's cue to hand off to NoFriends. */
+    val isEmpty: Boolean get() = !isLoading && errorMessage == null && friends.isEmpty()
 }
 
-data class FriendUi(
+data class FriendRowUi(
     val id: String,
     val name: String,
-    val handle: String,
-    val avatarRes: DrawableResource,
-    val online: Boolean
+    val currentBookTitle: String?
 )
 
-val defaultFriends: List<FriendUi> = emptyList()
-
-fun com.example.dz.domain.model.Friend.toFriendUi(): FriendUi =
-    FriendUi(
-        id = id,
-        name = name,
-        handle = "@${name.lowercase().replace(Regex("[^a-z0-9]+"), ".").trim('.')}",
-        avatarRes = Res.drawable.profile_1,
-        online = isOnline
-    )
+fun Friend.toFriendRowUi(): FriendRowUi =
+    FriendRowUi(id = id, name = name, currentBookTitle = currentBook?.title)

@@ -25,6 +25,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.draw.alpha
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -177,6 +178,14 @@ fun OrganicField(
     singleLine: Boolean = true,
     /** How tall the box is before any text is in it. The description box is drawn deeper. */
     minHeight: Dp = OrganicSize.fieldHeight,
+    /** Off while a form saves: the text stays readable at half strength and cannot be edited. */
+    enabled: Boolean = true,
+    /** Inside the pill, before the text — a username's fixed "@", a country-code chip. */
+    leading: (@Composable () -> Unit)? = null,
+    /** Inside the pill, after the text — a status icon. A password field's "Show" comes first. */
+    trailing: (@Composable () -> Unit)? = null,
+    /** From the pill's left edge to [leading] or the text. A chip sits closer than text does. */
+    startPadding: Dp = 22.dp,
 ) {
     var focused by remember { mutableStateOf(false) }
     var revealed by remember { mutableStateOf(false) }
@@ -204,10 +213,12 @@ fun OrganicField(
                         Modifier.defaultMinSize(minHeight = minHeight)
                     }
                 )
+                .alpha(if (enabled) 1f else 0.5f)
                 .clip(shape)
                 .background(OrganicColors.neutral100)
                 .border(1.dp, borderColor, shape)
                 .onFocusChanged { focused = it.isFocused },
+            enabled = enabled,
             textStyle = TextStyle(
                 fontFamily = body,
                 fontSize = if (isPassword && !revealed) 17.sp else 15.sp,
@@ -224,9 +235,15 @@ fun OrganicField(
             keyboardActions = keyboardActions,
             decorationBox = { innerTextField ->
                 Row(
-                    modifier = Modifier.padding(horizontal = 22.dp, vertical = if (singleLine) 0.dp else 14.dp),
+                    modifier = Modifier.padding(
+                        start = startPadding,
+                        end = 22.dp,
+                        top = if (singleLine) 0.dp else 14.dp,
+                        bottom = if (singleLine) 0.dp else 14.dp,
+                    ),
                     verticalAlignment = if (singleLine) Alignment.CenterVertically else Alignment.Top
                 ) {
+                    leading?.invoke()
                     Box(modifier = Modifier.weight(1f)) {
                         if (value.isEmpty()) {
                             Text(
@@ -250,6 +267,7 @@ fun OrganicField(
                             color = if (focused) OrganicColors.accent700 else OrganicColors.neutral600
                         )
                     }
+                    trailing?.invoke()
                 }
             }
         )
@@ -275,6 +293,10 @@ fun OrganicButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     isBusy: Boolean = false,
+    /** The accent fill by default; a caller with a destructive action passes its own colour. */
+    background: Color = OrganicColors.accent,
+    /** White reads on the accent fill; a caller with a light `background` passes a dark colour. */
+    textColor: Color = Color.White,
 ) {
     val interactive = enabled && !isBusy
     val shape = RoundedCornerShape(OrganicShape.pill)
@@ -284,7 +306,7 @@ fun OrganicButton(
             .height(OrganicSize.buttonHeight)
             .shadow(if (interactive) 6.dp else 0.dp, shape, clip = false)
             .clip(shape)
-            .background(if (interactive) OrganicColors.accent else OrganicColors.neutral400)
+            .background(if (interactive) background else OrganicColors.neutral400)
             .clickable(enabled = interactive, onClick = onClick),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally)
@@ -292,7 +314,7 @@ fun OrganicButton(
         if (isBusy) {
             CircularProgressIndicator(
                 modifier = Modifier.size(16.dp),
-                color = Color.White,
+                color = textColor,
                 strokeWidth = 2.dp
             )
         }
@@ -301,7 +323,7 @@ fun OrganicButton(
             fontFamily = organicBodyFontFamily(),
             fontWeight = FontWeight.SemiBold,
             fontSize = 16.sp,
-            color = Color.White
+            color = if (interactive) textColor else Color.White
         )
     }
 }

@@ -82,8 +82,8 @@ private fun PaymentMethod.toPaymentMethodItem(): PaymentMethodItem =
         id = id,
         brand = when (brand) {
             DomainPaymentBrand.Paypal -> PaymentBrand.Paypal
+            DomainPaymentBrand.Mastercard -> PaymentBrand.Mastercard
             DomainPaymentBrand.Visa,
-            DomainPaymentBrand.Mastercard,
             DomainPaymentBrand.Unknown -> PaymentBrand.Visa
             DomainPaymentBrand.ApplePay -> PaymentBrand.ApplePay
         },

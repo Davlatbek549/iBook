@@ -37,6 +37,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -323,17 +324,42 @@ private fun ReaderPages(
         }
 
         // Put the reader back where they were — on first load, and again every time the book is
-        // cut anew, which is what keeps a size change from also being a jump. Only then is the
-        // pager listened to: a freshly cut book sits on page one until it is told otherwise, and
-        // reporting that as a place the reader went would write away the place they were at.
+        // cut anew, which is what keeps a size change from also being a jump.
+        //
+        // Keyed on `pagination` itself, not just `cut`: pagination arrives in instalments, and
+        // the offset a reader left on is not necessarily inside the first one. A `snapshotFlow`
+        // that only reads a plain parameter never learns about later instalments — nothing inside
+        // its block touches a State, so it has nothing to be notified by, and would sit on the
+        // first (empty) pagination forever. Restarting this effect on every instalment costs
+        // nothing once the target page is already reached: `pageOf` for an offset the pagination
+        // already covered does not move as more pages are appended after it, so a repeat here is
+        // a same-answer no-op rather than a fight with a reader who has since turned pages by hand.
         val turnsByHand = uiState.preferences.pageTurn == PageTurn.CURL
+        LaunchedEffect(cut, turnsByHand, pagination) {
+            if (pagination.covers(uiState.offset)) {
+                val target = pagination.pageOf(uiState.offset)
+                if (pageIndex != target) goToPage(target)
+            }
+        }
+
+        // Separate from the seek above, and keyed only on `cut`/`turnsByHand`, so cutting a long
+        // novel — which restarts the seek effect on every instalment — never tears down this
+        // subscription and risks losing a page settle that happened while it was reconnecting.
+        //
+        // Both `pagination` and `pageIndex` are read through `rememberUpdatedState` rather than
+        // closed over directly. This effect is long-lived and does not restart on every page turn,
+        // so a plain capture would freeze at whatever they were when it launched — harmless for
+        // `pagerState.settledPage` (a real object, live regardless of how it reached this scope),
+        // but `pageIndex` is `handPage` under a computed name, a plain Int with nothing live about
+        // it once captured, which is exactly why paper turns never settled: `snapshotFlow` reads
+        // nothing it can be notified by, and the flow it returns is stuck on page one forever, the
+        // same failure this fixes on the seek above. Same reasoning as `liveIndex` in ReaderCurl.
+        val livePagination by rememberUpdatedState(pagination)
+        val livePageIndex by rememberUpdatedState(pageIndex)
         LaunchedEffect(cut, turnsByHand) {
-            snapshotFlow { pagination }.first { it.covers(uiState.offset) }
-            val target = pagination.pageOf(uiState.offset)
-            if (pageIndex != target) goToPage(target)
-            snapshotFlow { if (turnsByHand) pageIndex else pagerState.settledPage }
+            snapshotFlow { if (turnsByHand) livePageIndex else pagerState.settledPage }
                 .drop(1)
-                .collect { index -> onEvent(ReadingEvent.PageSettled(pagination.startOf(index))) }
+                .collect { index -> onEvent(ReadingEvent.PageSettled(livePagination.startOf(index))) }
         }
 
         // Only the skeleton is drawn here. The pages themselves are drawn from the root of the

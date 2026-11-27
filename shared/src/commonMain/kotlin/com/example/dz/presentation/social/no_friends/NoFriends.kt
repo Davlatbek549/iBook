@@ -1,14 +1,15 @@
 package com.example.dz.presentation.social.no_friends
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -16,130 +17,187 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.dz.designsystem.components.icons.InkIcons
-import com.example.dz.designsystem.components.ink.InkButton
-import com.example.dz.designsystem.components.ink.InkTopBar
-import com.example.dz.designsystem.theme.InkShape
-import com.example.dz.designsystem.theme.inkBodyFontFamily
-import com.example.dz.designsystem.theme.inkColors
-import com.example.dz.designsystem.theme.inkDisplayFontFamily
+import com.example.dz.designsystem.components.icons.OrganicIcons
+import com.example.dz.designsystem.components.organic.ORGANIC_GUTTER
+import com.example.dz.designsystem.components.organic.OrganicButton
+import com.example.dz.designsystem.components.organic.OrganicCircleIconButton
+import com.example.dz.designsystem.components.organic.OrganicScreen
+import com.example.dz.designsystem.components.organic.OrganicScreenHeader
+import com.example.dz.designsystem.theme.OrganicColors
+import com.example.dz.designsystem.theme.OrganicShape
+import com.example.dz.designsystem.theme.organicBodyFontFamily
+import com.example.dz.designsystem.theme.organicHeadingFontFamily
 import dz.shared.generated.resources.Res
 import dz.shared.generated.resources.friends_title
 import dz.shared.generated.resources.nofriends_body
 import dz.shared.generated.resources.nofriends_find
-import dz.shared.generated.resources.nofriends_invite_contacts
+import dz.shared.generated.resources.nofriends_invite_by_link
 import dz.shared.generated.resources.nofriends_title
 import org.jetbrains.compose.resources.stringResource
 
+/**
+ * No Friends Yet — the empty variant of the social list in the Organic design system.
+ *
+ * Geometry from `#scr-no-friends-yet`: "Friends" header (this replaces the list, same title),
+ * two soft background blobs, a dashed-card + person-plus badge illustration, Caprasimo headline,
+ * and two full-width actions. The mock's "N people from your contacts are on dz" teaser is left
+ * out — there's no contacts-permission or matching backend behind it, so nothing makes that count
+ * true for a real user (the static placeholder list Invite Friends uses isn't a fit for a factual
+ * claim like this one).
+ */
 @Composable
 fun NoFriendsScreen(
     onEvent: (NoFriendsEvent) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val colors = inkColors()
-    val displayFont = inkDisplayFontFamily()
-    val bodyFont = inkBodyFontFamily()
+    OrganicScreen(modifier = modifier) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            OrganicScreenHeader(
+                title = stringResource(Res.string.friends_title),
+                fontSize = 28.sp,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = ORGANIC_GUTTER, vertical = 12.dp),
+                leading = {
+                    OrganicCircleIconButton(
+                        icon = OrganicIcons.ChevronLeft,
+                        onClick = { onEvent(NoFriendsEvent.BackClicked) },
+                        contentDescription = "Back",
+                        size = 38.dp
+                    )
+                }
+            )
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(colors.paper)
-            .statusBarsPadding()
-    ) {
-        InkTopBar(
-            title = stringResource(Res.string.friends_title),
-            onBackClick = { onEvent(NoFriendsEvent.BackClicked) },
-            colors = colors
-        )
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(start = 44.dp, end = 44.dp, bottom = 60.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center
-        ) {
-            // stacked-cards illustration
-            Box(
-                modifier = Modifier.size(width = 96.dp, height = 72.dp),
-                contentAlignment = Alignment.TopCenter
-            ) {
+            Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
                 Box(
                     modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(top = 12.dp)
-                        .size(52.dp)
-                        .graphicsLayer { rotationZ = -8f }
-                        .clip(RoundedCornerShape(InkShape.radiusSm + 2.dp))
-                        .background(colors.alt)
+                        .offset(x = (-110).dp, y = 150.dp)
+                        .size(300.dp)
+                        .clip(CircleShape)
+                        .background(OrganicColors.accent2_100)
                 )
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .padding(top = 12.dp)
-                        .size(52.dp)
-                        .graphicsLayer { rotationZ = 8f }
-                        .clip(RoundedCornerShape(InkShape.radiusSm + 2.dp))
-                        .background(colors.alt)
+                        .offset(x = 80.dp, y = 400.dp)
+                        .size(200.dp)
+                        .clip(CircleShape)
+                        .background(OrganicColors.accent100)
                 )
-                Box(
+
+                Column(
                     modifier = Modifier
-                        .size(52.dp)
-                        .clip(RoundedCornerShape(InkShape.radiusSm + 2.dp))
-                        .background(colors.accentSoft),
-                    contentAlignment = Alignment.Center
+                        .fillMaxSize()
+                        .padding(horizontal = ORGANIC_GUTTER),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
                 ) {
-                    Icon(
-                        imageVector = InkIcons.User,
-                        contentDescription = null,
-                        tint = colors.accent,
-                        modifier = Modifier.size(22.dp)
+                    EmptyFriendsIllustration()
+
+                    Text(
+                        text = stringResource(Res.string.nofriends_title),
+                        modifier = Modifier.padding(top = 24.dp),
+                        fontFamily = organicHeadingFontFamily(),
+                        fontWeight = FontWeight.Normal,
+                        fontSize = 30.sp,
+                        lineHeight = 33.sp,
+                        color = OrganicColors.text,
+                        textAlign = TextAlign.Center
+                    )
+
+                    Text(
+                        text = stringResource(Res.string.nofriends_body),
+                        modifier = Modifier.padding(top = 10.dp),
+                        fontFamily = organicBodyFontFamily(),
+                        fontSize = 16.sp,
+                        lineHeight = 26.sp,
+                        textAlign = TextAlign.Center,
+                        color = OrganicColors.neutral700
                     )
                 }
             }
 
-            Text(
-                text = stringResource(Res.string.nofriends_title),
-                modifier = Modifier.padding(top = 26.dp),
-                fontFamily = displayFont,
-                fontWeight = FontWeight.Medium,
-                fontSize = 24.sp,
-                color = colors.ink
-            )
-            Text(
-                text = stringResource(Res.string.nofriends_body),
-                modifier = Modifier.padding(top = 12.dp),
-                fontFamily = bodyFont,
-                fontSize = 13.5.sp,
-                lineHeight = 22.sp,
-                textAlign = TextAlign.Center,
-                color = colors.muted
-            )
-            InkButton(
-                text = stringResource(Res.string.nofriends_find),
-                onClick = { onEvent(NoFriendsEvent.FindFriendsClicked) },
-                modifier = Modifier.padding(top = 26.dp),
-                colors = colors
-            )
-            Text(
-                text = stringResource(Res.string.nofriends_invite_contacts),
+            Column(
                 modifier = Modifier
-                    .padding(top = 18.dp)
-                    .clickable { onEvent(NoFriendsEvent.InviteContactsClicked) }
-                    .padding(6.dp),
-                fontFamily = bodyFont,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 13.sp,
-                color = colors.accent
+                    .fillMaxWidth()
+                    .padding(horizontal = ORGANIC_GUTTER, vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                OrganicButton(
+                    text = stringResource(Res.string.nofriends_find),
+                    onClick = { onEvent(NoFriendsEvent.FindFriendsClicked) },
+                    background = OrganicColors.accent
+                )
+                OrganicButton(
+                    text = stringResource(Res.string.nofriends_invite_by_link),
+                    onClick = { onEvent(NoFriendsEvent.InviteByLinkClicked) },
+                    background = OrganicColors.neutral200,
+                    textColor = OrganicColors.neutral900
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun EmptyFriendsIllustration() {
+    Box(
+        modifier = Modifier.size(width = 210.dp, height = 150.dp),
+        contentAlignment = Alignment.TopCenter
+    ) {
+        DashedCard(rotationDegrees = -7f, modifier = Modifier.align(Alignment.CenterStart))
+        DashedCard(rotationDegrees = 7f, modifier = Modifier.align(Alignment.CenterEnd))
+
+        Box(
+            modifier = Modifier
+                .size(82.dp)
+                .clip(CircleShape)
+                .background(OrganicColors.accent2_700),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = OrganicIcons.UserPlus,
+                contentDescription = null,
+                tint = OrganicColors.bg,
+                modifier = Modifier.size(38.dp)
             )
         }
     }
+}
+
+@Composable
+private fun DashedCard(
+    rotationDegrees: Float,
+    modifier: Modifier = Modifier,
+) {
+    val lineColor = OrganicColors.neutral400
+    Box(
+        modifier = modifier
+            .size(width = 74.dp, height = 104.dp)
+            .rotate(rotationDegrees)
+            .clip(RoundedCornerShape(12.dp))
+            .background(OrganicColors.neutral200)
+            .drawBehind {
+                drawRoundRect(
+                    color = lineColor,
+                    style = Stroke(
+                        width = 3.dp.toPx(),
+                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(9f, 7f))
+                    ),
+                    cornerRadius = CornerRadius(12.dp.toPx())
+                )
+            }
+    )
 }
 
 @Preview(showBackground = true, widthDp = 375, heightDp = 820)

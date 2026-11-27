@@ -65,7 +65,6 @@ object Routes {
     const val SETTINGS = "settings"
     const val NOTIFICATIONS = "notifications"
     const val GOAL = "goal"
-    const val MEMBERSHIP = "membership"
     const val PREMIUM_MEMBERSHIP = "premium_membership"
 
     // Social

@@ -248,6 +248,18 @@ object OrganicIcons {
         }
     }
 
+    val Send: ImageVector by lazy {
+        organicIcon("OrganicSend") {
+            stroke {
+                moveTo(4f, 20f)
+                lineToRelative(16f, -8f)
+                lineTo(4f, 4f)
+                lineToRelative(3f, 8f)
+                close()
+            }
+        }
+    }
+
     /** Tick, for the badge on a finished book. Drawn at 3 — it sits inside a filled circle. */
     val Check: ImageVector by lazy {
         organicIcon("OrganicCheck") {
@@ -325,6 +337,367 @@ object OrganicIcons {
                 moveTo(15f, 5f)
                 lineToRelative(-7f, 7f)
                 lineToRelative(7f, 7f)
+            }
+        }
+    }
+
+    val ChevronDown: ImageVector by lazy {
+        organicIcon("OrganicChevronDown") {
+            stroke(STROKE_CHEVRON) {
+                moveTo(5f, 9f)
+                lineToRelative(7f, 7f)
+                lineToRelative(7f, -7f)
+            }
+        }
+    }
+
+    /** The streak card's flame — a single stroked outline, waisted rather than a plain teardrop. */
+    val Flame: ImageVector by lazy {
+        organicIcon("OrganicFlame") {
+            stroke {
+                moveTo(12f, 3f)
+                curveToRelative(0f, 0f, 5f, 4.2f, 5f, 9f)
+                arcToRelative(5f, 5f, 0f, false, true, -10f, 0f)
+                curveToRelative(0f, -1.8f, 0.8f, -3f, 0.8f, -3f)
+                curveToRelative(0.3f, 1.4f, 1.2f, 2.2f, 2.2f, 2.2f)
+                curveToRelative(1.6f, 0f, 2f, -2.6f, 2f, -8.2f)
+                close()
+            }
+        }
+    }
+
+    // ── Settings rows ────────────────────────────────────────────────────────
+
+    /** Sun — auto night mode. */
+    val Sun: ImageVector by lazy {
+        organicIcon("OrganicSun") {
+            stroke {
+                moveTo(12f, 3f)
+                verticalLineToRelative(2f)
+                moveTo(12f, 19f)
+                verticalLineToRelative(2f)
+                moveTo(5f, 12f)
+                horizontalLineTo(3f)
+                moveTo(21f, 12f)
+                horizontalLineToRelative(-2f)
+                moveTo(6f, 6f)
+                lineTo(4.6f, 4.6f)
+                moveTo(19.4f, 19.4f)
+                lineTo(18f, 18f)
+                moveTo(6f, 18f)
+                lineToRelative(-1.4f, 1.4f)
+                moveTo(19.4f, 4.6f)
+                lineTo(18f, 6f)
+            }
+            stroke { circle(12f, 12f, 4f) }
+        }
+    }
+
+    /** Rounded phone outline — keep screen awake. */
+    val Device: ImageVector by lazy {
+        organicIcon("OrganicDevice") {
+            stroke {
+                moveTo(10f, 2f)
+                horizontalLineToRelative(4f)
+                arcToRelative(3f, 3f, 0f, false, true, 3f, 3f)
+                verticalLineToRelative(14f)
+                arcToRelative(3f, 3f, 0f, false, true, -3f, 3f)
+                horizontalLineToRelative(-4f)
+                arcToRelative(3f, 3f, 0f, false, true, -3f, -3f)
+                verticalLineToRelative(-14f)
+                arcToRelative(3f, 3f, 0f, false, true, 3f, -3f)
+                close()
+                moveTo(11f, 18f)
+                horizontalLineToRelative(2f)
+            }
+        }
+    }
+
+    /** A bell — the daily goal nudge. */
+    val Bell: ImageVector by lazy {
+        organicIcon("OrganicBell") {
+            stroke {
+                moveTo(18f, 8f)
+                arcToRelative(6f, 6f, 0f, true, false, -12f, 0f)
+                curveToRelative(0f, 7f, -3f, 8f, -3f, 8f)
+                horizontalLineToRelative(18f)
+                curveToRelative(0f, 0f, -3f, -1f, -3f, -8f)
+                moveTo(10f, 21f)
+                horizontalLineToRelative(4f)
+            }
+        }
+    }
+
+    /** An envelope — store offers by mail. */
+    val Mail: ImageVector by lazy {
+        organicIcon("OrganicMail") {
+            stroke {
+                moveTo(3f, 6f)
+                horizontalLineToRelative(18f)
+                verticalLineToRelative(12f)
+                horizontalLineTo(3f)
+                close()
+            }
+            stroke {
+                moveTo(3f, 8f)
+                lineToRelative(9f, 6f)
+                lineToRelative(9f, -6f)
+            }
+        }
+    }
+
+    /** Three connected nodes — hand the link to the system share sheet. */
+    val Share: ImageVector by lazy {
+        organicIcon("OrganicShare") {
+            stroke {
+                circle(18f, 5f, 3f)
+                circle(6f, 12f, 3f)
+                circle(18f, 19f, 3f)
+                moveTo(8.6f, 13.5f)
+                lineToRelative(6.8f, 4f)
+                moveTo(15.4f, 6.5f)
+                lineToRelative(-6.8f, 4f)
+            }
+        }
+    }
+
+    /** A person with a plus — the empty-friends illustration badge. */
+    val UserPlus: ImageVector by lazy {
+        organicIcon("OrganicUserPlus") {
+            stroke {
+                moveTo(16f, 21f)
+                verticalLineToRelative(-2f)
+                arcToRelative(4f, 4f, 0f, false, false, -4f, -4f)
+                horizontalLineTo(6f)
+                arcToRelative(4f, 4f, 0f, false, false, -4f, 4f)
+                verticalLineToRelative(2f)
+                circle(9f, 7f, 4f)
+                moveTo(19f, 8f)
+                verticalLineToRelative(6f)
+                moveTo(22f, 11f)
+                horizontalLineToRelative(-6f)
+            }
+        }
+    }
+
+    /** A padlock — who sees the reader's shelves. */
+    val Lock: ImageVector by lazy {
+        organicIcon("OrganicLock") {
+            stroke {
+                moveTo(7f, 10f)
+                horizontalLineToRelative(10f)
+                arcToRelative(3f, 3f, 0f, false, true, 3f, 3f)
+                verticalLineToRelative(5f)
+                arcToRelative(3f, 3f, 0f, false, true, -3f, 3f)
+                horizontalLineToRelative(-10f)
+                arcToRelative(3f, 3f, 0f, false, true, -3f, -3f)
+                verticalLineToRelative(-5f)
+                arcToRelative(3f, 3f, 0f, false, true, 3f, -3f)
+                close()
+            }
+            stroke {
+                moveTo(8f, 10f)
+                verticalLineToRelative(-3f)
+                arcToRelative(4f, 4f, 0f, false, true, 8f, 0f)
+                verticalLineToRelative(3f)
+            }
+        }
+    }
+
+    /** A circled "i" — help and contact. */
+    val Info: ImageVector by lazy {
+        organicIcon("OrganicInfo") {
+            stroke { circle(12f, 12f, 9f) }
+            stroke {
+                moveTo(12f, 16f)
+                verticalLineToRelative(-4f)
+                moveTo(12f, 8f)
+                horizontalLineToRelative(0.01f)
+            }
+        }
+    }
+
+    /** A shield — terms and privacy. */
+    val Shield: ImageVector by lazy {
+        organicIcon("OrganicShield") {
+            stroke {
+                moveTo(12f, 3f)
+                lineToRelative(8f, 4f)
+                verticalLineToRelative(5f)
+                curveToRelative(0f, 5f, -3.5f, 8f, -8f, 9f)
+                curveToRelative(-4.5f, -1f, -8f, -4f, -8f, -9f)
+                verticalLineToRelative(-5f)
+                close()
+            }
+        }
+    }
+
+    // ── Edit profile ─────────────────────────────────────────────────────────
+
+    /** A camera body with its lens — change a photo. */
+    val Camera: ImageVector by lazy {
+        organicIcon("OrganicCamera") {
+            stroke {
+                moveTo(14.5f, 4f)
+                horizontalLineToRelative(-5f)
+                lineTo(7f, 7f)
+                horizontalLineTo(4f)
+                arcToRelative(2f, 2f, 0f, false, false, -2f, 2f)
+                verticalLineToRelative(9f)
+                arcToRelative(2f, 2f, 0f, false, false, 2f, 2f)
+                horizontalLineToRelative(16f)
+                arcToRelative(2f, 2f, 0f, false, false, 2f, -2f)
+                verticalLineTo(9f)
+                arcToRelative(2f, 2f, 0f, false, false, -2f, -2f)
+                horizontalLineToRelative(-3f)
+                close()
+            }
+            stroke { circle(12f, 13f, 3f) }
+        }
+    }
+
+    /** A globe — the open profile, and "on your profile". */
+    val Globe: ImageVector by lazy {
+        organicIcon("OrganicGlobe") {
+            stroke { circle(12f, 12f, 9f) }
+            stroke {
+                moveTo(12f, 3f)
+                arcToRelative(13f, 13f, 0f, false, false, 0f, 18f)
+                arcToRelative(13f, 13f, 0f, false, false, 0f, -18f)
+                moveTo(3f, 12f)
+                horizontalLineToRelative(18f)
+            }
+        }
+    }
+
+    /** A wall calendar — date of birth. */
+    val Calendar: ImageVector by lazy {
+        organicIcon("OrganicCalendar") {
+            stroke {
+                moveTo(5f, 5f)
+                horizontalLineToRelative(14f)
+                arcToRelative(2f, 2f, 0f, false, true, 2f, 2f)
+                verticalLineToRelative(12f)
+                arcToRelative(2f, 2f, 0f, false, true, -2f, 2f)
+                horizontalLineTo(5f)
+                arcToRelative(2f, 2f, 0f, false, true, -2f, -2f)
+                verticalLineTo(7f)
+                arcToRelative(2f, 2f, 0f, false, true, 2f, -2f)
+                close()
+            }
+            stroke {
+                moveTo(8f, 3f)
+                verticalLineToRelative(4f)
+                moveTo(16f, 3f)
+                verticalLineToRelative(4f)
+                moveTo(3f, 10f)
+                horizontalLineToRelative(18f)
+            }
+        }
+    }
+
+    /** A circled "!" — a username that is taken, a change that will be lost. */
+    val Alert: ImageVector by lazy {
+        organicIcon("OrganicAlert") {
+            stroke { circle(12f, 12f, 9f) }
+            stroke {
+                moveTo(12f, 8f)
+                verticalLineToRelative(4.5f)
+                moveTo(12f, 16f)
+                horizontalLineToRelative(0.01f)
+            }
+        }
+    }
+
+    /** A bin — remove a photo. */
+    val Trash: ImageVector by lazy {
+        organicIcon("OrganicTrash") {
+            stroke {
+                moveTo(3f, 6f)
+                horizontalLineToRelative(18f)
+                moveTo(19f, 6f)
+                verticalLineToRelative(14f)
+                curveToRelative(0f, 1f, -1f, 2f, -2f, 2f)
+                horizontalLineTo(7f)
+                curveToRelative(-1f, 0f, -2f, -1f, -2f, -2f)
+                verticalLineTo(6f)
+                moveTo(8f, 6f)
+                verticalLineTo(4f)
+                curveToRelative(0f, -1f, 1f, -2f, 2f, -2f)
+                horizontalLineToRelative(4f)
+                curveToRelative(1f, 0f, 2f, 1f, 2f, 2f)
+                verticalLineToRelative(2f)
+            }
+        }
+    }
+
+    /** A framed picture — choose from the photo library. */
+    val Image: ImageVector by lazy {
+        organicIcon("OrganicImage") {
+            stroke {
+                moveTo(5f, 3f)
+                horizontalLineToRelative(14f)
+                arcToRelative(2f, 2f, 0f, false, true, 2f, 2f)
+                verticalLineToRelative(14f)
+                arcToRelative(2f, 2f, 0f, false, true, -2f, 2f)
+                horizontalLineTo(5f)
+                arcToRelative(2f, 2f, 0f, false, true, -2f, -2f)
+                verticalLineTo(5f)
+                arcToRelative(2f, 2f, 0f, false, true, 2f, -2f)
+                close()
+            }
+            stroke {
+                circle(9f, 9f, 2f)
+                moveTo(21f, 15f)
+                lineToRelative(-5f, -5f)
+                lineTo(5f, 21f)
+            }
+        }
+    }
+
+    /** A briefcase — speciality, at work. */
+    val Briefcase: ImageVector by lazy {
+        organicIcon("OrganicBriefcase") {
+            stroke {
+                moveTo(4f, 7f)
+                horizontalLineToRelative(16f)
+                arcToRelative(2f, 2f, 0f, false, true, 2f, 2f)
+                verticalLineToRelative(9f)
+                arcToRelative(2f, 2f, 0f, false, true, -2f, 2f)
+                horizontalLineTo(4f)
+                arcToRelative(2f, 2f, 0f, false, true, -2f, -2f)
+                verticalLineTo(9f)
+                arcToRelative(2f, 2f, 0f, false, true, 2f, -2f)
+                close()
+            }
+            stroke {
+                moveTo(8f, 7f)
+                verticalLineTo(5f)
+                arcToRelative(2f, 2f, 0f, false, true, 2f, -2f)
+                horizontalLineToRelative(4f)
+                arcToRelative(2f, 2f, 0f, false, true, 2f, 2f)
+                verticalLineToRelative(2f)
+            }
+        }
+    }
+
+    /** A mortarboard — speciality, studying. */
+    val GraduationCap: ImageVector by lazy {
+        organicIcon("OrganicGraduationCap") {
+            stroke {
+                moveTo(2f, 9.5f)
+                lineTo(12f, 5f)
+                lineToRelative(10f, 4.5f)
+                lineTo(12f, 14f)
+                close()
+                moveTo(22f, 9.5f)
+                verticalLineToRelative(5.5f)
+            }
+            stroke {
+                moveTo(6f, 11.8f)
+                verticalLineTo(16f)
+                arcToRelative(6f, 3f, 0f, false, false, 12f, 0f)
+                verticalLineToRelative(-4.2f)
             }
         }
     }

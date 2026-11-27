@@ -37,15 +37,9 @@ class FriendListViewModel(
     private fun load() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
-            // The curated roster carries handles/avatars the domain model can't express yet;
-            // the use case drives the loading/error state so this stays backend-ready.
             when (val result = getFriends()) {
                 is AppResult.Success -> _uiState.update {
-                    it.copy(
-                        friends = result.data.map { friend -> friend.toFriendUi() },
-                        isLoading = false,
-                        errorMessage = null
-                    )
+                    it.copy(friends = result.data.map { friend -> friend.toFriendRowUi() }, isLoading = false, errorMessage = null)
                 }
                 is AppResult.Error -> _uiState.update {
                     it.copy(isLoading = false, errorMessage = result.error.toPresentationMessage())

@@ -1,0 +1,585 @@
+package com.example.dz
+
+import com.example.dz.core.error.AppError
+import com.example.dz.core.media.CropPosition
+import com.example.dz.core.media.CropRegion
+import com.example.dz.core.media.CropShape
+import com.example.dz.core.media.PickedImage
+import com.example.dz.core.result.AppResult
+import com.example.dz.domain.model.BirthDate
+import com.example.dz.domain.model.EditableProfile
+import com.example.dz.domain.model.Gender
+import com.example.dz.domain.model.PostalAddress
+import com.example.dz.domain.model.ProfileImage
+import com.example.dz.domain.model.UsernameAvailability
+import com.example.dz.domain.model.UsernameProblem
+import com.example.dz.domain.repository.ProfileRepository
+import com.example.dz.domain.usecase.user.CheckUsernameUseCase
+import com.example.dz.domain.usecase.user.GetEditableProfileUseCase
+import com.example.dz.domain.usecase.user.SaveEditableProfileUseCase
+import com.example.dz.domain.usecase.user.SaveProfileImageUseCase
+import com.example.dz.presentation.profile.profile_edit.EditProfileDialog
+import com.example.dz.presentation.profile.profile_edit.EditProfileEffect
+import com.example.dz.presentation.profile.profile_edit.EditProfileEvent
+import com.example.dz.presentation.profile.profile_edit.EditProfileSheet
+import com.example.dz.presentation.profile.profile_edit.EditProfileViewModel
+import com.example.dz.presentation.profile.profile_edit.PhotoTarget
+import com.example.dz.presentation.profile.profile_edit.ProfileField
+import com.example.dz.presentation.profile.profile_edit.UsernameStatus
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
+import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
+import kotlin.test.AfterTest
+import kotlin.test.BeforeTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertIs
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
+
+/**
+ * Edit Profile's rules: when Save is live, when the username is checked, what a save sends, and
+ * when the screen asks before doing something it cannot take back.
+ */
+@OptIn(ExperimentalCoroutinesApi::class)
+class EditProfileViewModelTest {
+
+    private val dispatcher = StandardTestDispatcher()
+
+    @BeforeTest fun setUp() = Dispatchers.setMain(dispatcher)
+
+    @AfterTest fun tearDown() = Dispatchers.resetMain()
+
+    private val amelia = EditableProfile(
+        name = "Amelia Hart",
+        username = "amelia.reads",
+        email = "amelia@hart.co",
+        emailVerified = true,
+        bio = "Slow mornings",
+        address = PostalAddress(countryCode = "GB", city = "London"),
+        language = "en-GB",
+        currentGoalMinutes = 20,
+    )
+
+    private class FakeProfileRepository(var profile: EditableProfile) : ProfileRepository {
+        val saved = mutableListOf<EditableProfile>()
+        val checked = mutableListOf<String>()
+        var checkAnswer: (String) -> AppResult<UsernameAvailability> =
+            { AppResult.Success(UsernameAvailability(it, available = true)) }
+        var saveAnswer: (EditableProfile) -> AppResult<EditableProfile> = { AppResult.Success(it) }
+
+        override suspend fun getEditableProfile(): AppResult<EditableProfile> = AppResult.Success(profile)
+
+        override suspend fun saveEditableProfile(profile: EditableProfile): AppResult<EditableProfile> {
+            saved += profile
+            calls += "fields"
+            // Like the server, PUT /users/me leaves the pictures as they are.
+            val answer = saveAnswer(profile.copy(avatarUrl = this.profile.avatarUrl, bannerUrl = this.profile.bannerUrl))
+            if (answer is AppResult.Success) this.profile = answer.data
+            return answer
+        }
+
+        override suspend fun checkUsername(username: String): AppResult<UsernameAvailability> {
+            checked += username
+            return checkAnswer(username)
+        }
+
+        /** Every call in order: "fields", "upload Photo", "remove Banner", ... */
+        val calls = mutableListOf<String>()
+        val uploaded = mutableMapOf<ProfileImage, ByteArray>()
+        var imageAnswer: (ProfileImage) -> AppError? = { null }
+
+        override suspend fun uploadImage(image: ProfileImage, jpeg: ByteArray): AppResult<EditableProfile> {
+            calls += "upload $image"
+            imageAnswer(image)?.let { return AppResult.Error(it) }
+            uploaded[image] = jpeg
+            profile = profile.withPicture(image, "https://cdn/${image.name.lowercase()}-${calls.size}.jpg")
+            return AppResult.Success(profile)
+        }
+
+        override suspend fun removeImage(image: ProfileImage): AppResult<EditableProfile> {
+            calls += "remove $image"
+            imageAnswer(image)?.let { return AppResult.Error(it) }
+            profile = profile.withPicture(image, null)
+            return AppResult.Success(profile)
+        }
+
+        private fun EditableProfile.withPicture(image: ProfileImage, url: String?) =
+            if (image == ProfileImage.Photo) copy(avatarUrl = url) else copy(bannerUrl = url)
+    }
+
+    private val today = BirthDate(2026, 11, 13)
+
+    private fun TestScope.viewModel(
+        repository: FakeProfileRepository,
+        region: String? = "PL",
+        cropper: FakeCropper = FakeCropper(),
+    ): Pair<EditProfileViewModel, MutableList<EditProfileEffect>> {
+        val vm = EditProfileViewModel(
+            GetEditableProfileUseCase(repository),
+            SaveEditableProfileUseCase(repository),
+            CheckUsernameUseCase(repository),
+            SaveProfileImageUseCase(repository),
+            today = { today },
+            deviceRegion = { region },
+            cropImage = cropper::crop,
+        )
+        val effects = mutableListOf<EditProfileEffect>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.effects.collect { effects += it } }
+        advanceUntilIdle()
+        return vm to effects
+    }
+
+    @Test
+    fun `nothing to save until something changes, and undoing a change undoes it`() = runTest(dispatcher) {
+        val (vm, _) = viewModel(FakeProfileRepository(amelia))
+        assertFalse(vm.uiState.value.canSave)
+
+        vm.onEvent(EditProfileEvent.BioChanged("Slow mornings, long novels"))
+        assertTrue(vm.uiState.value.canSave)
+        assertEquals(listOf(ProfileField.Bio), vm.uiState.value.changedFields)
+
+        // A trailing space would save the same, so it is not a change.
+        vm.onEvent(EditProfileEvent.BioChanged("Slow mornings "))
+        assertFalse(vm.uiState.value.hasChanges)
+    }
+
+    @Test
+    fun `a username is checked once, 400ms after typing stops`() = runTest(dispatcher) {
+        val repository = FakeProfileRepository(amelia)
+        val (vm, _) = viewModel(repository)
+
+        listOf("ame", "amel", "ameli", "amelia").forEach {
+            vm.onEvent(EditProfileEvent.UsernameChanged(it))
+            advanceTimeBy(100)
+        }
+        advanceTimeBy(299)
+        runCurrent()
+        assertEquals(emptyList(), repository.checked)
+        assertEquals(UsernameStatus.Checking, vm.uiState.value.usernameStatus)
+        assertFalse(vm.uiState.value.canSave, "Save waits for the check")
+
+        advanceTimeBy(2)
+        runCurrent()
+        assertEquals(listOf("amelia"), repository.checked)
+        assertEquals(UsernameStatus.Available, vm.uiState.value.usernameStatus)
+        assertTrue(vm.uiState.value.canSave)
+    }
+
+    @Test
+    fun `a username is shown the way it will be saved`() = runTest(dispatcher) {
+        val (vm, _) = viewModel(FakeProfileRepository(amelia))
+        vm.onEvent(EditProfileEvent.UsernameChanged(" @Amelia Hart "))
+        assertEquals("ameliahart", vm.uiState.value.draft.username)
+    }
+
+    @Test
+    fun `a taken username offers the server's suggestions and blocks saving`() = runTest(dispatcher) {
+        val repository = FakeProfileRepository(amelia).apply {
+            checkAnswer = { name ->
+                if (name == "amelia") {
+                    AppResult.Success(
+                        UsernameAvailability(name, available = false, problem = UsernameProblem.Taken,
+                            suggestions = listOf("amelia.hart", "amelia_reads"))
+                    )
+                } else {
+                    AppResult.Success(UsernameAvailability(name, available = true))
+                }
+            }
+        }
+        val (vm, _) = viewModel(repository)
+
+        vm.onEvent(EditProfileEvent.UsernameChanged("amelia"))
+        advanceUntilIdle()
+        assertEquals(UsernameStatus.Taken(listOf("amelia.hart", "amelia_reads")), vm.uiState.value.usernameStatus)
+        assertFalse(vm.uiState.value.canSave)
+
+        vm.onEvent(EditProfileEvent.UsernameSuggestionPicked("amelia.hart"))
+        advanceUntilIdle()
+        assertEquals("amelia.hart", vm.uiState.value.draft.username)
+        assertEquals(UsernameStatus.Available, vm.uiState.value.usernameStatus)
+    }
+
+    @Test
+    fun `a malformed username is refused without asking the server`() = runTest(dispatcher) {
+        val repository = FakeProfileRepository(amelia)
+        val (vm, _) = viewModel(repository)
+
+        vm.onEvent(EditProfileEvent.UsernameChanged("a!"))
+        advanceUntilIdle()
+        assertEquals(UsernameStatus.Invalid, vm.uiState.value.usernameStatus)
+        assertEquals(emptyList(), repository.checked)
+    }
+
+    @Test
+    fun `going back to the saved username needs no check`() = runTest(dispatcher) {
+        val repository = FakeProfileRepository(amelia)
+        val (vm, _) = viewModel(repository)
+
+        vm.onEvent(EditProfileEvent.UsernameChanged("someone.else"))
+        vm.onEvent(EditProfileEvent.UsernameChanged("amelia.reads"))
+        advanceUntilIdle()
+        assertEquals(UsernameStatus.Unchanged, vm.uiState.value.usernameStatus)
+        assertEquals(emptyList(), repository.checked, "the check for someone.else was cancelled before it ran")
+    }
+
+    @Test
+    fun `an empty username blocks saving`() = runTest(dispatcher) {
+        val (vm, _) = viewModel(FakeProfileRepository(amelia))
+        vm.onEvent(EditProfileEvent.BioChanged("Changed"))
+        vm.onEvent(EditProfileEvent.UsernameChanged(""))
+        assertEquals(UsernameStatus.Missing, vm.uiState.value.usernameStatus)
+        assertFalse(vm.uiState.value.canSave)
+    }
+
+    @Test
+    fun `save sends the whole profile, untouched fields included`() = runTest(dispatcher) {
+        val repository = FakeProfileRepository(amelia)
+        val (vm, effects) = viewModel(repository)
+
+        vm.onEvent(EditProfileEvent.BioChanged("  New bio  "))
+        vm.onEvent(EditProfileEvent.SaveClicked)
+        advanceUntilIdle()
+
+        val sent = repository.saved.single()
+        assertEquals("New bio", sent.bio)
+        // The server clears what is left out, so what this screen does not edit must still go.
+        assertEquals("en-GB", sent.language)
+        assertEquals(20, sent.currentGoalMinutes)
+        assertEquals("amelia.reads", sent.username)
+        assertEquals(PostalAddress(countryCode = "GB", city = "London"), sent.address)
+        assertEquals(listOf<EditProfileEffect>(EditProfileEffect.Saved), effects)
+        assertFalse(vm.uiState.value.hasChanges)
+    }
+
+    @Test
+    fun `the first save of a date of birth asks first, and saves only once confirmed`() = runTest(dispatcher) {
+        val repository = FakeProfileRepository(amelia)
+        val (vm, effects) = viewModel(repository)
+
+        vm.onEvent(EditProfileEvent.DateOfBirthClicked)
+        assertEquals(EditProfileSheet.DateOfBirth, vm.uiState.value.sheet)
+        vm.onEvent(EditProfileEvent.DateOfBirthPicked(BirthDate(1999, 3, 14)))
+        assertNull(vm.uiState.value.sheet)
+
+        vm.onEvent(EditProfileEvent.SaveClicked)
+        advanceUntilIdle()
+        val dialog = assertIs<EditProfileDialog.ConfirmOneTime>(vm.uiState.value.dialog)
+        assertEquals(BirthDate(1999, 3, 14), dialog.pending.dateOfBirth)
+        assertEquals(emptyList(), repository.saved)
+
+        vm.onEvent(EditProfileEvent.OneTimeConfirmed)
+        advanceUntilIdle()
+        assertEquals(BirthDate(1999, 3, 14), repository.saved.single().dateOfBirth)
+        assertEquals(listOf<EditProfileEffect>(EditProfileEffect.Saved), effects)
+    }
+
+    @Test
+    fun `a date of birth and gender set before cannot be opened again`() = runTest(dispatcher) {
+        val (vm, _) = viewModel(FakeProfileRepository(amelia.copy(dateOfBirth = BirthDate(1999, 3, 14), gender = Gender.Female)))
+
+        assertTrue(vm.uiState.value.dateOfBirthLocked)
+        vm.onEvent(EditProfileEvent.DateOfBirthClicked)
+        vm.onEvent(EditProfileEvent.GenderClicked)
+        assertNull(vm.uiState.value.sheet)
+    }
+
+    @Test
+    fun `a date of birth after today is pulled back to today`() = runTest(dispatcher) {
+        val (vm, _) = viewModel(FakeProfileRepository(amelia))
+        vm.onEvent(EditProfileEvent.DateOfBirthClicked)
+        vm.onEvent(EditProfileEvent.DateOfBirthPicked(BirthDate(2030, 1, 1)))
+        assertEquals(today, vm.uiState.value.draft.dateOfBirth)
+    }
+
+    @Test
+    fun `cancel asks before throwing edits away, and not otherwise`() = runTest(dispatcher) {
+        val (vm, effects) = viewModel(FakeProfileRepository(amelia))
+
+        vm.onEvent(EditProfileEvent.CancelClicked)
+        advanceUntilIdle()
+        assertEquals(listOf<EditProfileEffect>(EditProfileEffect.NavigateBack), effects)
+
+        effects.clear()
+        vm.onEvent(EditProfileEvent.NameChanged("Amelia B. Hart"))
+        vm.onEvent(EditProfileEvent.CancelClicked)
+        advanceUntilIdle()
+        assertEquals(EditProfileDialog.Discard, vm.uiState.value.dialog)
+        assertEquals(emptyList(), effects)
+
+        vm.onEvent(EditProfileEvent.DiscardConfirmed)
+        advanceUntilIdle()
+        assertEquals(listOf<EditProfileEffect>(EditProfileEffect.NavigateBack), effects)
+    }
+
+    @Test
+    fun `a username taken between the check and the save comes back as taken`() = runTest(dispatcher) {
+        var takenNow = false
+        val repository = FakeProfileRepository(amelia).apply {
+            checkAnswer = { name ->
+                AppResult.Success(
+                    if (takenNow) UsernameAvailability(name, false, UsernameProblem.Taken, listOf("${name}_reads"))
+                    else UsernameAvailability(name, true)
+                )
+            }
+            saveAnswer = { AppResult.Error(AppError.Profile(AppError.ProfileReason.UsernameTaken)) }
+        }
+        val (vm, effects) = viewModel(repository)
+
+        vm.onEvent(EditProfileEvent.UsernameChanged("newname"))
+        advanceUntilIdle()
+        assertEquals(UsernameStatus.Available, vm.uiState.value.usernameStatus)
+
+        takenNow = true
+        vm.onEvent(EditProfileEvent.SaveClicked)
+        advanceUntilIdle()
+        assertEquals(UsernameStatus.Taken(listOf("newname_reads")), vm.uiState.value.usernameStatus)
+        assertNotNull(vm.uiState.value.saveError)
+        assertEquals(emptyList(), effects)
+    }
+
+    @Test
+    fun `the phone's dial code starts from the address, then the device`() = runTest(dispatcher) {
+        val (withAddress, _) = viewModel(FakeProfileRepository(amelia), region = "PL")
+        assertEquals("GB", withAddress.uiState.value.phoneCountry)
+
+        val (withoutAddress, _) = viewModel(FakeProfileRepository(amelia.copy(address = PostalAddress())), region = "PL")
+        assertEquals("PL", withoutAddress.uiState.value.phoneCountry)
+    }
+
+    /** Stands in for the platform codec: records what it was asked to cut, answers at the shape's size. */
+    private class FakeCropper(var fails: Boolean = false) {
+        val asked = mutableListOf<Pair<CropRegion, CropShape>>()
+
+        suspend fun crop(image: PickedImage, region: CropRegion, shape: CropShape): PickedImage {
+            asked += region to shape
+            if (fails) error("Could not decode")
+            return PickedImage(byteArrayOf(7), shape.outputWidth, shape.outputHeight)
+        }
+    }
+
+    private fun picture() = PickedImage(byteArrayOf(1, 2, 3), width = 1200, height = 1600)
+
+    private fun EditProfileViewModel.pickAndCrop(target: PhotoTarget) {
+        onEvent(if (target == PhotoTarget.Banner) EditProfileEvent.BannerClicked else EditProfileEvent.PhotoClicked)
+        onEvent(EditProfileEvent.PhotoPicked(picture()))
+        onEvent(EditProfileEvent.CropConfirmed(CropPosition()))
+    }
+
+    @Test
+    fun `a pick goes to the crop screen for the picture whose sheet is open`() = runTest(dispatcher) {
+        val (vm, _) = viewModel(FakeProfileRepository(amelia))
+        val photo = picture()
+
+        vm.onEvent(EditProfileEvent.BannerClicked)
+        vm.onEvent(EditProfileEvent.PhotoPicked(photo))
+
+        val state = vm.uiState.value
+        assertNull(state.sheet)
+        assertEquals(PhotoTarget.Banner, state.crop?.target)
+        assertEquals(CropShape.Banner, state.crop?.shape)
+        assertEquals(photo, state.crop?.image)
+        // Nothing reaches the form until the crop is used.
+        assertNull(state.newBanner)
+        assertFalse(state.hasChanges)
+    }
+
+    @Test
+    fun `using the crop puts the cut picture on the form`() = runTest(dispatcher) {
+        val cropper = FakeCropper()
+        val (vm, _) = viewModel(FakeProfileRepository(amelia.copy(avatarUrl = "https://cdn/amelia.jpg")), cropper = cropper)
+
+        vm.pickAndCrop(PhotoTarget.Profile)
+        advanceUntilIdle()
+
+        val state = vm.uiState.value
+        assertNull(state.crop)
+        // The middle square of the 1200x1600 portrait, cut for the circle.
+        assertEquals(listOf(CropRegion(0, 200, 1200, 1200) to CropShape.Circle), cropper.asked)
+        assertEquals(512, state.newPhoto?.width)
+        assertEquals(state.newPhoto?.bytes, state.photoModel)
+        assertTrue(state.hasChanges)
+        assertEquals(listOf(ProfileField.Photo), state.changedFields)
+    }
+
+    @Test
+    fun `cancelling the crop leaves the form as it was`() = runTest(dispatcher) {
+        val (vm, _) = viewModel(FakeProfileRepository(amelia))
+
+        vm.onEvent(EditProfileEvent.PhotoClicked)
+        vm.onEvent(EditProfileEvent.PhotoPicked(picture()))
+        vm.onEvent(EditProfileEvent.CropCancelled)
+
+        assertNull(vm.uiState.value.crop)
+        assertNull(vm.uiState.value.newPhoto)
+        assertFalse(vm.uiState.value.hasChanges)
+    }
+
+    @Test
+    fun `a crop that cannot be made says the picture could not be opened`() = runTest(dispatcher) {
+        val (vm, _) = viewModel(FakeProfileRepository(amelia), cropper = FakeCropper(fails = true))
+
+        vm.pickAndCrop(PhotoTarget.Banner)
+        advanceUntilIdle()
+
+        assertNull(vm.uiState.value.crop)
+        assertNull(vm.uiState.value.newBanner)
+        assertTrue(vm.uiState.value.photoUnreadable)
+    }
+
+    @Test
+    fun `a pick that arrives with no photo sheet open is ignored`() = runTest(dispatcher) {
+        val (vm, _) = viewModel(FakeProfileRepository(amelia))
+
+        vm.onEvent(EditProfileEvent.PhotoPicked(picture()))
+
+        assertNull(vm.uiState.value.crop)
+        assertFalse(vm.uiState.value.hasChanges)
+    }
+
+    @Test
+    fun `removing a banner removes a new pick as well as the saved one`() = runTest(dispatcher) {
+        val (vm, _) = viewModel(FakeProfileRepository(amelia.copy(bannerUrl = "https://cdn/banner.jpg")))
+
+        vm.pickAndCrop(PhotoTarget.Banner)
+        advanceUntilIdle()
+        vm.onEvent(EditProfileEvent.BannerClicked)
+        vm.onEvent(EditProfileEvent.RemovePhotoClicked)
+
+        val state = vm.uiState.value
+        assertNull(state.newBanner)
+        assertNull(state.bannerModel)
+        assertEquals(listOf(ProfileField.Banner), state.changedFields)
+    }
+
+    @Test
+    fun `cancel asks before throwing away a cropped photo`() = runTest(dispatcher) {
+        val (vm, effects) = viewModel(FakeProfileRepository(amelia))
+
+        vm.pickAndCrop(PhotoTarget.Profile)
+        advanceUntilIdle()
+        vm.onEvent(EditProfileEvent.CancelClicked)
+        advanceUntilIdle()
+
+        assertEquals(EditProfileDialog.Discard, vm.uiState.value.dialog)
+        assertEquals(emptyList(), effects)
+    }
+
+    @Test
+    fun `an unreadable pick says so until the next edit`() = runTest(dispatcher) {
+        val (vm, _) = viewModel(FakeProfileRepository(amelia))
+
+        vm.onEvent(EditProfileEvent.PhotoClicked)
+        vm.onEvent(EditProfileEvent.PhotoUnreadable)
+        assertTrue(vm.uiState.value.photoUnreadable)
+        assertNull(vm.uiState.value.sheet)
+        assertFalse(vm.uiState.value.hasChanges)
+
+        vm.onEvent(EditProfileEvent.BioChanged("Something new"))
+        assertFalse(vm.uiState.value.photoUnreadable)
+    }
+
+    @Test
+    fun `a new photo alone is uploaded without saving the fields`() = runTest(dispatcher) {
+        val repository = FakeProfileRepository(amelia)
+        val (vm, effects) = viewModel(repository)
+
+        vm.pickAndCrop(PhotoTarget.Profile)
+        advanceUntilIdle()
+        vm.onEvent(EditProfileEvent.SaveClicked)
+        advanceUntilIdle()
+
+        assertEquals(listOf("upload Photo"), repository.calls)
+        // The cropped picture is what is sent, not the original pick.
+        assertEquals(listOf<Byte>(7), repository.uploaded.getValue(ProfileImage.Photo).toList())
+        val state = vm.uiState.value
+        assertNull(state.newPhoto)
+        assertEquals("https://cdn/photo-1.jpg", state.saved?.avatarUrl)
+        assertEquals(state.saved?.avatarUrl, state.photoModel)
+        assertFalse(state.hasChanges)
+        assertEquals(listOf<EditProfileEffect>(EditProfileEffect.Saved), effects)
+    }
+
+    @Test
+    fun `fields go first, then the photo, then the banner`() = runTest(dispatcher) {
+        val repository = FakeProfileRepository(amelia.copy(avatarUrl = "https://cdn/old.jpg"))
+        val (vm, effects) = viewModel(repository)
+
+        vm.onEvent(EditProfileEvent.BioChanged("Long novels"))
+        vm.pickAndCrop(PhotoTarget.Banner)
+        advanceUntilIdle()
+        vm.onEvent(EditProfileEvent.PhotoClicked)
+        vm.onEvent(EditProfileEvent.RemovePhotoClicked)
+        vm.onEvent(EditProfileEvent.SaveClicked)
+        advanceUntilIdle()
+
+        assertEquals(listOf("fields", "remove Photo", "upload Banner"), repository.calls)
+        val state = vm.uiState.value
+        assertEquals("Long novels", state.saved?.bio)
+        assertNull(state.saved?.avatarUrl)
+        assertEquals("https://cdn/banner-3.jpg", state.saved?.bannerUrl)
+        assertFalse(state.hasChanges)
+        assertEquals(listOf<EditProfileEffect>(EditProfileEffect.Saved), effects)
+    }
+
+    @Test
+    fun `a refused username stops the save before any picture is sent`() = runTest(dispatcher) {
+        val repository = FakeProfileRepository(amelia).apply {
+            saveAnswer = { AppResult.Error(AppError.Profile(AppError.ProfileReason.UsernameTaken)) }
+        }
+        val (vm, effects) = viewModel(repository)
+
+        vm.onEvent(EditProfileEvent.BioChanged("Long novels"))
+        vm.pickAndCrop(PhotoTarget.Profile)
+        advanceUntilIdle()
+        vm.onEvent(EditProfileEvent.SaveClicked)
+        advanceUntilIdle()
+
+        assertEquals(listOf("fields"), repository.calls.filter { !it.startsWith("check") })
+        assertNotNull(vm.uiState.value.newPhoto)
+        assertNotNull(vm.uiState.value.saveError)
+        assertEquals(emptyList(), effects)
+    }
+
+    @Test
+    fun `when a picture fails, what did save stays saved and Save sends only the rest`() = runTest(dispatcher) {
+        val repository = FakeProfileRepository(amelia).apply {
+            imageAnswer = { AppError.Profile(AppError.ProfileReason.PhotosUnavailable) }
+        }
+        val (vm, effects) = viewModel(repository)
+
+        vm.onEvent(EditProfileEvent.BioChanged("Long novels"))
+        vm.pickAndCrop(PhotoTarget.Banner)
+        advanceUntilIdle()
+        vm.onEvent(EditProfileEvent.SaveClicked)
+        advanceUntilIdle()
+
+        val state = vm.uiState.value
+        assertEquals(listOf("fields", "upload Banner"), repository.calls)
+        assertEquals("Long novels", state.saved?.bio)
+        assertNotNull(state.newBanner)
+        assertEquals(listOf(ProfileField.Banner), state.changedFields)
+        assertEquals("Photos can't be saved yet. Try again later.", state.saveError)
+        assertTrue(state.canSave)
+        assertEquals(emptyList(), effects)
+
+        repository.imageAnswer = { null }
+        vm.onEvent(EditProfileEvent.SaveClicked)
+        advanceUntilIdle()
+
+        assertEquals(listOf("fields", "upload Banner", "upload Banner"), repository.calls)
+        assertFalse(vm.uiState.value.hasChanges)
+        assertEquals(listOf<EditProfileEffect>(EditProfileEffect.Saved), effects)
+    }
+}

@@ -1,61 +1,49 @@
 package com.example.dz.presentation.book.category_detail
 
-import com.example.dz.presentation.common.uniqueLazyKeys
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.dz.designsystem.components.icons.InkIcons
-import com.example.dz.designsystem.components.ink.InkBookRow
-import com.example.dz.designsystem.components.ink.InkChip
-import com.example.dz.designsystem.components.ink.InkIconButton
-import com.example.dz.designsystem.components.ink.InkLabel
-import com.example.dz.designsystem.theme.InkColors
-import com.example.dz.designsystem.theme.inkBodyFontFamily
-import com.example.dz.designsystem.theme.inkColors
-import com.example.dz.designsystem.theme.inkDisplayFontFamily
+import com.example.dz.designsystem.components.icons.OrganicIcons
+import com.example.dz.designsystem.components.organic.ORGANIC_GUTTER
+import com.example.dz.designsystem.components.organic.ORGANIC_TAB_BAR_CLEARANCE
+import com.example.dz.designsystem.components.organic.OrganicBookCover
+import com.example.dz.designsystem.components.organic.OrganicCircleIconButton
+import com.example.dz.designsystem.components.organic.OrganicFilterPill
+import com.example.dz.designsystem.components.organic.OrganicScreen
+import com.example.dz.designsystem.components.organic.OrganicScreenHeader
+import com.example.dz.designsystem.theme.OrganicColors
+import com.example.dz.designsystem.theme.organicBodyFontFamily
 import dz.shared.generated.resources.Res
-import dz.shared.generated.resources.book_cover
-import dz.shared.generated.resources.book_cover_3
-import dz.shared.generated.resources.book_cover_4
 import dz.shared.generated.resources.category_chip_all
 import dz.shared.generated.resources.category_chip_award
 import dz.shared.generated.resources.category_chip_new
 import dz.shared.generated.resources.category_chip_under
 import dz.shared.generated.resources.category_sorted_by
-import dz.shared.generated.resources.olive_again_book
-import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
 private val previewBooks = listOf(
-    CategoryDetailBookUi(id = "mexican-gothic", title = "Mexican Gothic", author = "Silvia Moreno-Garcia", coverRes = Res.drawable.book_cover, tag = "Literary", rating = "4.6", price = "12.99"),
-    CategoryDetailBookUi(id = "red-at-the-bone", title = "Red at the Bone", author = "Jacqueline Woodson", coverRes = Res.drawable.book_cover_3, tag = "Literary", rating = "4.5", price = "10.00", bookmarked = true),
-    CategoryDetailBookUi(id = "olive-again", title = "Olive, Again", author = "Elizabeth Strout", coverRes = Res.drawable.olive_again_book, tag = "Quiet", rating = "4.3", price = "13.00"),
-    CategoryDetailBookUi(id = "bestiary", title = "Bestiary", author = "K-Ming Chang", coverRes = Res.drawable.book_cover_4, tag = "Myth", rating = "4.2", price = "9.20")
+    CategoryDetailBookUi(id = "mexican-gothic", title = "Mexican Gothic", author = "Silvia Moreno-Garcia", tag = "Literary", rating = "4.6", price = "$12.99"),
+    CategoryDetailBookUi(id = "red-at-the-bone", title = "Red at the Bone", author = "Jacqueline Woodson", tag = "Literary", rating = "4.5", price = "$10.00", bookmarked = true),
+    CategoryDetailBookUi(id = "olive-again", title = "Olive, Again", author = "Elizabeth Strout", tag = "Quiet", rating = "4.3", price = "$13.00"),
+    CategoryDetailBookUi(id = "bestiary", title = "Bestiary", author = "K-Ming Chang", tag = "Myth", rating = "4.2", price = "$9.20")
 )
 
 private val previewUiState = CategoryDetailUiState(
@@ -65,175 +53,195 @@ private val previewUiState = CategoryDetailUiState(
     books = previewBooks
 )
 
+/**
+ * Category detail — one category's book list, in the Organic design system. No screen in the
+ * handoff matches this one-to-one (`dz-all-screens.html`'s "Categories" frame is the browse grid
+ * that opens it, not this list), so it's restyled with the same Organic primitives and layout
+ * every other book-list screen this port has used, rather than a literal new mockup. The filter
+ * chips and sort row carry forward unwired from the old screen — same fidelity, not new scope.
+ */
 @Composable
 fun CategoryDetailScreen(
     uiState: CategoryDetailUiState = previewUiState,
     onEvent: (CategoryDetailEvent) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val colors = inkColors()
-    val displayFont = inkDisplayFontFamily()
-    val bodyFont = inkBodyFontFamily()
-
-    val bookKeys = uiState.books.uniqueLazyKeys { it.id }
-
-    LazyColumn(
-        modifier = modifier
-            .fillMaxSize()
-            .background(colors.paper)
-            .statusBarsPadding(),
-        contentPadding = PaddingValues(bottom = 30.dp)
-    ) {
-        item(key = "top-bar") {
-            // top bar
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 22.dp, end = 22.dp, top = 4.dp)
-            ) {
-                InkIconButton(icon = InkIcons.Back, onClick = { onEvent(CategoryDetailEvent.BackClicked) }, colors = colors)
-                Spacer(modifier = Modifier.weight(1f))
-                InkIconButton(icon = InkIcons.Search, onClick = { onEvent(CategoryDetailEvent.SearchClicked) }, colors = colors)
-            }
-        }
-        item(key = "header") {
-            // header
-            Column(modifier = Modifier.padding(start = 22.dp, end = 22.dp, top = 20.dp)) {
-                Text(
-                    text = "Category 01",
-                    fontFamily = displayFont,
-                    fontStyle = FontStyle.Italic,
-                    fontSize = 12.sp,
-                    color = colors.accent
-                )
-                Text(
-                    text = uiState.title,
-                    modifier = Modifier.padding(top = 10.dp),
-                    fontFamily = displayFont,
-                    fontWeight = FontWeight.Medium,
+    OrganicScreen(modifier = modifier) {
+        LazyColumn(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(top = 16.dp, bottom = ORGANIC_TAB_BAR_CLEARANCE),
+            verticalArrangement = Arrangement.spacedBy(18.dp)
+        ) {
+            item(key = "header") {
+                OrganicScreenHeader(
+                    title = uiState.title,
                     fontSize = 30.sp,
-                    lineHeight = 33.sp,
-                    color = colors.ink
-                )
-                Text(
-                    text = uiState.description,
-                    modifier = Modifier.padding(top = 10.dp),
-                    fontFamily = bodyFont,
-                    fontSize = 13.sp,
-                    lineHeight = 21.sp,
-                    color = colors.muted
-                )
-            }
-        }
-        item(key = "chips") {
-            // filter chips
-            Row(
-                modifier = Modifier
-                    .padding(top = 18.dp)
-                    .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 22.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                InkChip(text = stringResource(Res.string.category_chip_all), solid = true, colors = colors)
-                InkChip(text = stringResource(Res.string.category_chip_new), colors = colors)
-                InkChip(text = stringResource(Res.string.category_chip_award), colors = colors)
-                InkChip(text = stringResource(Res.string.category_chip_under), colors = colors)
-            }
-        }
-        item(key = "sort") {
-            // sort row
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 22.dp, end = 22.dp, top = 20.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clickable { onEvent(CategoryDetailEvent.SortClicked) }
-                ) {
-                    InkLabel(text = stringResource(Res.string.category_sorted_by), colors = colors)
-                }
-                Icon(
-                    imageVector = InkIcons.ChevronDown,
-                    contentDescription = null,
-                    tint = colors.muted,
-                    modifier = Modifier.size(14.dp)
-                )
-            }
-        }
-        // book list — lazy, so only the rows on screen are built and fetch their covers
-        item(key = "list-top") { Spacer(modifier = Modifier.height(4.dp)) }
-        itemsIndexed(
-            items = uiState.books,
-            key = { index, _ -> "book:" + bookKeys[index] },
-            contentType = { _, _ -> "book" }
-        ) { i, book ->
-            Box(modifier = Modifier.padding(horizontal = 22.dp)) {
-                InkBookRow(
-                    cover = book.coverRes,
-                    coverUrl = book.coverUrl,
-                    title = book.title,
-                    author = book.author,
-                    modifier = Modifier.clickable { onEvent(CategoryDetailEvent.BookClicked(book.id)) },
-                    showDivider = i > 0,
-                    meta = {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Icon(
-                                imageVector = InkIcons.Star,
-                                contentDescription = null,
-                                tint = colors.accent,
-                                modifier = Modifier.size(11.dp)
-                            )
-                            Text(
-                                text = book.rating,
-                                fontFamily = bodyFont,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 11.sp,
-                                color = colors.inkSoft
-                            )
-                            Text(
-                                text = "· ${book.tag}",
-                                fontFamily = bodyFont,
-                                fontSize = 11.sp,
-                                color = colors.muted
-                            )
-                        }
+                    modifier = Modifier.padding(horizontal = ORGANIC_GUTTER),
+                    leading = {
+                        OrganicCircleIconButton(
+                            icon = OrganicIcons.ChevronLeft,
+                            onClick = { onEvent(CategoryDetailEvent.BackClicked) },
+                            contentDescription = "Back",
+                            size = 38.dp
+                        )
                     },
                     trailing = {
-                        Column(
-                            horizontalAlignment = Alignment.End,
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Text(
-                                text = "$${book.price}",
-                                fontFamily = displayFont,
-                                fontWeight = FontWeight.Medium,
-                                fontSize = 14.sp,
-                                color = colors.ink
-                            )
-                            Icon(
-                                imageVector = InkIcons.Bookmark,
-                                contentDescription = null,
-                                tint = if (book.bookmarked) colors.accent else colors.muted,
-                                modifier = Modifier
-                                    .size(15.dp)
-                                    .clickable { onEvent(CategoryDetailEvent.BookmarkClicked(book.id)) }
-                            )
-                        }
-                    },
-                    colors = colors
+                        OrganicCircleIconButton(
+                            icon = OrganicIcons.Search,
+                            onClick = { onEvent(CategoryDetailEvent.SearchClicked) },
+                            contentDescription = "Search",
+                            size = 38.dp
+                        )
+                    }
                 )
+            }
+
+            if (uiState.description.isNotBlank()) {
+                item(key = "description") {
+                    Text(
+                        text = uiState.description,
+                        modifier = Modifier.padding(horizontal = ORGANIC_GUTTER),
+                        fontFamily = organicBodyFontFamily(),
+                        fontSize = 13.sp,
+                        lineHeight = 20.sp,
+                        color = OrganicColors.neutral700
+                    )
+                }
+            }
+
+            item(key = "chips") {
+                Row(
+                    modifier = Modifier.padding(horizontal = ORGANIC_GUTTER),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OrganicFilterPill(label = stringResource(Res.string.category_chip_all), selected = true, onClick = {})
+                    OrganicFilterPill(label = stringResource(Res.string.category_chip_new), selected = false, onClick = {})
+                    OrganicFilterPill(label = stringResource(Res.string.category_chip_award), selected = false, onClick = {})
+                    OrganicFilterPill(label = stringResource(Res.string.category_chip_under), selected = false, onClick = {})
+                }
+            }
+
+            item(key = "sort") {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = ORGANIC_GUTTER)
+                        .clickable(role = Role.Button) { onEvent(CategoryDetailEvent.SortClicked) },
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = stringResource(Res.string.category_sorted_by),
+                        fontFamily = organicBodyFontFamily(),
+                        fontSize = 13.sp,
+                        color = OrganicColors.neutral700
+                    )
+                    Icon(
+                        imageVector = OrganicIcons.ChevronDown,
+                        contentDescription = null,
+                        tint = OrganicColors.neutral600,
+                        modifier = Modifier.size(14.dp)
+                    )
+                }
+            }
+
+            itemsIndexed(items = uiState.books, key = { _, book -> book.id }) { index, book ->
+                Column(modifier = Modifier.padding(horizontal = ORGANIC_GUTTER)) {
+                    if (index > 0) {
+                        HorizontalDivider(
+                            modifier = Modifier.padding(bottom = 14.dp),
+                            thickness = 1.dp,
+                            color = OrganicColors.neutral200
+                        )
+                    }
+                    CategoryBookRow(
+                        book = book,
+                        onClick = { onEvent(CategoryDetailEvent.BookClicked(book.id)) },
+                        onBookmarkClick = { onEvent(CategoryDetailEvent.BookmarkClicked(book.id)) }
+                    )
+                }
             }
         }
     }
 }
 
-@Preview(showBackground = true, widthDp = 375, heightDp = 820)
+@Composable
+private fun CategoryBookRow(
+    book: CategoryDetailBookUi,
+    onClick: () -> Unit,
+    onBookmarkClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(role = Role.Button, onClick = onClick),
+        horizontalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        OrganicBookCover(title = book.title, coverUrl = book.coverUrl, width = 64.dp, height = 92.dp, cornerRadius = 12.dp)
+
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                text = book.title,
+                fontFamily = organicBodyFontFamily(),
+                fontWeight = FontWeight.Bold,
+                fontSize = 15.sp,
+                color = OrganicColors.text
+            )
+            Text(
+                text = book.author,
+                fontFamily = organicBodyFontFamily(),
+                fontSize = 12.sp,
+                color = OrganicColors.neutral700
+            )
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                Icon(
+                    imageVector = OrganicIcons.StarFilled,
+                    contentDescription = null,
+                    tint = OrganicColors.accent700,
+                    modifier = Modifier.size(11.dp)
+                )
+                Text(
+                    text = book.rating,
+                    fontFamily = organicBodyFontFamily(),
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 11.sp,
+                    color = OrganicColors.neutral800
+                )
+                if (book.tag.isNotBlank()) {
+                    Text(
+                        text = "· ${book.tag}",
+                        fontFamily = organicBodyFontFamily(),
+                        fontSize = 11.sp,
+                        color = OrganicColors.neutral600
+                    )
+                }
+            }
+        }
+
+        Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(
+                text = book.price,
+                fontFamily = organicBodyFontFamily(),
+                fontWeight = FontWeight.Bold,
+                fontSize = 14.sp,
+                color = OrganicColors.text
+            )
+            Icon(
+                imageVector = if (book.bookmarked) OrganicIcons.BookmarkFilled else OrganicIcons.Bookmark,
+                contentDescription = "Bookmark",
+                tint = if (book.bookmarked) OrganicColors.accent else OrganicColors.neutral500,
+                modifier = Modifier
+                    .size(16.dp)
+                    .clickable(role = Role.Button, onClick = onBookmarkClick)
+            )
+        }
+    }
+}
+
+@Preview(showBackground = true, widthDp = 375, heightDp = 900)
 @Composable
 private fun CategoryDetailScreenPreview() {
     CategoryDetailScreen()

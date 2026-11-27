@@ -1,5 +1,6 @@
 package com.example.dz.domain.model
 
+@kotlinx.serialization.Serializable
 data class Collection(
     val id: String,
     val title: String,

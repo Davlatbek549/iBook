@@ -1,13 +1,11 @@
 package com.example.dz.presentation.profile
 
 sealed interface ProfileEvent {
-    data object BackClicked : ProfileEvent
-    data object EditClicked : ProfileEvent
-    data object NotificationsClicked : ProfileEvent
-    data object FriendsClicked : ProfileEvent
-    data object GoalsClicked : ProfileEvent
-    data object CollectionsClicked : ProfileEvent
-    data object PurchasesClicked : ProfileEvent
-    data object MembershipClicked : ProfileEvent
     data object SettingsClicked : ProfileEvent
+    data object FriendsClicked : ProfileEvent
+    data object InviteClicked : ProfileEvent
+    data object ReadingGoalClicked : ProfileEvent
+    data object MembershipClicked : ProfileEvent
+    data object NotificationsClicked : ProfileEvent
+    data object SignOutClicked : ProfileEvent
 }
